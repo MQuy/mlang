@@ -1,22 +1,16 @@
 import { Lexer } from "./lexer";
 import { Parser } from "./parser";
 import { Interpreter } from "./interpreter";
-import * as readline from "readline";
+import * as readlineSync from "readline-sync";
 
 function main() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
   while (true) {
-    rl.question("> ", source => {
-      const tokens = new Lexer(source).execute();
-      const ast = new Parser(tokens).expression();
-      const result = new Interpreter(ast).execute();
+    const source = readlineSync.question("> ");
+    const tokens = new Lexer(source).execute();
+    const ast = new Parser(tokens).expression();
+    const result = new Interpreter(ast).execute();
 
-      console.log(`${result}\n`);
-    });
+    console.log(`${result}`);
   }
 }
 
