@@ -100,7 +100,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /*!***************!*\
   !*** ./mq.ts ***!
   \***************/
-/*! exports provided: Lexer, Parser */
+/*! exports provided: Lexer, Parser, Interpreter */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -111,9 +111,92 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _src_parser__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./src/parser */ "./src/parser.ts");
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "Parser", function() { return _src_parser__WEBPACK_IMPORTED_MODULE_1__["Parser"]; });
 
+/* harmony import */ var _src_interpreter__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./src/interpreter */ "./src/interpreter.ts");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "Interpreter", function() { return _src_interpreter__WEBPACK_IMPORTED_MODULE_2__["Interpreter"]; });
 
 
 
+
+
+
+
+/***/ }),
+
+/***/ "./src/ast.ts":
+/*!********************!*\
+  !*** ./src/ast.ts ***!
+  \********************/
+/*! exports provided: TreeNode */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TreeNode", function() { return TreeNode; });
+class TreeNode {
+    constructor({ left, operator, right }) {
+        this.left = left;
+        this.operator = operator;
+        this.right = right;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/interpreter.ts":
+/*!****************************!*\
+  !*** ./src/interpreter.ts ***!
+  \****************************/
+/*! exports provided: Interpreter */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Interpreter", function() { return Interpreter; });
+/* harmony import */ var _token__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./token */ "./src/token.ts");
+/* harmony import */ var _ast__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ast */ "./src/ast.ts");
+
+
+class Interpreter {
+    constructor(ast) {
+        this.ast = ast;
+    }
+    execute() {
+        return this.visit(this.ast);
+    }
+    visit(node) {
+        if (node instanceof _ast__WEBPACK_IMPORTED_MODULE_1__["TreeNode"]) {
+            if (node.left) {
+                if (node.operator.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].PLUS) {
+                    return this.visit(node.left) + this.visit(node.right);
+                }
+                else if (node.operator.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].MINUS) {
+                    return this.visit(node.left) - this.visit(node.right);
+                }
+                else if (node.operator.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].MUL) {
+                    return this.visit(node.left) * this.visit(node.right);
+                }
+                else {
+                    return this.visit(node.left) / this.visit(node.right);
+                }
+            }
+            else if (node.right instanceof _ast__WEBPACK_IMPORTED_MODULE_1__["TreeNode"]) {
+                return this.visit(node.right);
+            }
+            else {
+                if (node.operator.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].PLUS) {
+                    return node.right.value;
+                }
+                else {
+                    return -node.right.value;
+                }
+            }
+        }
+        else {
+            return node.value;
+        }
+    }
+}
 
 
 /***/ }),
@@ -198,6 +281,8 @@ class Lexer {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Parser", function() { return Parser; });
 /* harmony import */ var _token__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./token */ "./src/token.ts");
+/* harmony import */ var _ast__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ast */ "./src/ast.ts");
+
 
 /**
  * expression = factor ((PLUS|MINUS) factor)*
@@ -209,12 +294,19 @@ class Parser {
         this.tokens = tokens;
         this.cPointer = 0;
     }
+    execute() {
+        return this.expression();
+    }
     expression() {
         let node = this.factor();
         let token = this.currentToken;
         while (token && (token.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].PLUS || token.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].MINUS)) {
             this.cPointer += 1;
-            node = { left: node, operator: token, right: this.factor() };
+            node = new _ast__WEBPACK_IMPORTED_MODULE_1__["TreeNode"]({
+                left: node,
+                operator: token,
+                right: this.factor()
+            });
             token = this.currentToken;
         }
         return node;
@@ -224,7 +316,11 @@ class Parser {
         let token = this.currentToken;
         while (token && (token.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].MUL || token.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].DIV)) {
             this.cPointer += 1;
-            node = { left: node, operator: token, right: this.factor() };
+            node = new _ast__WEBPACK_IMPORTED_MODULE_1__["TreeNode"]({
+                left: node,
+                operator: token,
+                right: this.factor()
+            });
             token = this.currentToken;
         }
         return node;
@@ -239,11 +335,14 @@ class Parser {
         }
         else if (token.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].PLUS || token.type === _token__WEBPACK_IMPORTED_MODULE_0__["TType"].MINUS) {
             this.cPointer += 1;
-            return { operator: token, right: this.expression() };
+            return new _ast__WEBPACK_IMPORTED_MODULE_1__["TreeNode"]({ operator: token, right: this.expression() });
         }
         else {
             this.cPointer += 1;
-            return token;
+            return new _ast__WEBPACK_IMPORTED_MODULE_1__["TreeNode"]({
+                operator: { type: _token__WEBPACK_IMPORTED_MODULE_0__["TType"].PLUS, value: "+" },
+                right: token
+            });
         }
     }
     get currentToken() {
@@ -283,4 +382,3 @@ var TType;
 
 /******/ });
 });
-//# sourceMappingURL=bundle.js.map

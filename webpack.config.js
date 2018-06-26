@@ -4,7 +4,7 @@ const path = require("path");
 module.exports = {
   entry: "./mq.ts",
   target: "web",
-  devtool: "source-map",
+  devtool: false,
 
   output: {
     path: __dirname,

@@ -1,10 +1,5 @@
 import { TType, Token } from "./token";
-
-interface AST {
-  left?: AST | Token;
-  operator: Token;
-  right: AST | Token;
-}
+import { TreeNode } from "./ast";
 
 /**
  * expression = factor ((PLUS|MINUS) factor)*
@@ -19,31 +14,46 @@ export class Parser {
     this.tokens = tokens;
     this.cPointer = 0;
   }
-  expression(): AST | Token {
+
+  execute() {
+    return this.expression();
+  }
+
+  expression(): TreeNode {
     let node = this.factor();
     let token = this.currentToken;
 
     while (token && (token.type === TType.PLUS || token.type === TType.MINUS)) {
       this.cPointer += 1;
-      node = { left: node, operator: token, right: this.factor() };
+      node = new TreeNode({
+        left: node,
+        operator: token,
+        right: this.factor()
+      });
       token = this.currentToken;
     }
 
     return node;
   }
-  factor(): AST | Token {
+
+  factor(): TreeNode {
     let node = this.term();
     let token = this.currentToken;
 
     while (token && (token.type === TType.MUL || token.type === TType.DIV)) {
       this.cPointer += 1;
-      node = { left: node, operator: token, right: this.factor() };
+      node = new TreeNode({
+        left: node,
+        operator: token,
+        right: this.factor()
+      });
       token = this.currentToken;
     }
 
     return node;
   }
-  term(): AST | Token {
+
+  term(): TreeNode {
     let token = this.currentToken;
 
     if (token.type === TType.OPEN_PAREN) {
@@ -53,16 +63,20 @@ export class Parser {
       return node;
     } else if (token.type === TType.PLUS || token.type === TType.MINUS) {
       this.cPointer += 1;
-      return { operator: token, right: this.expression() };
+      return new TreeNode({ operator: token, right: this.expression() });
     } else {
       this.cPointer += 1;
-      return token;
+      return new TreeNode({
+        operator: { type: TType.PLUS, value: "+" },
+        right: token
+      });
     }
   }
 
   get currentToken() {
     return this.tokens[this.cPointer];
   }
+
   get nextToken() {
     return this.tokens[this.cPointer + 1];
   }
