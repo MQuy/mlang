@@ -1,8 +1,11 @@
 {
+  "scripts": {
+    "build:repl": "rollup --config ./config/rollup.repl.js",
+    "build:lib": "rollup --config ./config/rollup.lib.js"
+  },
   "devDependencies": {
     "@types/node": "^10.3.6",
-    "ts-loader": "4.4.1",
-    "typescript": "2.9.2",
-    "webpack": "4.12.1"
+    "rollup-plugin-typescript2": "^0.15.1",
+    "typescript": "2.9.2"
   }
 }
