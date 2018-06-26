@@ -25,7 +25,11 @@ export class Interpreter {
           return this.visit(node.left) / this.visit(node.right);
         }
       } else if (node.right instanceof TreeNode) {
-        return this.visit(node.right);
+        if (node.operator.type === TType.PLUS) {
+          return this.visit(node.right);
+        } else {
+          return -this.visit(node.right);
+        }
       } else {
         if (node.operator.type === TType.PLUS) {
           return node.right.value;
