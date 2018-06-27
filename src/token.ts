@@ -1,11 +1,24 @@
 export enum TType {
-  NUMBER,
-  PLUS,
-  MINUS,
-  MUL,
-  DIV,
-  OPEN_PAREN,
-  CLOSE_PAREN
+  INTEGER = "INTEGER",
+  REAL = "REAL",
+  INTEGER_CONST = "INTEGER_CONST",
+  REAL_CONST = "REAL_CONST",
+  PLUS = "PLUS",
+  MINUS = "MINUS",
+  MUL = "MUL",
+  DIV = "DIV",
+  LPAREN = "LPAREN",
+  RPAREN = "RPAREN",
+  VARIABLE_NAME = "VARIABLE_NAME",
+  ASSIGN = "ASSIGN",
+  BEGIN = "BEGIN",
+  END = "END",
+  SEMI = "SEMI",
+  DOT = "DOT",
+  PROGRAM = "PROGRAM",
+  VAR = "VAR",
+  COLON = "COLON",
+  COMMA = "COMMA"
 }
 
 export interface Token {

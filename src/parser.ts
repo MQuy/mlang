@@ -2,10 +2,22 @@ import { TType, Token } from "./token";
 import { TreeNode } from "./ast";
 
 /**
- * expression = factor ((PLUS|MINUS) factor)*
- * factor = term ((MUL|DIV) term) *
- * term = NUMBER | OPEN_PAREN expression CLOSE_PAREN | (PLUS|MINUS) expression
+ * program : PROGRAM variable SEMI block dot
+ * block : declarations compound_statement
+ * declarations : VAR (variable_declaration SEMI)+ | empty
+ * variable_declaration : variable (COMMA ID)* COLON typespec
+ * typespec : INTEGER | REAL
+ * compound_statement : BEGIN statement_list END
+ * statement_list : statement (SEMI statement)*
+ * statement : compound_statement | assignment_statement | empty
+ * assignment_statement : variable ASSIGN expr
+ * empty :
+ * expr : term ((PLUS | MINUS) term)*
+ * term : factor ((MUL | DIV) factor)*
+ * factor : (PLUS | MINUS) expr | INTEGER_CONST | REAL_CONST | LPAREN expr RPAREN | variable
+ * variable : ID
  */
+
 export class Parser {
   tokens: Token[];
   cPointer: number;
