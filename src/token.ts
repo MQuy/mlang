@@ -23,5 +23,5 @@ export enum TType {
 
 export interface Token {
   type: TType;
-  value: string | number;
+  value: string;
 }

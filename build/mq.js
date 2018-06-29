@@ -226,7 +226,7 @@ class UnaryNode extends Node {
  * declaration : VAR (variable_declaration SEMI)+ | empty
  * variable_declaration : variable (COMMA ID)* COLON typespec
  * typespec : INTEGER | REAL
- * compound_statement : BEGIN statement (SEMI statement)* END
+ * compound_statement : BEGIN statement (SEMI statement)* SEMI END
  * statement : compound_statement | assignment_statement
  * assignment_statement : variable ASSIGN expression
  * empty :
@@ -400,5 +400,77 @@ class Parser {
     }
 }
 
+class VarSymbol {
+    constructor(name, type) {
+        this.name = name;
+        this.type = type;
+    }
+}
+class BuiltinSymbol {
+    constructor(name) {
+        this.name = name;
+    }
+    static getBuiltinSymbols() {
+        return {
+            INTEGER: new BuiltinSymbol("INTEGER"),
+            REAL: new BuiltinSymbol("REAL")
+        };
+    }
+}
+class SymbolTable {
+    constructor() {
+        this.builtins = BuiltinSymbol.getBuiltinSymbols();
+        this.symbols = {};
+    }
+    define(name, type) {
+        this.symbols[name] = new VarSymbol(name, type);
+    }
+    lookup(name) {
+        return this.symbols[name];
+    }
+}
+class SymbolTableBuilder {
+    constructor(ast) {
+        this.ast = ast;
+        this.symbolTable = new SymbolTable();
+    }
+    execute() {
+        this.visit(this.ast);
+    }
+    visitProgram(node) {
+        this.visit(node.block);
+    }
+    visitBlock(node) {
+        node.declaration.children.forEach(child => this.visitVariableDeclaration(child));
+        this.visitCompound(node.compound);
+    }
+    visitVariableDeclaration({ name, type }) {
+        let typeSymbol = this.symbolTable.builtins[type.token.value];
+        this.symbolTable.define(name.token.value, typeSymbol);
+    }
+    visitCompound(node) {
+        node.children.forEach(child => this.visit(child));
+    }
+    visitAssignment(node) { }
+    visit(node) {
+        if (node instanceof ProgramNode) {
+            this.visitProgram(node);
+        }
+        else if (node instanceof BlockNode) {
+            this.visitBlock(node);
+        }
+        else if (node instanceof VariableDeclarationNode) {
+            this.visitVariableDeclaration(node);
+        }
+        else if (node instanceof CompoundNode) {
+            this.visitCompound(node);
+        }
+        else {
+            throw new Error("Cannot find suitable visit");
+        }
+    }
+}
+
 exports.Lexer = Lexer;
 exports.Parser = Parser;
+exports.SymbolTableBuilder = SymbolTableBuilder;
