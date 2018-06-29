@@ -70,9 +70,12 @@ export class CompoundNode extends Node {
 
 export class AssignmentNode extends Node {
   variable: TokenNode;
-  expression: ExpressionNode | UnaryNode;
+  expression: ExpressionNode | UnaryNode | TokenNode;
 
-  constructor(variable: TokenNode, expression: ExpressionNode | UnaryNode) {
+  constructor(
+    variable: TokenNode,
+    expression: ExpressionNode | UnaryNode | TokenNode
+  ) {
     super();
 
     this.variable = variable;

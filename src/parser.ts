@@ -7,7 +7,7 @@ import * as AST from "./ast";
  * declaration : VAR (variable_declaration SEMI)+ | empty
  * variable_declaration : variable (COMMA ID)* COLON typespec
  * typespec : INTEGER | REAL
- * compound_statement : BEGIN statement (SEMI statement)* END
+ * compound_statement : BEGIN statement (SEMI statement)* SEMI END
  * statement : compound_statement | assignment_statement
  * assignment_statement : variable ASSIGN expression
  * empty :
@@ -27,7 +27,7 @@ export class Parser {
   }
 
   execute() {
-    return this.expression();
+    return this.program();
   }
 
   eat(type: TType) {
@@ -107,13 +107,24 @@ export class Parser {
 
   compound(): AST.CompoundNode {
     this.eat(TType.BEGIN);
-    let statement = this.statement();
-    let statements = [statement];
+    let statement: AST.CompoundNode | AST.AssignmentNode;
+    let statements: (AST.CompoundNode | AST.AssignmentNode)[] = [];
 
-    while (this.getCurrentToken().type === TType.SEMI) {
-      this.eat(TType.SEMI);
-      statement = this.statement();
-      statements.push(statement);
+    while (true) {
+      let token = this.getCurrentToken();
+
+      if (token.type === TType.BEGIN) {
+        statement = this.compound();
+        statements.push(statement);
+        this.eat(TType.SEMI);
+      } else if (token.type === TType.VARIABLE_NAME) {
+        statement = this.assignment();
+        statements.push(statement);
+        this.eat(TType.SEMI);
+      } else if (token.type === TType.END) {
+        this.eat(TType.END);
+        break;
+      }
     }
     return new AST.CompoundNode(statements);
   }
@@ -138,7 +149,7 @@ export class Parser {
     return new AST.AssignmentNode(new AST.TokenNode(variable), expression);
   }
 
-  expression(): AST.ExpressionNode {
+  expression(): AST.ExpressionNode | AST.UnaryNode | AST.TokenNode {
     let node = this.term();
     let token = this.getCurrentToken();
 
@@ -151,8 +162,8 @@ export class Parser {
     return node;
   }
 
-  term(): AST.ExpressionNode {
-    let node = this.term();
+  term(): AST.ExpressionNode | AST.UnaryNode | AST.TokenNode {
+    let node = this.factor();
     let token = this.getCurrentToken();
 
     while (token && (token.type === TType.MUL || token.type === TType.DIV)) {
