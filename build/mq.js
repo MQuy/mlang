@@ -400,6 +400,71 @@ class Parser {
     }
 }
 
+class Visitor {
+    visitProgram(node) {
+        this.visitBlock(node.block);
+    }
+    visitBlock(node) {
+        node.declaration.children.forEach(child => this.visitVariableDeclaration(child));
+        this.visitCompound(node.compound);
+    }
+    visitVariableDeclaration(node) { }
+    visitCompound(node) {
+        node.children.forEach(child => this.visit(child));
+    }
+    visitAssignment(node) {
+        this.visitVariable(node.variable);
+        this.visitExpression(node.expression);
+    }
+    visitVariable(node) { }
+    visitExpression(node) {
+        if (node instanceof ExpressionNode) {
+            this.visit(node.left);
+            this.visit(node.right);
+        }
+        else if (node instanceof UnaryNode) {
+            this.visit(node.operand);
+        }
+    }
+    visitUnary(node) { }
+    visitConstant(node) { }
+    visit(node) {
+        if (node instanceof ProgramNode) {
+            return this.visitProgram(node);
+        }
+        else if (node instanceof BlockNode) {
+            return this.visitBlock(node);
+        }
+        else if (node instanceof VariableDeclarationNode) {
+            return this.visitVariableDeclaration(node);
+        }
+        else if (node instanceof CompoundNode) {
+            return this.visitCompound(node);
+        }
+        else if (node instanceof AssignmentNode) {
+            return this.visitAssignment(node);
+        }
+        else if (node instanceof ExpressionNode) {
+            return this.visitExpression(node);
+        }
+        else if (node instanceof UnaryNode) {
+            return this.visitUnary(node);
+        }
+        else if (node instanceof TokenNode) {
+            if (node.token.type === TType.VARIABLE_NAME) {
+                return this.visitVariable(node);
+            }
+            else if (node.token.type === TType.INTEGER_CONST ||
+                node.token.type === TType.REAL_CONST) {
+                return this.visitConstant(node);
+            }
+        }
+        else {
+            throw new Error("Cannot find suitable visit");
+        }
+    }
+}
+
 class VarSymbol {
     constructor(name, type) {
         this.name = name;
@@ -429,48 +494,65 @@ class SymbolTable {
         return this.symbols[name];
     }
 }
-class SymbolTableBuilder {
+class SymbolTableBuilder extends Visitor {
     constructor(ast) {
+        super();
         this.ast = ast;
         this.symbolTable = new SymbolTable();
     }
     execute() {
         this.visit(this.ast);
     }
-    visitProgram(node) {
-        this.visit(node.block);
-    }
-    visitBlock(node) {
-        node.declaration.children.forEach(child => this.visitVariableDeclaration(child));
-        this.visitCompound(node.compound);
-    }
     visitVariableDeclaration({ name, type }) {
         let typeSymbol = this.symbolTable.builtins[type.token.value];
         this.symbolTable.define(name.token.value, typeSymbol);
     }
-    visitCompound(node) {
-        node.children.forEach(child => this.visit(child));
+}
+
+class Interpreter extends Visitor {
+    constructor(ast) {
+        super();
+        this.ast = ast;
+        this.symbolTable = {};
     }
-    visitAssignment(node) { }
-    visit(node) {
-        if (node instanceof ProgramNode) {
-            this.visitProgram(node);
+    execute() {
+        this.visit(this.ast);
+    }
+    visitAssignment(node) {
+        let name = node.variable.token.value;
+        this.symbolTable[name] = +this.visit(node.expression);
+    }
+    visitExpression(node) {
+        if (node.operator.type === TType.PLUS) {
+            return +this.visit(node.left) + +this.visit(node.right);
         }
-        else if (node instanceof BlockNode) {
-            this.visitBlock(node);
+        else if (node.operator.type === TType.MINUS) {
+            return +this.visit(node.left) - +this.visit(node.right);
         }
-        else if (node instanceof VariableDeclarationNode) {
-            this.visitVariableDeclaration(node);
-        }
-        else if (node instanceof CompoundNode) {
-            this.visitCompound(node);
+        else if (node.operator.type === TType.MUL) {
+            return +this.visit(node.left) * +this.visit(node.right);
         }
         else {
-            throw new Error("Cannot find suitable visit");
+            return +this.visit(node.left) / +this.visit(node.right);
         }
+    }
+    visitUnary(node) {
+        if (node.operator.type === TType.PLUS) {
+            return this.visit(node.operand);
+        }
+        else {
+            return -this.visit(node.operand);
+        }
+    }
+    visitVariable(node) {
+        return this.symbolTable[node.token.value];
+    }
+    visitConstant(node) {
+        return +node.token.value;
     }
 }
 
 exports.Lexer = Lexer;
 exports.Parser = Parser;
 exports.SymbolTableBuilder = SymbolTableBuilder;
+exports.Interpreter = Interpreter;

@@ -1,4 +1,5 @@
 import * as AST from "./ast";
+import { Visitor } from "./visitor";
 
 export class VarSymbol {
   name: string;
@@ -43,11 +44,13 @@ export class SymbolTable {
   }
 }
 
-export class SymbolTableBuilder {
+export class SymbolTableBuilder extends Visitor {
   ast: AST.ProgramNode;
   symbolTable: SymbolTable;
 
   constructor(ast: AST.ProgramNode) {
+    super();
+
     this.ast = ast;
     this.symbolTable = new SymbolTable();
   }
@@ -56,39 +59,8 @@ export class SymbolTableBuilder {
     this.visit(this.ast);
   }
 
-  visitProgram(node: AST.ProgramNode) {
-    this.visit(node.block);
-  }
-
-  visitBlock(node: AST.BlockNode) {
-    node.declaration.children.forEach(child =>
-      this.visitVariableDeclaration(child)
-    );
-    this.visitCompound(node.compound);
-  }
-
   visitVariableDeclaration({ name, type }: AST.VariableDeclarationNode) {
     let typeSymbol = this.symbolTable.builtins[type.token.value];
     this.symbolTable.define(name.token.value, typeSymbol);
-  }
-
-  visitCompound(node: AST.CompoundNode) {
-    node.children.forEach(child => this.visit(child));
-  }
-
-  visitAssignment(node: AST.AssignmentNode) {}
-
-  visit(node: AST.Node) {
-    if (node instanceof AST.ProgramNode) {
-      this.visitProgram(node);
-    } else if (node instanceof AST.BlockNode) {
-      this.visitBlock(node);
-    } else if (node instanceof AST.VariableDeclarationNode) {
-      this.visitVariableDeclaration(node);
-    } else if (node instanceof AST.CompoundNode) {
-      this.visitCompound(node);
-    } else {
-      throw new Error("Cannot find suitable visit");
-    }
   }
 }
