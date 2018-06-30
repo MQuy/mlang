@@ -44,7 +44,7 @@ export class SymbolTable {
   }
 }
 
-export class SymbolTableBuilder extends Visitor {
+export class SemanticAnalyzer extends Visitor {
   ast: AST.ProgramNode;
   symbolTable: SymbolTable;
 
@@ -60,7 +60,23 @@ export class SymbolTableBuilder extends Visitor {
   }
 
   visitVariableDeclaration({ name, type }: AST.VariableDeclarationNode) {
+    if (this.symbolTable.lookup(name.token.value)) {
+      throw new Error(`${name.token.value} is already declared`);
+    }
     let typeSymbol = this.symbolTable.builtins[type.token.value];
     this.symbolTable.define(name.token.value, typeSymbol);
+  }
+
+  visitAssignment({ variable, expression }: AST.AssignmentNode) {
+    if (!this.symbolTable.lookup(variable.token.value)) {
+      throw new Error(`${variable.token.value} is not defined`);
+    }
+    this.visit(expression);
+  }
+
+  visitVariable(node: AST.TokenNode) {
+    if (!this.symbolTable.lookup(node.token.value)) {
+      throw new Error(`${node.token.value} is not defined`);
+    }
   }
 }

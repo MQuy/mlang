@@ -494,7 +494,7 @@ class SymbolTable {
         return this.symbols[name];
     }
 }
-class SymbolTableBuilder extends Visitor {
+class SemanticAnalyzer extends Visitor {
     constructor(ast) {
         super();
         this.ast = ast;
@@ -504,8 +504,22 @@ class SymbolTableBuilder extends Visitor {
         this.visit(this.ast);
     }
     visitVariableDeclaration({ name, type }) {
+        if (this.symbolTable.lookup(name.token.value)) {
+            throw new Error(`${name.token.value} is already declared`);
+        }
         let typeSymbol = this.symbolTable.builtins[type.token.value];
         this.symbolTable.define(name.token.value, typeSymbol);
+    }
+    visitAssignment({ variable, expression }) {
+        if (!this.symbolTable.lookup(variable.token.value)) {
+            throw new Error(`${variable.token.value} is not defined`);
+        }
+        this.visit(expression);
+    }
+    visitVariable(node) {
+        if (!this.symbolTable.lookup(node.token.value)) {
+            throw new Error(`${node.token.value} is not defined`);
+        }
     }
 }
 
@@ -554,5 +568,5 @@ class Interpreter extends Visitor {
 
 exports.Lexer = Lexer;
 exports.Parser = Parser;
-exports.SymbolTableBuilder = SymbolTableBuilder;
+exports.SemanticAnalyzer = SemanticAnalyzer;
 exports.Interpreter = Interpreter;
