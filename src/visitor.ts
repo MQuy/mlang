@@ -7,13 +7,20 @@ export class Visitor {
   }
 
   visitBlock(node: AST.BlockNode) {
-    node.declaration.children.forEach(child =>
-      this.visitVariableDeclaration(child)
+    node.declaration.varDeclarations.forEach(varDeclaration =>
+      this.visitVariableDeclaration(varDeclaration)
     );
+    node.declaration.procedures.forEach(procedure => {
+      this.visitProcedure(procedure);
+    });
     this.visitCompound(node.compound);
   }
 
   visitVariableDeclaration(node: AST.VariableDeclarationNode) {}
+
+  visitProcedure(node: AST.ProcedureNode) {
+    this.visitBlock(node.block);
+  }
 
   visitCompound(node: AST.CompoundNode) {
     node.children.forEach(child => this.visit(child));
@@ -46,6 +53,8 @@ export class Visitor {
       return this.visitBlock(node);
     } else if (node instanceof AST.VariableDeclarationNode) {
       return this.visitVariableDeclaration(node);
+    } else if (node instanceof AST.ProcedureNode) {
+      return this.visitProcedure(node);
     } else if (node instanceof AST.CompoundNode) {
       return this.visitCompound(node);
     } else if (node instanceof AST.AssignmentNode) {

@@ -18,7 +18,8 @@ export enum TType {
   PROGRAM = "PROGRAM",
   VAR = "VAR",
   COLON = "COLON",
-  COMMA = "COMMA"
+  COMMA = "COMMA",
+  PROCEDURE = "PROCEDURE"
 }
 
 export interface Token {

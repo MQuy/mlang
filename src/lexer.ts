@@ -87,6 +87,14 @@ export class Lexer {
         tokens.push({ value: token, type: TType.VARIABLE_NAME });
         this.cPointer = cPointer;
         char = this.source[this.cPointer];
+      } else if (
+        char === "P" &&
+        ({ token, cPointer } = this.getNextToken(/[PROCEDURE]/)) &&
+        token === TType.PROCEDURE
+      ) {
+        tokens.push({ value: token, type: TType.PROCEDURE });
+        this.cPointer = cPointer;
+        char = this.source[this.cPointer];
       } else {
         if (char === "+") {
           tokens.push({ value: char, type: TType.PLUS });

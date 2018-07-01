@@ -24,6 +24,7 @@ var TType;
     TType["VAR"] = "VAR";
     TType["COLON"] = "COLON";
     TType["COMMA"] = "COMMA";
+    TType["PROCEDURE"] = "PROCEDURE";
 })(TType || (TType = {}));
 
 class Lexer {
@@ -102,6 +103,13 @@ class Lexer {
                 this.cPointer = cPointer;
                 char = this.source[this.cPointer];
             }
+            else if (char === "P" &&
+                ({ token, cPointer } = this.getNextToken(/[PROCEDURE]/)) &&
+                token === TType.PROCEDURE) {
+                tokens.push({ value: token, type: TType.PROCEDURE });
+                this.cPointer = cPointer;
+                char = this.source[this.cPointer];
+            }
             else {
                 if (char === "+") {
                     tokens.push({ value: char, type: TType.PLUS });
@@ -173,9 +181,17 @@ class BlockNode extends Node {
     }
 }
 class DeclarationNode extends Node {
-    constructor(children) {
+    constructor(varDeclarations, procedures) {
         super();
-        this.children = children;
+        this.varDeclarations = varDeclarations;
+        this.procedures = procedures;
+    }
+}
+class ProcedureNode extends Node {
+    constructor(name, block) {
+        super();
+        this.name = name;
+        this.block = block;
     }
 }
 class VariableDeclarationNode extends Node {
@@ -223,9 +239,10 @@ class UnaryNode extends Node {
 /**
  * program : PROGRAM variable SEMI block dot
  * block : declaration compound_statement
- * declaration : VAR (variable_declaration SEMI)+ | empty
+ * declaration : VAR (variable_declaration SEMI)+ | (procedure)* | empty
  * variable_declaration : variable (COMMA ID)* COLON typespec
  * typespec : INTEGER | REAL
+ * procedure: PROCEDURE variable SEMI block SEMI
  * compound_statement : BEGIN statement (SEMI statement)* SEMI END
  * statement : compound_statement | assignment_statement
  * assignment_statement : variable ASSIGN expression
@@ -271,16 +288,21 @@ class Parser {
         return new BlockNode(declarationNode, compoundNode);
     }
     declaration() {
-        let declarations = [];
+        let varDeclarations = [];
+        let procedures = [];
         if (this.getCurrentToken().type === TType.VAR) {
             this.eat(TType.VAR);
             while (this.getCurrentToken().type === TType.VARIABLE_NAME) {
                 let nodes = this.variableDeclaration();
-                declarations.push(...nodes);
+                varDeclarations.push(...nodes);
                 this.eat(TType.SEMI);
             }
         }
-        return new DeclarationNode(declarations);
+        while (this.getCurrentToken().type === TType.PROCEDURE) {
+            let procedure = this.procedure();
+            procedures.push(procedure);
+        }
+        return new DeclarationNode(varDeclarations, procedures);
     }
     variableDeclaration() {
         let variableName = this.eat(TType.VARIABLE_NAME);
@@ -293,6 +315,14 @@ class Parser {
         this.eat(TType.COLON);
         let type = this.type();
         return declarations.map(declaration => new VariableDeclarationNode(declaration, type));
+    }
+    procedure() {
+        this.eat(TType.PROCEDURE);
+        let name = this.eat(TType.VARIABLE_NAME);
+        this.eat(TType.SEMI);
+        let block = this.block();
+        this.eat(TType.SEMI);
+        return new ProcedureNode(name.value, block);
     }
     type() {
         let token = this.getCurrentToken();
@@ -405,10 +435,16 @@ class Visitor {
         this.visitBlock(node.block);
     }
     visitBlock(node) {
-        node.declaration.children.forEach(child => this.visitVariableDeclaration(child));
+        node.declaration.varDeclarations.forEach(varDeclaration => this.visitVariableDeclaration(varDeclaration));
+        node.declaration.procedures.forEach(procedure => {
+            this.visitProcedure(procedure);
+        });
         this.visitCompound(node.compound);
     }
     visitVariableDeclaration(node) { }
+    visitProcedure(node) {
+        this.visitBlock(node.block);
+    }
     visitCompound(node) {
         node.children.forEach(child => this.visit(child));
     }
@@ -437,6 +473,9 @@ class Visitor {
         }
         else if (node instanceof VariableDeclarationNode) {
             return this.visitVariableDeclaration(node);
+        }
+        else if (node instanceof ProcedureNode) {
+            return this.visitProcedure(node);
         }
         else if (node instanceof CompoundNode) {
             return this.visitCompound(node);

@@ -27,12 +27,29 @@ export class BlockNode extends Node {
 }
 
 export class DeclarationNode extends Node {
-  children: VariableDeclarationNode[];
+  varDeclarations: VariableDeclarationNode[];
+  procedures: ProcedureNode[];
 
-  constructor(children: VariableDeclarationNode[]) {
+  constructor(
+    varDeclarations: VariableDeclarationNode[],
+    procedures: ProcedureNode[]
+  ) {
     super();
 
-    this.children = children;
+    this.varDeclarations = varDeclarations;
+    this.procedures = procedures;
+  }
+}
+
+export class ProcedureNode extends Node {
+  name: string;
+  block: BlockNode;
+
+  constructor(name: string, block: BlockNode) {
+    super();
+
+    this.name = name;
+    this.block = block;
   }
 }
 

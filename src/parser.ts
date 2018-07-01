@@ -4,9 +4,10 @@ import * as AST from "./ast";
 /**
  * program : PROGRAM variable SEMI block dot
  * block : declaration compound_statement
- * declaration : VAR (variable_declaration SEMI)+ | empty
+ * declaration : VAR (variable_declaration SEMI)+ | (procedure)* | empty
  * variable_declaration : variable (COMMA ID)* COLON typespec
  * typespec : INTEGER | REAL
+ * procedure: PROCEDURE variable SEMI block SEMI
  * compound_statement : BEGIN statement (SEMI statement)* SEMI END
  * statement : compound_statement | assignment_statement
  * assignment_statement : variable ASSIGN expression
@@ -64,17 +65,24 @@ export class Parser {
   }
 
   declaration(): AST.DeclarationNode {
-    let declarations: AST.VariableDeclarationNode[] = [];
+    let varDeclarations: AST.VariableDeclarationNode[] = [];
+    let procedures: AST.ProcedureNode[] = [];
 
     if (this.getCurrentToken().type === TType.VAR) {
       this.eat(TType.VAR);
       while (this.getCurrentToken().type === TType.VARIABLE_NAME) {
         let nodes = this.variableDeclaration();
-        declarations.push(...nodes);
+        varDeclarations.push(...nodes);
         this.eat(TType.SEMI);
       }
     }
-    return new AST.DeclarationNode(declarations);
+
+    while (this.getCurrentToken().type === TType.PROCEDURE) {
+      let procedure = this.procedure();
+      procedures.push(procedure);
+    }
+
+    return new AST.DeclarationNode(varDeclarations, procedures);
   }
 
   variableDeclaration(): AST.VariableDeclarationNode[] {
@@ -91,6 +99,15 @@ export class Parser {
     return declarations.map(
       declaration => new AST.VariableDeclarationNode(declaration, type)
     );
+  }
+
+  procedure(): AST.ProcedureNode {
+    this.eat(TType.PROCEDURE);
+    let name = this.eat(TType.VARIABLE_NAME);
+    this.eat(TType.SEMI);
+    let block = this.block();
+    this.eat(TType.SEMI);
+    return new AST.ProcedureNode(name.value, block);
   }
 
   type(): AST.TokenNode {
