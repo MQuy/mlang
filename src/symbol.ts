@@ -26,56 +26,120 @@ export class BuiltinSymbol {
   }
 }
 
-export class SymbolTable {
-  builtins: { [key: string]: BuiltinSymbol };
-  symbols: { [key: string]: VarSymbol };
+export class ProcedureSymbol {
+  name: string;
+  parameters: VarSymbol[];
 
-  constructor() {
-    this.builtins = BuiltinSymbol.getBuiltinSymbols();
+  constructor(name: string, parameters: VarSymbol[]) {
+    this.name = name;
+    this.parameters = parameters;
+  }
+}
+
+export class SymbolTable {
+  symbols: { [key: string]: VarSymbol | ProcedureSymbol | BuiltinSymbol };
+  scopeName: string;
+  scopeLevel: number;
+  parentScope?: SymbolTable;
+
+  constructor(
+    scopeName: string,
+    scopeLevel: number,
+    parentScope?: SymbolTable
+  ) {
+    this.scopeName = scopeName;
+    this.scopeLevel = scopeLevel;
+    this.parentScope = parentScope;
     this.symbols = {};
   }
 
-  define(name: string, type: BuiltinSymbol) {
+  define(name: string, type: BuiltinSymbol | ProcedureSymbol) {
     this.symbols[name] = new VarSymbol(name, type);
   }
 
-  lookup(name: string) {
-    return this.symbols[name];
+  lookup(name: string, level = Number.MAX_SAFE_INTEGER) {
+    let scope: SymbolTable | undefined = this;
+
+    while (scope && !scope.symbols[name] && level > 0) {
+      scope = scope.parentScope;
+      level -= 1;
+    }
+
+    return scope ? scope.symbols[name] : undefined;
   }
 }
 
 export class SemanticAnalyzer extends Visitor {
   ast: AST.ProgramNode;
-  symbolTable: SymbolTable;
+  rootSymbolTable: SymbolTable;
+  currentSymbolTable: SymbolTable;
 
   constructor(ast: AST.ProgramNode) {
     super();
 
     this.ast = ast;
-    this.symbolTable = new SymbolTable();
+    this.rootSymbolTable = new SymbolTable(ast.name, 1);
+    this.rootSymbolTable.symbols = BuiltinSymbol.getBuiltinSymbols();
+    this.currentSymbolTable = this.rootSymbolTable;
   }
 
   execute() {
     this.visit(this.ast);
   }
 
+  visitProcedure({ name, paramters, block }: AST.ProcedureNode) {
+    let procedureSymbol = new ProcedureSymbol(
+      name,
+      paramters.map(
+        parameter =>
+          new VarSymbol(
+            parameter.name.token.value,
+            this.currentSymbolTable.lookup(
+              parameter.type.token.value
+            ) as BuiltinSymbol
+          )
+      )
+    );
+    this.currentSymbolTable.define(name, procedureSymbol);
+    let procedureScope = new SymbolTable(
+      name,
+      this.currentSymbolTable.scopeLevel + 1,
+      this.currentSymbolTable
+    );
+
+    this.currentSymbolTable = procedureScope;
+    paramters.forEach(parameter => {
+      this.currentSymbolTable.define(
+        parameter.name.token.value,
+        this.currentSymbolTable.lookup(
+          parameter.type.token.value
+        ) as BuiltinSymbol
+      );
+    });
+
+    this.visit(block);
+    this.currentSymbolTable = procedureScope.parentScope!;
+  }
+
   visitVariableDeclaration({ name, type }: AST.VariableDeclarationNode) {
-    if (this.symbolTable.lookup(name.token.value)) {
+    if (this.currentSymbolTable.lookup(name.token.value, 0)) {
       throw new Error(`${name.token.value} is already declared`);
     }
-    let typeSymbol = this.symbolTable.builtins[type.token.value];
-    this.symbolTable.define(name.token.value, typeSymbol);
+    let typeSymbol = this.currentSymbolTable.lookup(
+      type.token.value
+    ) as BuiltinSymbol;
+    this.currentSymbolTable.define(name.token.value, typeSymbol);
   }
 
   visitAssignment({ variable, expression }: AST.AssignmentNode) {
-    if (!this.symbolTable.lookup(variable.token.value)) {
+    if (!this.currentSymbolTable.lookup(variable.token.value)) {
       throw new Error(`${variable.token.value} is not defined`);
     }
     this.visit(expression);
   }
 
   visitVariable(node: AST.TokenNode) {
-    if (!this.symbolTable.lookup(node.token.value)) {
+    if (!this.currentSymbolTable.lookup(node.token.value)) {
       throw new Error(`${node.token.value} is not defined`);
     }
   }

@@ -188,9 +188,10 @@ class DeclarationNode extends Node {
     }
 }
 class ProcedureNode extends Node {
-    constructor(name, block) {
+    constructor(name, parameters, block) {
         super();
         this.name = name;
+        this.paramters = parameters;
         this.block = block;
     }
 }
@@ -240,9 +241,10 @@ class UnaryNode extends Node {
  * program : PROGRAM variable SEMI block dot
  * block : declaration compound_statement
  * declaration : VAR (variable_declaration SEMI)+ | (procedure)* | empty
- * variable_declaration : variable (COMMA ID)* COLON typespec
+ * variable_declaration : variable (COMMA variable)* COLON typespec
  * typespec : INTEGER | REAL
- * procedure: PROCEDURE variable SEMI block SEMI
+ * procedure: PROCEDURE variable paramter SEMI block SEMI
+ * parameter: LPAREN variable_declaration (SEMI variable_declaration)* RPAREN | empty
  * compound_statement : BEGIN statement (SEMI statement)* SEMI END
  * statement : compound_statement | assignment_statement
  * assignment_statement : variable ASSIGN expression
@@ -319,10 +321,23 @@ class Parser {
     procedure() {
         this.eat(TType.PROCEDURE);
         let name = this.eat(TType.VARIABLE_NAME);
+        let parameters = [];
+        if (this.getCurrentToken().type === TType.LPAREN) {
+            this.eat(TType.LPAREN);
+            parameters = this.paramters();
+            this.eat(TType.RPAREN);
+        }
         this.eat(TType.SEMI);
         let block = this.block();
         this.eat(TType.SEMI);
-        return new ProcedureNode(name.value, block);
+        return new ProcedureNode(name.value, parameters, block);
+    }
+    paramters() {
+        let parameters = [];
+        while (this.getCurrentToken().type === TType.VARIABLE_NAME) {
+            parameters = [...parameters, ...this.variableDeclaration()];
+        }
+        return parameters;
     }
     type() {
         let token = this.getCurrentToken();
@@ -521,42 +536,68 @@ class BuiltinSymbol {
         };
     }
 }
+class ProcedureSymbol {
+    constructor(name, parameters) {
+        this.name = name;
+        this.parameters = parameters;
+    }
+}
 class SymbolTable {
-    constructor() {
-        this.builtins = BuiltinSymbol.getBuiltinSymbols();
+    constructor(scopeName, scopeLevel, parentScope) {
+        this.scopeName = scopeName;
+        this.scopeLevel = scopeLevel;
+        this.parentScope = parentScope;
         this.symbols = {};
     }
     define(name, type) {
         this.symbols[name] = new VarSymbol(name, type);
     }
-    lookup(name) {
-        return this.symbols[name];
+    lookup(name, level = Number.MAX_SAFE_INTEGER) {
+        let scope = this;
+        while (scope && !scope.symbols[name] && level > 0) {
+            scope = scope.parentScope;
+            level -= 1;
+        }
+        return scope ? scope.symbols[name] : undefined;
     }
 }
 class SemanticAnalyzer extends Visitor {
     constructor(ast) {
         super();
         this.ast = ast;
-        this.symbolTable = new SymbolTable();
+        this.rootSymbolTable = new SymbolTable(ast.name, 1);
+        this.rootSymbolTable.symbols = BuiltinSymbol.getBuiltinSymbols();
+        this.currentSymbolTable = this.rootSymbolTable;
     }
     execute() {
         this.visit(this.ast);
     }
+    visitProcedure({ name, paramters, block }) {
+        let procedureSymbol = new ProcedureSymbol(name, paramters.map(parameter => new VarSymbol(parameter.name.token.value, this.currentSymbolTable.lookup(parameter.type.token.value))));
+        this.currentSymbolTable.define(name, procedureSymbol);
+        let procedureScope = new SymbolTable(name, this.currentSymbolTable.scopeLevel + 1, this.currentSymbolTable);
+        this.currentSymbolTable = procedureScope;
+        paramters.forEach(parameter => {
+            this.currentSymbolTable.define(parameter.name.token.value, this.currentSymbolTable.lookup(parameter.type.token.value));
+        });
+        this.visit(block);
+        this.currentSymbolTable = procedureScope.parentScope;
+    }
     visitVariableDeclaration({ name, type }) {
-        if (this.symbolTable.lookup(name.token.value)) {
+        if (this.currentSymbolTable.lookup(name.token.value, 0)) {
             throw new Error(`${name.token.value} is already declared`);
         }
-        let typeSymbol = this.symbolTable.builtins[type.token.value];
-        this.symbolTable.define(name.token.value, typeSymbol);
+        let typeSymbol = this.currentSymbolTable.lookup(type.token.value);
+        this.currentSymbolTable.define(name.token.value, typeSymbol);
     }
     visitAssignment({ variable, expression }) {
-        if (!this.symbolTable.lookup(variable.token.value)) {
+        if (!this.currentSymbolTable.lookup(variable.token.value)) {
             throw new Error(`${variable.token.value} is not defined`);
         }
         this.visit(expression);
     }
     visitVariable(node) {
-        if (!this.symbolTable.lookup(node.token.value)) {
+        if (!this.currentSymbolTable.lookup(node.token.value)) {
             throw new Error(`${node.token.value} is not defined`);
         }
     }

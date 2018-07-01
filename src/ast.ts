@@ -43,12 +43,18 @@ export class DeclarationNode extends Node {
 
 export class ProcedureNode extends Node {
   name: string;
+  paramters: VariableDeclarationNode[];
   block: BlockNode;
 
-  constructor(name: string, block: BlockNode) {
+  constructor(
+    name: string,
+    parameters: VariableDeclarationNode[],
+    block: BlockNode
+  ) {
     super();
 
     this.name = name;
+    this.paramters = parameters;
     this.block = block;
   }
 }

@@ -5,9 +5,10 @@ import * as AST from "./ast";
  * program : PROGRAM variable SEMI block dot
  * block : declaration compound_statement
  * declaration : VAR (variable_declaration SEMI)+ | (procedure)* | empty
- * variable_declaration : variable (COMMA ID)* COLON typespec
+ * variable_declaration : variable (COMMA variable)* COLON typespec
  * typespec : INTEGER | REAL
- * procedure: PROCEDURE variable SEMI block SEMI
+ * procedure: PROCEDURE variable paramter SEMI block SEMI
+ * parameter: LPAREN variable_declaration (SEMI variable_declaration)* RPAREN | empty
  * compound_statement : BEGIN statement (SEMI statement)* SEMI END
  * statement : compound_statement | assignment_statement
  * assignment_statement : variable ASSIGN expression
@@ -104,10 +105,26 @@ export class Parser {
   procedure(): AST.ProcedureNode {
     this.eat(TType.PROCEDURE);
     let name = this.eat(TType.VARIABLE_NAME);
+    let parameters: AST.VariableDeclarationNode[] = [];
+
+    if (this.getCurrentToken().type === TType.LPAREN) {
+      this.eat(TType.LPAREN);
+      parameters = this.paramters();
+      this.eat(TType.RPAREN);
+    }
     this.eat(TType.SEMI);
     let block = this.block();
     this.eat(TType.SEMI);
-    return new AST.ProcedureNode(name.value, block);
+    return new AST.ProcedureNode(name.value, parameters, block);
+  }
+
+  paramters() {
+    let parameters: AST.VariableDeclarationNode[] = [];
+
+    while (this.getCurrentToken().type === TType.VARIABLE_NAME) {
+      parameters = [...parameters, ...this.variableDeclaration()];
+    }
+    return parameters;
   }
 
   type(): AST.TokenNode {
