@@ -1,144 +1,223 @@
-import { TType, Token } from "./token";
+import { TokenType, Token } from "./token";
+
+const reservedWords = {
+  and: TokenType.AND,
+  class: TokenType.CLASS,
+  else: TokenType.ELSE,
+  false: TokenType.FALSE,
+  for: TokenType.FOR,
+  fun: TokenType.FUN,
+  if: TokenType.IF,
+  nil: TokenType.NIL,
+  or: TokenType.OR,
+  print: TokenType.PRINT,
+  return: TokenType.RETURN,
+  super: TokenType.SUPER,
+  this: TokenType.THIS,
+  true: TokenType.TRUE,
+  var: TokenType.VAR,
+  while: TokenType.WHILE
+};
 
 export class Lexer {
   source: string;
-  cPointer: number;
+  start: number;
+  current: number;
+  line: number;
+  tokens: Token[];
 
   constructor(source: string) {
     this.source = source;
-    this.cPointer = 0;
+    this.current = 0;
+    this.line = 0;
+    this.start = 0;
   }
 
-  execute() {
-    const tokens: Token[] = [];
-    let char = this.source[this.cPointer];
-    let token, cPointer;
+  scan() {
+    this.tokens = [];
 
-    while (char) {
-      if (char === undefined) {
+    while (!this.isAtEnd()) {
+      this.start = this.current;
+      this.scanToken();
+    }
+    this.tokens.push(new Token(TokenType.EOF, "", undefined, this.line));
+    return;
+  }
+
+  scanToken() {
+    let c = this.advance();
+
+    switch (c) {
+      case "(":
+        this.addToken(TokenType.LEFT_PAREN);
         break;
-      } else if (/[\d]/.test(char)) {
-        let { token } = this.getNextToken(/[\d\.]/, true);
-        tokens.push({
-          value: token,
-          type: /\d+/.test(token) ? TType.INTEGER_CONST : TType.REAL_CONST
-        });
-        char = this.source[this.cPointer];
-      } else if (
-        char === "P" &&
-        ({ token, cPointer } = this.getNextToken(/[PROGRAM]/)) &&
-        token === TType.PROGRAM
-      ) {
-        tokens.push({ value: token, type: TType.PROGRAM });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === "I" &&
-        ({ token, cPointer } = this.getNextToken(/[INTEGER]/)) &&
-        token === TType.INTEGER
-      ) {
-        tokens.push({ value: token, type: TType.INTEGER });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === "R" &&
-        ({ token, cPointer } = this.getNextToken(/[REAL]/)) &&
-        token === TType.REAL
-      ) {
-        tokens.push({ value: token, type: TType.REAL });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === "V" &&
-        ({ token, cPointer } = this.getNextToken(/[VAR]/)) &&
-        token === TType.VAR
-      ) {
-        tokens.push({ value: token, type: TType.VAR });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === "B" &&
-        ({ token, cPointer } = this.getNextToken(/[BEGIN]/)) &&
-        token === TType.BEGIN
-      ) {
-        tokens.push({ value: token, type: TType.BEGIN });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === "E" &&
-        ({ token, cPointer } = this.getNextToken(/[END]/)) &&
-        token === TType.END
-      ) {
-        tokens.push({ value: token, type: TType.END });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === ":" &&
-        ({ token, cPointer } = this.getNextToken(/[:=]/)) &&
-        token === ":="
-      ) {
-        tokens.push({ value: token, type: TType.ASSIGN });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        /[a-z]/.test(char) &&
-        ({ token, cPointer } = this.getNextToken(/[a-z]/))
-      ) {
-        tokens.push({ value: token, type: TType.VARIABLE_NAME });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else if (
-        char === "P" &&
-        ({ token, cPointer } = this.getNextToken(/[PROCEDURE]/)) &&
-        token === TType.PROCEDURE
-      ) {
-        tokens.push({ value: token, type: TType.PROCEDURE });
-        this.cPointer = cPointer;
-        char = this.source[this.cPointer];
-      } else {
-        if (char === "+") {
-          tokens.push({ value: char, type: TType.PLUS });
-        } else if (char === "-") {
-          tokens.push({ value: char, type: TType.MINUS });
-        } else if (char === "*") {
-          tokens.push({ value: char, type: TType.MUL });
-        } else if (char === "/") {
-          tokens.push({ value: char, type: TType.DIV });
-        } else if (char === "(") {
-          tokens.push({ value: char, type: TType.LPAREN });
-        } else if (char === ")") {
-          tokens.push({ value: char, type: TType.RPAREN });
-        } else if (char === ".") {
-          tokens.push({ value: char, type: TType.DOT });
-        } else if (char === ";") {
-          tokens.push({ value: char, type: TType.SEMI });
-        } else if (char === ":") {
-          tokens.push({ value: char, type: TType.COLON });
-        } else if (char === ",") {
-          tokens.push({ value: char, type: TType.COMMA });
-        } else if (!/\s/.test(char)) {
-          throw Error(`Wrong syntax: ${char}`);
+      case ")":
+        this.addToken(TokenType.RIGHT_PAREN);
+        break;
+      case "{":
+        this.addToken(TokenType.LEFT_BRACE);
+        break;
+      case "}":
+        this.addToken(TokenType.RIGHT_BRACE);
+        break;
+      case ",":
+        this.addToken(TokenType.COMMA);
+        break;
+      case ".":
+        this.addToken(TokenType.DOT);
+        break;
+      case "-":
+        this.addToken(TokenType.MINUS);
+        break;
+      case "+":
+        this.addToken(TokenType.PLUS);
+        break;
+      case ";":
+        this.addToken(TokenType.SEMICOLON);
+        break;
+      case "*":
+        this.addToken(TokenType.STAR);
+        break;
+
+      case "!":
+        this.addToken(this.match("=") ? TokenType.BANG_EQUAL : TokenType.BANG);
+        break;
+      case "=":
+        this.addToken(
+          this.match("=") ? TokenType.EQUAL_EQUAL : TokenType.EQUAL
+        );
+        break;
+      case "<":
+        this.addToken(this.match("=") ? TokenType.LESS_EQUAL : TokenType.LESS);
+        break;
+      case ">":
+        this.addToken(
+          this.match("=") ? TokenType.GREATER_EQUAL : TokenType.GREATER
+        );
+        break;
+
+      case "/":
+        if (this.match("/")) {
+          // A comment goes until the end of the line.
+          while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();
+        } else {
+          this.addToken(TokenType.SLASH);
         }
-        char = this.source[++this.cPointer];
-      }
+        break;
+
+      case " ":
+      case "\r":
+      case "\t":
+        // Ignore whitespace.
+        break;
+
+      case "\n":
+        this.line++;
+        break;
+
+      case '"':
+        this.string();
+        break;
+
+      default:
+        if (this.isDigit(c)) {
+          this.number();
+        } else if (this.isAlpha(c)) {
+          this.identifier();
+        } else {
+          throw new Error(`${this.line}: Unexpected character ${c}.`);
+        }
     }
-    return tokens;
   }
 
-  getNextToken(pattern: RegExp, move: boolean = false) {
-    let runner = this.cPointer;
-    let char = this.source[runner];
-    let token = "";
+  identifier() {
+    while (this.isAlphaNumeric(this.peek())) this.advance();
 
-    while (pattern.test(char)) {
-      token += char;
-      char = this.source[++runner];
+    let text = this.source.substring(this.start, this.current);
+    let type = reservedWords[text];
+    if (type == null) type = TokenType.IDENTIFIER;
+
+    this.addToken(type);
+  }
+
+  isAlphaNumeric(c: string) {
+    return this.isAlpha(c) || this.isDigit(c);
+  }
+
+  isAlpha(c: string) {
+    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_";
+  }
+
+  peekNext() {
+    if (this.current + 1 >= this.source.length) return "\0";
+    return this.source.charAt(this.current + 1);
+  }
+
+  number() {
+    while (this.isDigit(this.peek())) this.advance();
+
+    // Look for a fractional part.
+    if (this.peek() == "." && this.isDigit(this.peekNext())) {
+      // Consume the "."
+      this.advance();
+
+      while (this.isDigit(this.peek())) this.advance();
     }
 
-    if (move) {
-      this.cPointer = runner;
+    this.addToken(
+      TokenType.NUMBER,
+      parseFloat(this.source.substring(this.start, this.current))
+    );
+  }
+
+  isDigit(c: string) {
+    return c >= "0" && c <= "9";
+  }
+
+  string() {
+    while (this.peek() !== '"' && !this.isAtEnd()) {
+      if (this.peek() === "\n") this.line++;
+      this.advance();
     }
 
-    return { token, cPointer: runner };
+    // Unterminated string.
+    if (this.isAtEnd()) {
+      throw new Error(`${this.line}: Unterminated string.`);
+      return;
+    }
+
+    // The closing ".
+    this.advance();
+
+    // Trim the surrounding quotes.
+    let value = this.source.substring(this.start + 1, this.current - 1);
+    this.addToken(TokenType.STRING, value);
+  }
+
+  peek() {
+    if (this.isAtEnd()) return "\0";
+    return this.source[this.current];
+  }
+
+  match(char: string) {
+    if (this.isAtEnd()) return false;
+    if (this.source[this.current] !== char) return false;
+
+    this.current += 1;
+    return true;
+  }
+
+  addToken(type: TokenType, liternal?: number | string) {
+    let text = this.source.substring(this.start, this.current);
+
+    this.tokens.push(new Token(type, text, liternal, this.line));
+  }
+
+  isAtEnd() {
+    return this.current >= this.source.length;
+  }
+
+  advance() {
+    return this.source[this.current++];
   }
 }
