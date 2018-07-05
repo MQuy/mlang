@@ -67,6 +67,6 @@ export class Token {
   }
 
   toString() {
-    return `Line-${this.line},  ${this.type}`;
+    return `Line: ${this.line} - `;
   }
 }

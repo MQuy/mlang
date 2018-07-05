@@ -56,7 +56,7 @@ class Token {
         this.line = line;
     }
     toString() {
-        return `Line-${this.line},  ${this.type}`;
+        return `Line: ${this.line} - `;
     }
 }
 
@@ -458,26 +458,26 @@ class Parser {
         }
     }
     classDeclaration() {
-        const name = this.consume(TokenType.IDENTIFIER);
+        const name = this.consume(TokenType.IDENTIFIER, "Expect class name");
         let superclass;
         let body = [];
         if (this.match(TokenType.LESS)) {
-            superclass = new VarExpression(this.consume(TokenType.IDENTIFIER));
+            superclass = new VarExpression(this.consume(TokenType.IDENTIFIER, "Expect superclass name"));
         }
-        this.consume(TokenType.LEFT_BRACE);
+        this.consume(TokenType.LEFT_BRACE, "Expect { before class body");
         while (!this.match(TokenType.RIGHT_BRACE) && this.isNotEnd()) {
             body.push(this.function("method"));
         }
         return new ClassStatement(name, body, superclass);
     }
-    function(_kind) {
-        const name = this.consume(TokenType.IDENTIFIER);
+    function(kind) {
+        const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name`);
         const parameters = [];
-        this.consume(TokenType.LEFT_PAREN);
+        this.consume(TokenType.LEFT_PAREN, `Expect ( after ${kind} name`);
         while (!this.match(TokenType.RIGHT_PAREN) && this.isNotEnd()) {
-            parameters.push(this.consume(TokenType.IDENTIFIER));
+            parameters.push(this.consume(TokenType.IDENTIFIER, "Expect parameter name"));
         }
-        this.consume(TokenType.LEFT_BRACE);
+        this.consume(TokenType.LEFT_BRACE, `Expect { before ${kind} body`);
         const block = this.block();
         return new FunctionStatement(name, parameters, block);
     }
@@ -489,12 +489,12 @@ class Parser {
         return statements;
     }
     varDeclaration() {
-        const name = this.consume(TokenType.IDENTIFIER);
+        const name = this.consume(TokenType.IDENTIFIER, "Expect variable name");
         let initializer;
         if (this.match(TokenType.EQUAL)) {
             initializer = this.expression();
         }
-        this.consume(TokenType.SEMICOLON);
+        this.consume(TokenType.SEMICOLON, "Expect ; after variable declaration");
         return new VarStatement(name, initializer);
     }
     expression() {
@@ -524,7 +524,7 @@ class Parser {
         }
     }
     forStatement() {
-        this.consume(TokenType.LEFT_PAREN);
+        this.consume(TokenType.LEFT_PAREN, "Expect ( after for");
         let initializer;
         let condition;
         let increment;
@@ -539,13 +539,12 @@ class Parser {
         }
         if (!this.match(TokenType.SEMICOLON)) {
             condition = this.expression();
-            this.consume(TokenType.SEMICOLON);
+            this.consume(TokenType.SEMICOLON, "Expect ; after loop conidtion");
         }
         if (!this.match(TokenType.SEMICOLON)) {
             increment = this.expression();
-            this.consume(TokenType.SEMICOLON);
         }
-        this.consume(TokenType.RIGHT_PAREN);
+        this.consume(TokenType.RIGHT_PAREN, "Expect ) after for clauses");
         let block = this.statement();
         if (initializer) {
             block.shift(initializer);
@@ -556,9 +555,9 @@ class Parser {
         return new WhileStatement(block, condition);
     }
     ifStatement() {
-        this.consume(TokenType.LEFT_PAREN);
+        this.consume(TokenType.LEFT_PAREN, "Expect ( after if");
         const condition = this.expression();
-        this.consume(TokenType.RIGHT_PAREN);
+        this.consume(TokenType.RIGHT_PAREN, "Expect ) after if condition");
         const thenBranch = this.statement();
         let elseBranch;
         if (this.match(TokenType.ELSE)) {
@@ -567,9 +566,9 @@ class Parser {
         new IfStatement(condition, thenBranch, elseBranch);
     }
     whileStatement() {
-        this.consume(TokenType.LEFT_PAREN);
+        this.consume(TokenType.LEFT_PAREN, "Expect ( after while");
         const condition = this.expression();
-        this.consume(TokenType.RIGHT_PAREN);
+        this.consume(TokenType.RIGHT_PAREN, "Expect ) fater while condition");
         const statement = this.statement();
         return new WhileStatement(statement, condition);
     }
@@ -578,17 +577,17 @@ class Parser {
         if (!this.match(TokenType.SEMICOLON)) {
             expression = this.expression();
         }
-        this.consume(TokenType.SEMICOLON);
+        this.consume(TokenType.SEMICOLON, "Expect ; after return value");
         return new ReturnStatement(expression);
     }
     expressionStatement() {
         const expression = this.expression();
-        this.consume(TokenType.SEMICOLON);
+        this.consume(TokenType.SEMICOLON, "Expect ; after expression");
         return new ExpressionStatement(expression);
     }
     printStatement() {
         const expression = this.expression();
-        this.consume(TokenType.SEMICOLON);
+        this.consume(TokenType.SEMICOLON, "Expect ; after print value");
         return new PrintStatement(expression);
     }
     assignment() {
@@ -659,7 +658,7 @@ class Parser {
                 primary = this.finishCall(primary);
             }
             else if (this.match(TokenType.DOT)) {
-                const name = this.consume(TokenType.IDENTIFIER);
+                const name = this.consume(TokenType.IDENTIFIER, "Expect property name after .");
                 primary = new GetExpression(primary, name);
             }
             else {
@@ -670,9 +669,10 @@ class Parser {
     }
     finishCall(token) {
         const args = [];
-        while (!this.match(TokenType.RIGHT_PAREN)) {
-            args.push(this.expression());
-            this.consume(TokenType.COMMA);
+        if (!this.match(TokenType.RIGHT_PAREN)) {
+            do {
+                args.push(this.expression());
+            } while (this.match(TokenType.COMMA));
         }
         return new CallExpression(token, args);
     }
@@ -688,8 +688,8 @@ class Parser {
         }
         if (this.match(TokenType.SUPER)) {
             let keyword = this.previous();
-            this.consume(TokenType.DOT);
-            let method = this.consume(TokenType.IDENTIFIER);
+            this.consume(TokenType.DOT, "Expect . after super");
+            let method = this.consume(TokenType.IDENTIFIER, "Expect variable after super.");
             return new SuperExpression(keyword, method);
         }
         if (this.match(TokenType.THIS))
@@ -699,10 +699,10 @@ class Parser {
         }
         if (this.match(TokenType.LEFT_PAREN)) {
             let expr = this.expression();
-            this.consume(TokenType.RIGHT_PAREN);
+            this.consume(TokenType.RIGHT_PAREN, "Expect ) after expression");
             return new GroupingExpression(expr);
         }
-        throw new Error("Syntax error: " + this.peek());
+        return this.error(this.peek(), "Expect expression");
     }
     match(...types) {
         return types.some(type => {
@@ -713,11 +713,11 @@ class Parser {
             return false;
         });
     }
-    consume(type) {
+    consume(type, errorMessage) {
         if (this.check(type)) {
             return this.advance();
         }
-        throw new Error("Wrong syntax");
+        return this.error(this.peek(), errorMessage);
     }
     check(type) {
         if (this.isAtEnd())
@@ -728,7 +728,7 @@ class Parser {
         return this.tokens[this.current];
     }
     advance() {
-        if (!this.isAtEnd())
+        if (this.isNotEnd())
             this.current++;
         return this.previous();
     }
@@ -740,6 +740,9 @@ class Parser {
     }
     isNotEnd() {
         return (this.current < this.tokens.length && this.peek().type !== TokenType.EOF);
+    }
+    error(token, errorMessage) {
+        throw new Error(`${token.toString()} ${errorMessage}.`);
     }
 }
 
