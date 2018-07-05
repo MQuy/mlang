@@ -11,6 +11,10 @@ export class AssignExpression extends Expression {
     this.name = name;
     this.expression = expression;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitAssignExpression(this);
+  }
 }
 
 export class BinaryExpression extends Expression {
@@ -25,6 +29,10 @@ export class BinaryExpression extends Expression {
     this.operator = operator;
     this.right = right;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitBinaryExpression(this);
+  }
 }
 
 export class CallExpression extends Expression {
@@ -36,6 +44,10 @@ export class CallExpression extends Expression {
 
     this.callee = callee;
     this.arguments = args;
+  }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitCallExpression(this);
   }
 }
 
@@ -49,6 +61,10 @@ export class GetExpression extends Expression {
     this.object = object;
     this.name = name;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitGetExpression(this);
+  }
 }
 
 export class GroupingExpression extends Expression {
@@ -59,6 +75,10 @@ export class GroupingExpression extends Expression {
 
     this.expression = expression;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitGroupingExpression(this);
+  }
 }
 
 export class LiteralExpression extends Expression {
@@ -68,6 +88,10 @@ export class LiteralExpression extends Expression {
     super();
 
     this.value = value;
+  }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitLiternalExpression(this);
   }
 }
 
@@ -83,6 +107,10 @@ export class LogicalExpression extends Expression {
     this.opeartor = operator;
     this.right = right;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitLogicalExpression(this);
+  }
 }
 
 export class SetExpression extends Expression {
@@ -96,6 +124,10 @@ export class SetExpression extends Expression {
     this.object = object;
     this.name = name;
     this.expression = expression;
+  }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitSetExpression(this);
   }
 }
 
@@ -119,6 +151,10 @@ export class ThisExpression extends Expression {
 
     this.keyword = keyword;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitThisExpression(this);
+  }
 }
 
 export class UnaryExpression extends Expression {
@@ -131,6 +167,10 @@ export class UnaryExpression extends Expression {
     this.opeartor = operator;
     this.right = right;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitUnaryExpression(this);
+  }
 }
 
 export class VarExpression extends Expression {
@@ -141,4 +181,23 @@ export class VarExpression extends Expression {
 
     this.name = name;
   }
+
+  accept(vistor: ExpressionVistor) {
+    vistor.visitVarExpression(this);
+  }
+}
+
+export abstract class ExpressionVistor {
+  abstract visitAssignExpression(expr: AssignExpression);
+  abstract visitBinaryExpression(expr: BinaryExpression);
+  abstract visitCallExpression(expr: CallExpression);
+  abstract visitGetExpression(expr: GetExpression);
+  abstract visitGroupingExpression(expr: GroupingExpression);
+  abstract visitLiternalExpression(expr: LiteralExpression);
+  abstract visitLogicalExpression(expr: LogicalExpression);
+  abstract visitSetExpression(expr: SetExpression);
+  abstract visitSuperExpression(expr: SuperExpression);
+  abstract visitThisExpression(expr: ThisExpression);
+  abstract visitUnaryExpression(expr: UnaryExpression);
+  abstract visitVarExpression(expr: VarExpression);
 }

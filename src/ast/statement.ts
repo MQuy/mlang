@@ -10,6 +10,10 @@ export class BlockStatement extends Statement {
 
     this.statements = statements;
   }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitBlockStatement(this);
+  }
 }
 
 export class FunctionStatement extends Statement {
@@ -23,6 +27,10 @@ export class FunctionStatement extends Statement {
     this.name = name;
     this.parameters = parameters;
     this.methods = methods;
+  }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitFunctionStatement(this);
   }
 }
 
@@ -42,6 +50,10 @@ export class ClassStatement extends Statement {
     this.methods = methods;
     this.superclass = superclass;
   }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitClassStatement(this);
+  }
 }
 
 export class ExpressionStatement extends Statement {
@@ -51,6 +63,10 @@ export class ExpressionStatement extends Statement {
     super();
 
     this.expression = expression;
+  }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitExpressionStatement(this);
   }
 }
 
@@ -70,6 +86,10 @@ export class IfStatement extends Statement {
     this.thenBranch = thenBranch;
     this.elseBranch = elseBranch;
   }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitIfStatement(this);
+  }
 }
 
 export class PrintStatement extends Statement {
@@ -80,6 +100,10 @@ export class PrintStatement extends Statement {
 
     this.expression = expression;
   }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitPrintStatement(this);
+  }
 }
 
 export class ReturnStatement extends Statement {
@@ -89,6 +113,10 @@ export class ReturnStatement extends Statement {
     super();
 
     this.value = value;
+  }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitReturnStatement(this);
   }
 }
 
@@ -102,6 +130,10 @@ export class VarStatement extends Statement {
     this.name = name;
     this.initializer = initializer;
   }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitVarStatement(this);
+  }
 }
 
 export class WhileStatement extends Statement {
@@ -114,4 +146,20 @@ export class WhileStatement extends Statement {
     this.body = body;
     this.condition = condition;
   }
+
+  accept(vistor: StatementVistor) {
+    vistor.visitWhileStatement(this);
+  }
+}
+
+export abstract class StatementVistor {
+  abstract visitBlockStatement(stms: BlockStatement);
+  abstract visitFunctionStatement(stms: FunctionStatement);
+  abstract visitClassStatement(stms: ClassStatement);
+  abstract visitExpressionStatement(stms: ExpressionStatement);
+  abstract visitIfStatement(stms: IfStatement);
+  abstract visitPrintStatement(stms: PrintStatement);
+  abstract visitReturnStatement(stms: ReturnStatement);
+  abstract visitVarStatement(smts: VarStatement);
+  abstract visitWhileStatement(stms: WhileStatement);
 }
