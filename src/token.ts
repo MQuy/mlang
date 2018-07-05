@@ -51,18 +51,22 @@ export enum TokenType {
 export class Token {
   type: TokenType;
   lexeme: string;
-  liternal?: string | number;
+  liternal?: string | number | boolean | undefined;
   line: number;
 
   constructor(
     type: TokenType,
     lexeme: string,
-    liternal: string | number | undefined,
+    liternal: string | number | boolean | undefined,
     line: number
   ) {
     this.type = type;
     this.lexeme = lexeme;
     this.liternal = liternal;
     this.line = line;
+  }
+
+  toString() {
+    return `Line-${this.line},  ${this.type}`;
   }
 }

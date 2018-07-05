@@ -1,5 +1,5 @@
 import { Token } from "../token";
-import { Expression } from "./statement";
+import { Expression } from "./base";
 
 export class AssignExpression extends Expression {
   name: Token;
@@ -62,9 +62,9 @@ export class GroupingExpression extends Expression {
 }
 
 export class LiteralExpression extends Expression {
-  value: string | number | undefined;
+  value: string | number | boolean | undefined;
 
-  constructor(value: string | number | undefined) {
+  constructor(value: string | number | boolean | undefined) {
     super();
 
     this.value = value;

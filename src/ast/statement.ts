@@ -1,10 +1,6 @@
 import { Token } from "../token";
-
-export class AstNode {}
-
-export class Statement extends AstNode {}
-
-export class Expression extends Statement {}
+import { Statement, Expression } from "./base";
+import { VarExpression } from "./expression";
 
 export class BlockStatement extends Statement {
   statements: Statement[];
@@ -32,13 +28,19 @@ export class FunctionStatement extends Statement {
 
 export class ClassStatement extends Statement {
   name: Token;
+  superclass?: VarExpression;
   methods: FunctionStatement[];
 
-  constructor(name: Token, methods: FunctionStatement[]) {
+  constructor(
+    name: Token,
+    methods: FunctionStatement[],
+    superclass?: VarExpression
+  ) {
     super();
 
     this.name = name;
     this.methods = methods;
+    this.superclass = superclass;
   }
 }
 
@@ -54,13 +56,13 @@ export class ExpressionStatement extends Statement {
 
 export class IfStatement extends Statement {
   condition: Expression;
-  thenBranch: Statement[];
-  elseBranch: Statement[];
+  thenBranch: Statement;
+  elseBranch?: Statement;
 
   constructor(
     condition: Expression,
-    thenBranch: Statement[],
-    elseBranch: Statement[]
+    thenBranch: Statement,
+    elseBranch?: Statement
   ) {
     super();
 
@@ -81,9 +83,9 @@ export class PrintStatement extends Statement {
 }
 
 export class ReturnStatement extends Statement {
-  value: Expression;
+  value?: Expression;
 
-  constructor(value: Expression) {
+  constructor(value?: Expression) {
     super();
 
     this.value = value;
@@ -92,9 +94,9 @@ export class ReturnStatement extends Statement {
 
 export class VarStatement extends Statement {
   name: Token;
-  initializer: Expression;
+  initializer?: Expression;
 
-  constructor(name: Token, initializer: Expression) {
+  constructor(name: Token, initializer?: Expression) {
     super();
 
     this.name = name;
@@ -103,13 +105,13 @@ export class VarStatement extends Statement {
 }
 
 export class WhileStatement extends Statement {
-  condition: Expression;
-  body: Statement[];
+  condition?: Expression;
+  body: Statement;
 
-  constructor(condition: Expression, body: Statement[]) {
+  constructor(body: Statement, condition?: Expression) {
     super();
 
-    this.condition = condition;
     this.body = body;
+    this.condition = condition;
   }
 }

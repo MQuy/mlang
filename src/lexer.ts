@@ -41,7 +41,7 @@ export class Lexer {
       this.scanToken();
     }
     this.tokens.push(new Token(TokenType.EOF, "", undefined, this.line));
-    return;
+    return this.tokens;
   }
 
   scanToken() {
