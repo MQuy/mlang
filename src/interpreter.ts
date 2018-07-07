@@ -140,6 +140,23 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     console.log(value);
   }
 
+  visitIfStatement(ifStatement: IfStatement) {
+    if (this.evaluate(ifStatement.condition)) {
+      this.execute(ifStatement.thenBranch);
+    } else if (ifStatement.elseBranch) {
+      this.execute(ifStatement.elseBranch);
+    }
+  }
+
+  visitWhileStatement(whileStatement: WhileStatement) {
+    while (
+      whileStatement.condition &&
+      this.evaluate(whileStatement.condition)
+    ) {
+      this.execute(whileStatement.body);
+    }
+  }
+
   evaluate(expression: Expression) {
     return expression.accept(this);
   }
@@ -153,9 +170,7 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
   visitSetExpression(setExpression: SetExpression) {}
   visitSuperExpression(superExpression: SuperExpression) {}
   visitThisExpression(thisExpression: ThisExpression) {}
-  visitWhileStatement(whileStatement: WhileStatement) {}
   visitClassStatement(classStatement: ClassStatement) {}
-  visitIfStatement(ifStatement: IfStatement) {}
   visitFunctionStatement(functionStatement: FunctionStatement) {}
   visitReturnStatement(returnStatement: ReturnStatement) {}
 }
