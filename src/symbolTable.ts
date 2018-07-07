@@ -20,8 +20,9 @@ export class SymbolTable {
       this.symbols[key] = value;
     } else if (this.enclosing) {
       this.enclosing.assign(token, value);
+    } else {
+      throw new Error(`Undefined variable ${key}.`);
     }
-    throw new Error(`Undefined variable ${key}.`);
   }
 
   lookup(token: Token) {

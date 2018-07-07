@@ -27,6 +27,8 @@ import {
 } from "./ast";
 import { TokenType } from "./token";
 import { SymbolTable } from "./symbolTable";
+import { Functionable } from "./ast/function";
+import { ReturnError } from "./ast/base";
 
 export class Interpreter implements StatementVistor, ExpressionVistor {
   statements: Statement[];
@@ -109,7 +111,7 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
   visitAssignExpression(assign: AssignExpression) {
     const value = this.evaluate(assign.expression);
 
-    this.symbolTable.define(assign.name, value);
+    this.symbolTable.assign(assign.name, value);
     return value;
   }
 
@@ -127,11 +129,10 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
   }
 
   visitBlockStatement(blockStatement: BlockStatement) {
-    const currentScope = this.symbolTable;
-
-    this.symbolTable = new SymbolTable(currentScope);
-    blockStatement.statements.forEach(statement => this.execute(statement));
-    this.symbolTable = currentScope;
+    this.executeBlock(
+      blockStatement.statements,
+      new SymbolTable(this.symbolTable)
+    );
   }
 
   visitPrintStatement(printStatement: PrintStatement) {
@@ -157,6 +158,30 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     }
   }
 
+  visitCallExpression(callExpression: CallExpression) {
+    const callee = this.evaluate(callExpression.callee);
+    const args = callExpression.arguments.map(argument =>
+      this.evaluate(argument)
+    );
+
+    return callee.invoke(this, args);
+  }
+
+  visitFunctionStatement(functionStatement: FunctionStatement) {
+    const func = new Functionable(functionStatement, this.symbolTable);
+
+    this.symbolTable.define(functionStatement.name, func);
+  }
+
+  visitReturnStatement(returnStatement: ReturnStatement) {
+    let value;
+
+    if (returnStatement.value) {
+      value = this.evaluate(returnStatement.value);
+    }
+    throw new ReturnError(value);
+  }
+
   evaluate(expression: Expression) {
     return expression.accept(this);
   }
@@ -165,12 +190,20 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     statement.accept(this);
   }
 
-  visitCallExpression(call: CallExpression) {}
+  executeBlock(statements: Statement[], symbolTable: SymbolTable) {
+    const currentScope = this.symbolTable;
+
+    try {
+      this.symbolTable = symbolTable;
+      statements.forEach(statement => this.execute(statement));
+    } finally {
+      this.symbolTable = currentScope;
+    }
+  }
+
   visitGetExpression(getExpression: GetExpression) {}
   visitSetExpression(setExpression: SetExpression) {}
   visitSuperExpression(superExpression: SuperExpression) {}
   visitThisExpression(thisExpression: ThisExpression) {}
   visitClassStatement(classStatement: ClassStatement) {}
-  visitFunctionStatement(functionStatement: FunctionStatement) {}
-  visitReturnStatement(returnStatement: ReturnStatement) {}
 }

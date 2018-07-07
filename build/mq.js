@@ -251,6 +251,11 @@ class Lexer {
 
 class AstNode {
 }
+class ReturnError {
+    constructor(value) {
+        this.value = value;
+    }
+}
 
 class Statement extends AstNode {
 }
@@ -825,7 +830,9 @@ class SymbolTable {
         else if (this.enclosing) {
             this.enclosing.assign(token, value);
         }
-        throw new Error(`Undefined variable ${key}.`);
+        else {
+            throw new Error(`Undefined variable ${key}.`);
+        }
     }
     lookup(token) {
         const key = token.lexeme;
@@ -837,6 +844,23 @@ class SymbolTable {
         }
         else {
             throw new Error(`Undefined variable ${key}.`);
+        }
+    }
+}
+
+class Functionable {
+    constructor(declaration, closure) {
+        this.declaration = declaration;
+        this.closure = closure;
+    }
+    invoke(interpreter, args) {
+        const closure = new SymbolTable(this.closure);
+        this.declaration.parameters.forEach((parameter, index) => closure.define(parameter, args[index]));
+        try {
+            interpreter.executeBlock(this.declaration.methods, closure);
+        }
+        catch (e) {
+            return e.value;
         }
     }
 }
@@ -907,7 +931,7 @@ class Interpreter {
     }
     visitAssignExpression(assign) {
         const value = this.evaluate(assign.expression);
-        this.symbolTable.define(assign.name, value);
+        this.symbolTable.assign(assign.name, value);
         return value;
     }
     visitExpressionStatement(expressionStatement) {
@@ -921,14 +945,41 @@ class Interpreter {
         this.symbolTable.define(varStatement.name, value);
     }
     visitBlockStatement(blockStatement) {
-        const currentScope = this.symbolTable;
-        this.symbolTable = new SymbolTable(currentScope);
-        blockStatement.statements.forEach(statement => this.execute(statement));
-        this.symbolTable = currentScope;
+        this.executeBlock(blockStatement.statements, new SymbolTable(this.symbolTable));
     }
     visitPrintStatement(printStatement) {
         const value = this.evaluate(printStatement.expression);
         console.log(value);
+    }
+    visitIfStatement(ifStatement) {
+        if (this.evaluate(ifStatement.condition)) {
+            this.execute(ifStatement.thenBranch);
+        }
+        else if (ifStatement.elseBranch) {
+            this.execute(ifStatement.elseBranch);
+        }
+    }
+    visitWhileStatement(whileStatement) {
+        while (whileStatement.condition &&
+            this.evaluate(whileStatement.condition)) {
+            this.execute(whileStatement.body);
+        }
+    }
+    visitCallExpression(callExpression) {
+        const callee = this.evaluate(callExpression.callee);
+        const args = callExpression.arguments.map(argument => this.evaluate(argument));
+        return callee.invoke(this, args);
+    }
+    visitFunctionStatement(functionStatement) {
+        const func = new Functionable(functionStatement, this.symbolTable);
+        this.symbolTable.define(functionStatement.name, func);
+    }
+    visitReturnStatement(returnStatement) {
+        let value;
+        if (returnStatement.value) {
+            value = this.evaluate(returnStatement.value);
+        }
+        throw new ReturnError(value);
     }
     evaluate(expression) {
         return expression.accept(this);
@@ -936,16 +987,21 @@ class Interpreter {
     execute(statement) {
         statement.accept(this);
     }
-    visitCallExpression(call) { }
+    executeBlock(statements, symbolTable) {
+        const currentScope = this.symbolTable;
+        try {
+            this.symbolTable = symbolTable;
+            statements.forEach(statement => this.execute(statement));
+        }
+        finally {
+            this.symbolTable = currentScope;
+        }
+    }
     visitGetExpression(getExpression) { }
     visitSetExpression(setExpression) { }
     visitSuperExpression(superExpression) { }
     visitThisExpression(thisExpression) { }
-    visitWhileStatement(whileStatement) { }
     visitClassStatement(classStatement) { }
-    visitIfStatement(ifStatement) { }
-    visitFunctionStatement(functionStatement) { }
-    visitReturnStatement(returnStatement) { }
 }
 
 exports.Lexer = Lexer;
