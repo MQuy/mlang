@@ -251,15 +251,16 @@ class Lexer {
 
 class AstNode {
 }
+
 class Statement extends AstNode {
 }
-class Expression extends Statement {
-}
-
 class BlockStatement extends Statement {
     constructor(statements) {
         super();
         this.statements = statements;
+    }
+    accept(vistor) {
+        return vistor.visitBlockStatement(this);
     }
 }
 class FunctionStatement extends Statement {
@@ -269,6 +270,9 @@ class FunctionStatement extends Statement {
         this.parameters = parameters;
         this.methods = methods;
     }
+    accept(vistor) {
+        return vistor.visitFunctionStatement(this);
+    }
 }
 class ClassStatement extends Statement {
     constructor(name, methods, superclass) {
@@ -277,11 +281,17 @@ class ClassStatement extends Statement {
         this.methods = methods;
         this.superclass = superclass;
     }
+    accept(vistor) {
+        return vistor.visitClassStatement(this);
+    }
 }
 class ExpressionStatement extends Statement {
     constructor(expression) {
         super();
         this.expression = expression;
+    }
+    accept(vistor) {
+        return vistor.visitExpressionStatement(this);
     }
 }
 class IfStatement extends Statement {
@@ -291,17 +301,26 @@ class IfStatement extends Statement {
         this.thenBranch = thenBranch;
         this.elseBranch = elseBranch;
     }
+    accept(vistor) {
+        return vistor.visitIfStatement(this);
+    }
 }
 class PrintStatement extends Statement {
     constructor(expression) {
         super();
         this.expression = expression;
     }
+    accept(vistor) {
+        return vistor.visitPrintStatement(this);
+    }
 }
 class ReturnStatement extends Statement {
     constructor(value) {
         super();
         this.value = value;
+    }
+    accept(vistor) {
+        return vistor.visitReturnStatement(this);
     }
 }
 class VarStatement extends Statement {
@@ -310,6 +329,9 @@ class VarStatement extends Statement {
         this.name = name;
         this.initializer = initializer;
     }
+    accept(vistor) {
+        return vistor.visitVarStatement(this);
+    }
 }
 class WhileStatement extends Statement {
     constructor(body, condition) {
@@ -317,13 +339,21 @@ class WhileStatement extends Statement {
         this.body = body;
         this.condition = condition;
     }
+    accept(vistor) {
+        return vistor.visitWhileStatement(this);
+    }
 }
 
+class Expression extends AstNode {
+}
 class AssignExpression extends Expression {
     constructor(name, expression) {
         super();
         this.name = name;
         this.expression = expression;
+    }
+    accept(vistor) {
+        return vistor.visitAssignExpression(this);
     }
 }
 class BinaryExpression extends Expression {
@@ -333,12 +363,18 @@ class BinaryExpression extends Expression {
         this.operator = operator;
         this.right = right;
     }
+    accept(vistor) {
+        return vistor.visitBinaryExpression(this);
+    }
 }
 class CallExpression extends Expression {
     constructor(callee, args) {
         super();
         this.callee = callee;
         this.arguments = args;
+    }
+    accept(vistor) {
+        return vistor.visitCallExpression(this);
     }
 }
 class GetExpression extends Expression {
@@ -347,17 +383,26 @@ class GetExpression extends Expression {
         this.object = object;
         this.name = name;
     }
+    accept(vistor) {
+        return vistor.visitGetExpression(this);
+    }
 }
 class GroupingExpression extends Expression {
     constructor(expression) {
         super();
         this.expression = expression;
     }
+    accept(vistor) {
+        return vistor.visitGroupingExpression(this);
+    }
 }
 class LiteralExpression extends Expression {
     constructor(value) {
         super();
         this.value = value;
+    }
+    accept(vistor) {
+        return vistor.visitLiternalExpression(this);
     }
 }
 class LogicalExpression extends Expression {
@@ -367,6 +412,9 @@ class LogicalExpression extends Expression {
         this.opeartor = operator;
         this.right = right;
     }
+    accept(vistor) {
+        return vistor.visitLogicalExpression(this);
+    }
 }
 class SetExpression extends Expression {
     constructor(object, name, expression) {
@@ -375,6 +423,9 @@ class SetExpression extends Expression {
         this.name = name;
         this.expression = expression;
     }
+    accept(vistor) {
+        return vistor.visitSetExpression(this);
+    }
 }
 class SuperExpression extends Expression {
     constructor(name, method) {
@@ -382,11 +433,17 @@ class SuperExpression extends Expression {
         this.name = name;
         this.method = method;
     }
+    accept(vistor) {
+        return vistor.visitSuperExpression(this);
+    }
 }
 class ThisExpression extends Expression {
     constructor(keyword) {
         super();
         this.keyword = keyword;
+    }
+    accept(vistor) {
+        return vistor.visitThisExpression(this);
     }
 }
 class UnaryExpression extends Expression {
@@ -395,11 +452,17 @@ class UnaryExpression extends Expression {
         this.opeartor = operator;
         this.right = right;
     }
+    accept(vistor) {
+        return vistor.visitUnaryExpression(this);
+    }
 }
 class VarExpression extends Expression {
     constructor(name) {
         super();
         this.name = name;
+    }
+    accept(vistor) {
+        vistor.visitVarExpression(this);
     }
 }
 
@@ -746,5 +809,92 @@ class Parser {
     }
 }
 
+class Interpreter {
+    constructor(statements) {
+        this.statements = statements;
+    }
+    interpret() {
+        this.statements.forEach(statement => this.execute(statement));
+    }
+    visitLiternalExpression(liternal) {
+        return liternal.value;
+    }
+    visitGroupingExpression(group) {
+        return this.evaluate(group.expression);
+    }
+    visitUnaryExpression(unary) {
+        const right = this.evaluate(unary.right);
+        switch (unary.opeartor.type) {
+            case TokenType.MINUS:
+                return -right;
+            case TokenType.BANG:
+                return !right;
+            default:
+                return right;
+        }
+    }
+    visitBinaryExpression(binary) {
+        const left = this.evaluate(binary.left);
+        const right = this.evaluate(binary.right);
+        switch (binary.operator.type) {
+            case TokenType.MINUS:
+                return left + right;
+            case TokenType.PLUS:
+                return left + right;
+            case TokenType.STAR:
+                return left * right;
+            case TokenType.SLASH:
+                return left / right;
+            case TokenType.EQUAL_EQUAL:
+                return left === right;
+            case TokenType.BANG_EQUAL:
+                return left !== right;
+            case TokenType.GREATER:
+                return left > right;
+            case TokenType.GREATER_EQUAL:
+                return left >= right;
+            case TokenType.LESS:
+                return left < right;
+            case TokenType.LESS_EQUAL:
+                return left <= right;
+        }
+    }
+    visitLogicalExpression(logical) {
+        const left = this.evaluate(logical.left);
+        const right = this.evaluate(logical.right);
+        switch (logical.opeartor.type) {
+            case TokenType.AND:
+                return left && right;
+            case TokenType.OR:
+                return left || right;
+        }
+    }
+    visitExpressionStatement(expressionStatement) {
+        return this.evaluate(expressionStatement.expression);
+    }
+    evaluate(expression) {
+        return expression.accept(this);
+    }
+    execute(statement) {
+        statement.accept(this);
+    }
+    visitAssignExpression(assign) { }
+    visitCallExpression(call) { }
+    visitGetExpression(getExpression) { }
+    visitSetExpression(setExpression) { }
+    visitSuperExpression(superExpression) { }
+    visitThisExpression(thisExpression) { }
+    visitVarExpression(varExpression) { }
+    visitVarStatement(varStatement) { }
+    visitWhileStatement(whileStatement) { }
+    visitBlockStatement(block) { }
+    visitClassStatement(classStatement) { }
+    visitIfStatement(ifStatement) { }
+    visitFunctionStatement(functionStatement) { }
+    visitPrintStatement(printStatement) { }
+    visitReturnStatement(returnStatement) { }
+}
+
 exports.Lexer = Lexer;
 exports.Parser = Parser;
+exports.Interpreter = Interpreter;

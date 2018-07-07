@@ -1,6 +1,10 @@
 import { Token } from "../token";
-import { Statement, Expression } from "./base";
-import { VarExpression } from "./expression";
+import { AstNode } from "./base";
+import { VarExpression, Expression } from "./expression";
+
+export abstract class Statement extends AstNode {
+  abstract accept(vistor: StatementVistor);
+}
 
 export class BlockStatement extends Statement {
   statements: Statement[];
@@ -12,7 +16,7 @@ export class BlockStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitBlockStatement(this);
+    return vistor.visitBlockStatement(this);
   }
 }
 
@@ -30,7 +34,7 @@ export class FunctionStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitFunctionStatement(this);
+    return vistor.visitFunctionStatement(this);
   }
 }
 
@@ -52,7 +56,7 @@ export class ClassStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitClassStatement(this);
+    return vistor.visitClassStatement(this);
   }
 }
 
@@ -66,7 +70,7 @@ export class ExpressionStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitExpressionStatement(this);
+    return vistor.visitExpressionStatement(this);
   }
 }
 
@@ -88,7 +92,7 @@ export class IfStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitIfStatement(this);
+    return vistor.visitIfStatement(this);
   }
 }
 
@@ -102,7 +106,7 @@ export class PrintStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitPrintStatement(this);
+    return vistor.visitPrintStatement(this);
   }
 }
 
@@ -116,7 +120,7 @@ export class ReturnStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitReturnStatement(this);
+    return vistor.visitReturnStatement(this);
   }
 }
 
@@ -132,7 +136,7 @@ export class VarStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitVarStatement(this);
+    return vistor.visitVarStatement(this);
   }
 }
 
@@ -148,18 +152,18 @@ export class WhileStatement extends Statement {
   }
 
   accept(vistor: StatementVistor) {
-    vistor.visitWhileStatement(this);
+    return vistor.visitWhileStatement(this);
   }
 }
 
-export abstract class StatementVistor {
-  abstract visitBlockStatement(stms: BlockStatement);
-  abstract visitFunctionStatement(stms: FunctionStatement);
-  abstract visitClassStatement(stms: ClassStatement);
-  abstract visitExpressionStatement(stms: ExpressionStatement);
-  abstract visitIfStatement(stms: IfStatement);
-  abstract visitPrintStatement(stms: PrintStatement);
-  abstract visitReturnStatement(stms: ReturnStatement);
-  abstract visitVarStatement(smts: VarStatement);
-  abstract visitWhileStatement(stms: WhileStatement);
+export interface StatementVistor {
+  visitBlockStatement(stms: BlockStatement);
+  visitFunctionStatement(stms: FunctionStatement);
+  visitClassStatement(stms: ClassStatement);
+  visitExpressionStatement(stms: ExpressionStatement);
+  visitIfStatement(stms: IfStatement);
+  visitPrintStatement(stms: PrintStatement);
+  visitReturnStatement(stms: ReturnStatement);
+  visitVarStatement(smts: VarStatement);
+  visitWhileStatement(stms: WhileStatement);
 }

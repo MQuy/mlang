@@ -20,10 +20,10 @@ import {
   SuperExpression,
   ThisExpression,
   GroupingExpression,
-  PrintStatement
+  PrintStatement,
+  Statement,
+  Expression
 } from "./ast";
-import { Statement } from "typescript";
-import { Expression } from "./ast/base";
 
 // program = (declaration)*
 // declaration = classDeclaration | function | varDeclaration | statement

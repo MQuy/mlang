@@ -1,5 +1,9 @@
 import { Token } from "../token";
-import { Expression } from "./base";
+import { AstNode } from "./base";
+
+export abstract class Expression extends AstNode {
+  abstract accept(vistor: ExpressionVistor);
+}
 
 export class AssignExpression extends Expression {
   name: Token;
@@ -13,7 +17,7 @@ export class AssignExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitAssignExpression(this);
+    return vistor.visitAssignExpression(this);
   }
 }
 
@@ -31,7 +35,7 @@ export class BinaryExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitBinaryExpression(this);
+    return vistor.visitBinaryExpression(this);
   }
 }
 
@@ -47,7 +51,7 @@ export class CallExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitCallExpression(this);
+    return vistor.visitCallExpression(this);
   }
 }
 
@@ -63,7 +67,7 @@ export class GetExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitGetExpression(this);
+    return vistor.visitGetExpression(this);
   }
 }
 
@@ -77,7 +81,7 @@ export class GroupingExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitGroupingExpression(this);
+    return vistor.visitGroupingExpression(this);
   }
 }
 
@@ -91,7 +95,7 @@ export class LiteralExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitLiternalExpression(this);
+    return vistor.visitLiternalExpression(this);
   }
 }
 
@@ -109,7 +113,7 @@ export class LogicalExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitLogicalExpression(this);
+    return vistor.visitLogicalExpression(this);
   }
 }
 
@@ -127,7 +131,7 @@ export class SetExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitSetExpression(this);
+    return vistor.visitSetExpression(this);
   }
 }
 
@@ -141,6 +145,10 @@ export class SuperExpression extends Expression {
     this.name = name;
     this.method = method;
   }
+
+  accept(vistor: ExpressionVistor) {
+    return vistor.visitSuperExpression(this);
+  }
 }
 
 export class ThisExpression extends Expression {
@@ -153,7 +161,7 @@ export class ThisExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitThisExpression(this);
+    return vistor.visitThisExpression(this);
   }
 }
 
@@ -169,7 +177,7 @@ export class UnaryExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitUnaryExpression(this);
+    return vistor.visitUnaryExpression(this);
   }
 }
 
@@ -187,17 +195,17 @@ export class VarExpression extends Expression {
   }
 }
 
-export abstract class ExpressionVistor {
-  abstract visitAssignExpression(expr: AssignExpression);
-  abstract visitBinaryExpression(expr: BinaryExpression);
-  abstract visitCallExpression(expr: CallExpression);
-  abstract visitGetExpression(expr: GetExpression);
-  abstract visitGroupingExpression(expr: GroupingExpression);
-  abstract visitLiternalExpression(expr: LiteralExpression);
-  abstract visitLogicalExpression(expr: LogicalExpression);
-  abstract visitSetExpression(expr: SetExpression);
-  abstract visitSuperExpression(expr: SuperExpression);
-  abstract visitThisExpression(expr: ThisExpression);
-  abstract visitUnaryExpression(expr: UnaryExpression);
-  abstract visitVarExpression(expr: VarExpression);
+export interface ExpressionVistor {
+  visitAssignExpression(expr: AssignExpression);
+  visitBinaryExpression(expr: BinaryExpression);
+  visitCallExpression(expr: CallExpression);
+  visitGetExpression(expr: GetExpression);
+  visitGroupingExpression(expr: GroupingExpression);
+  visitLiternalExpression(expr: LiteralExpression);
+  visitLogicalExpression(expr: LogicalExpression);
+  visitSetExpression(expr: SetExpression);
+  visitSuperExpression(expr: SuperExpression);
+  visitThisExpression(expr: ThisExpression);
+  visitUnaryExpression(expr: UnaryExpression);
+  visitVarExpression(expr: VarExpression);
 }
