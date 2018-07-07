@@ -191,7 +191,7 @@ export class VarExpression extends Expression {
   }
 
   accept(vistor: ExpressionVistor) {
-    vistor.visitVarExpression(this);
+    return vistor.visitVarExpression(this);
   }
 }
 

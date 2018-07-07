@@ -462,11 +462,11 @@ class VarExpression extends Expression {
         this.name = name;
     }
     accept(vistor) {
-        vistor.visitVarExpression(this);
+        return vistor.visitVarExpression(this);
     }
 }
 
-// program = (declaration)*
+// program = (declaration)* EOF
 // declaration = classDeclaration | function | varDeclaration | statement
 // classDeclaration = IDENTIFIER-name (LESS IDENTIFIER-super)? LEFT_BRACE (function-method)* RIGHT_BRACE
 // statement = forStatement | ifStatement | printStatement | returnStatement | whileStatement | block | expressionStatement
@@ -809,9 +809,42 @@ class Parser {
     }
 }
 
+class SymbolTable {
+    constructor(enclosing) {
+        this.enclosing = enclosing;
+        this.symbols = {};
+    }
+    define(token, value) {
+        this.symbols[token.lexeme] = value;
+    }
+    assign(token, value) {
+        const key = token.lexeme;
+        if (Object.keys(this.symbols).includes(key)) {
+            this.symbols[key] = value;
+        }
+        else if (this.enclosing) {
+            this.enclosing.assign(token, value);
+        }
+        throw new Error(`Undefined variable ${key}.`);
+    }
+    lookup(token) {
+        const key = token.lexeme;
+        if (Object.keys(this.symbols).includes(key)) {
+            return this.symbols[key];
+        }
+        else if (this.enclosing) {
+            return this.enclosing.lookup(token);
+        }
+        else {
+            throw new Error(`Undefined variable ${key}.`);
+        }
+    }
+}
+
 class Interpreter {
     constructor(statements) {
         this.statements = statements;
+        this.symbolTable = new SymbolTable();
     }
     interpret() {
         this.statements.forEach(statement => this.execute(statement));
@@ -869,8 +902,33 @@ class Interpreter {
                 return left || right;
         }
     }
+    visitVarExpression(varExpression) {
+        return this.symbolTable.lookup(varExpression.name);
+    }
+    visitAssignExpression(assign) {
+        const value = this.evaluate(assign.expression);
+        this.symbolTable.define(assign.name, value);
+        return value;
+    }
     visitExpressionStatement(expressionStatement) {
         return this.evaluate(expressionStatement.expression);
+    }
+    visitVarStatement(varStatement) {
+        let value;
+        if (varStatement.initializer) {
+            value = this.evaluate(varStatement.initializer);
+        }
+        this.symbolTable.define(varStatement.name, value);
+    }
+    visitBlockStatement(blockStatement) {
+        const currentScope = this.symbolTable;
+        this.symbolTable = new SymbolTable(currentScope);
+        blockStatement.statements.forEach(statement => this.execute(statement));
+        this.symbolTable = currentScope;
+    }
+    visitPrintStatement(printStatement) {
+        const value = this.evaluate(printStatement.expression);
+        console.log(value);
     }
     evaluate(expression) {
         return expression.accept(this);
@@ -878,20 +936,15 @@ class Interpreter {
     execute(statement) {
         statement.accept(this);
     }
-    visitAssignExpression(assign) { }
     visitCallExpression(call) { }
     visitGetExpression(getExpression) { }
     visitSetExpression(setExpression) { }
     visitSuperExpression(superExpression) { }
     visitThisExpression(thisExpression) { }
-    visitVarExpression(varExpression) { }
-    visitVarStatement(varStatement) { }
     visitWhileStatement(whileStatement) { }
-    visitBlockStatement(block) { }
     visitClassStatement(classStatement) { }
     visitIfStatement(ifStatement) { }
     visitFunctionStatement(functionStatement) { }
-    visitPrintStatement(printStatement) { }
     visitReturnStatement(returnStatement) { }
 }
 

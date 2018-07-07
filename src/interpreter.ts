@@ -26,12 +26,15 @@ import {
   Statement
 } from "./ast";
 import { TokenType } from "./token";
+import { SymbolTable } from "./symbolTable";
 
 export class Interpreter implements StatementVistor, ExpressionVistor {
   statements: Statement[];
+  symbolTable: SymbolTable;
 
   constructor(statements: Statement[]) {
     this.statements = statements;
+    this.symbolTable = new SymbolTable();
   }
 
   interpret() {
@@ -99,8 +102,42 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     }
   }
 
+  visitVarExpression(varExpression: VarExpression) {
+    return this.symbolTable.lookup(varExpression.name);
+  }
+
+  visitAssignExpression(assign: AssignExpression) {
+    const value = this.evaluate(assign.expression);
+
+    this.symbolTable.define(assign.name, value);
+    return value;
+  }
+
   visitExpressionStatement(expressionStatement: ExpressionStatement) {
     return this.evaluate(expressionStatement.expression);
+  }
+
+  visitVarStatement(varStatement: VarStatement) {
+    let value;
+
+    if (varStatement.initializer) {
+      value = this.evaluate(varStatement.initializer);
+    }
+    this.symbolTable.define(varStatement.name, value);
+  }
+
+  visitBlockStatement(blockStatement: BlockStatement) {
+    const currentScope = this.symbolTable;
+
+    this.symbolTable = new SymbolTable(currentScope);
+    blockStatement.statements.forEach(statement => this.execute(statement));
+    this.symbolTable = currentScope;
+  }
+
+  visitPrintStatement(printStatement: PrintStatement) {
+    const value = this.evaluate(printStatement.expression);
+
+    console.log(value);
   }
 
   evaluate(expression: Expression) {
@@ -111,19 +148,14 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     statement.accept(this);
   }
 
-  visitAssignExpression(assign: AssignExpression) {}
   visitCallExpression(call: CallExpression) {}
   visitGetExpression(getExpression: GetExpression) {}
   visitSetExpression(setExpression: SetExpression) {}
   visitSuperExpression(superExpression: SuperExpression) {}
   visitThisExpression(thisExpression: ThisExpression) {}
-  visitVarExpression(varExpression: VarExpression) {}
-  visitVarStatement(varStatement: VarStatement) {}
   visitWhileStatement(whileStatement: WhileStatement) {}
-  visitBlockStatement(block: BlockStatement) {}
   visitClassStatement(classStatement: ClassStatement) {}
   visitIfStatement(ifStatement: IfStatement) {}
   visitFunctionStatement(functionStatement: FunctionStatement) {}
-  visitPrintStatement(printStatement: PrintStatement) {}
   visitReturnStatement(returnStatement: ReturnStatement) {}
 }

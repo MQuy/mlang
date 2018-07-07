@@ -25,7 +25,7 @@ import {
   Expression
 } from "./ast";
 
-// program = (declaration)*
+// program = (declaration)* EOF
 // declaration = classDeclaration | function | varDeclaration | statement
 // classDeclaration = IDENTIFIER-name (LESS IDENTIFIER-super)? LEFT_BRACE (function-method)* RIGHT_BRACE
 // statement = forStatement | ifStatement | printStatement | returnStatement | whileStatement | block | expressionStatement
