@@ -257,7 +257,13 @@ class ReturnError {
     }
 }
 
+let incrementValue = 0;
 class Statement extends AstNode {
+    constructor() {
+        super();
+        this.hash = incrementValue++;
+    }
+    accept(vistor) { }
 }
 class BlockStatement extends Statement {
     constructor(statements) {
@@ -349,7 +355,13 @@ class WhileStatement extends Statement {
     }
 }
 
+let incrementValue$1 = 0;
 class Expression extends AstNode {
+    constructor() {
+        super();
+        this.hash = incrementValue$1++;
+    }
+    accept(vistor) { }
 }
 class AssignExpression extends Expression {
     constructor(name, expression) {
@@ -822,24 +834,39 @@ class SymbolTable {
     define(token, value) {
         this.symbols[token.lexeme] = value;
     }
-    assign(token, value) {
+    assign(token, value, onlyCurrentScope = false) {
         const key = token.lexeme;
         if (Object.keys(this.symbols).includes(key)) {
             this.symbols[key] = value;
         }
-        else if (this.enclosing) {
+        else if (this.enclosing && !onlyCurrentScope) {
             this.enclosing.assign(token, value);
         }
         else {
             throw new Error(`Undefined variable ${key}.`);
         }
     }
-    lookup(token) {
+    ancestor(distance) {
+        let scope = this;
+        for (let i = 0; i < distance; ++i) {
+            if (scope.enclosing) {
+                scope = scope.enclosing;
+            }
+        }
+        return scope;
+    }
+    getAt(distance, token) {
+        return this.ancestor(distance).lookup(token, true);
+    }
+    assignAt(distance, token, value) {
+        this.ancestor(distance).assign(token, value, true);
+    }
+    lookup(token, onlyCurrentScope = false) {
         const key = token.lexeme;
         if (Object.keys(this.symbols).includes(key)) {
             return this.symbols[key];
         }
-        else if (this.enclosing) {
+        else if (this.enclosing && !onlyCurrentScope) {
             return this.enclosing.lookup(token);
         }
         else {
@@ -869,9 +896,13 @@ class Interpreter {
     constructor(statements) {
         this.statements = statements;
         this.symbolTable = new SymbolTable();
+        this.locals = {};
     }
     interpret() {
         this.statements.forEach(statement => this.execute(statement));
+    }
+    resolve(expression, depth) {
+        this.locals[expression.hash] = depth;
     }
     visitLiternalExpression(liternal) {
         return liternal.value;
@@ -927,11 +958,11 @@ class Interpreter {
         }
     }
     visitVarExpression(varExpression) {
-        return this.symbolTable.lookup(varExpression.name);
+        return this.lookupVariable(varExpression.name, varExpression);
     }
     visitAssignExpression(assign) {
         const value = this.evaluate(assign.expression);
-        this.symbolTable.assign(assign.name, value);
+        this.symbolTable.assignAt(assign.hash, assign.name, value);
         return value;
     }
     visitExpressionStatement(expressionStatement) {
@@ -997,13 +1028,177 @@ class Interpreter {
             this.symbolTable = currentScope;
         }
     }
+    lookupVariable(token, expression) {
+        const distance = this.locals[expression.hash];
+        if (distance != null) {
+            return this.symbolTable.getAt(distance, token);
+        }
+        else {
+            throw new Error(`Cannot find ${token.toString()}`);
+        }
+    }
     visitGetExpression(getExpression) { }
     visitSetExpression(setExpression) { }
     visitSuperExpression(superExpression) { }
     visitThisExpression(thisExpression) { }
     visitClassStatement(classStatement) { }
 }
+/*
+tokens = new Lexer(`
+var a = "global";
+{
+  fun showA() {
+    print a;
+  }
+
+  showA();
+  var a = "block";
+  showA();
+}`).scan();
+ast = new Parser(tokens).parse();
+interpreter = new Interpreter(ast);
+resolver = new Resolver(interpreter);
+resolver.resolve();
+interpreter.interpret();
+*/
+
+class Resolver {
+    constructor(interpreter) {
+        this.interpreter = interpreter;
+    }
+    resolve() {
+        this.scopes = [];
+        this.beginScope();
+        this.resolveStatements(this.interpreter.statements);
+        this.endScope();
+    }
+    resolveStatements(statements) {
+        statements.forEach(statement => this.resolveStatement(statement));
+    }
+    visitBlockStatement(stms) {
+        this.beginScope();
+        this.resolveStatements(stms.statements);
+        this.endScope();
+    }
+    visitExpressionStatement(stms) {
+        this.resolveExpression(stms.expression);
+    }
+    visitFunctionStatement(stms) {
+        this.declare(stms.name);
+        this.define(stms.name);
+        this.resolveFunction(stms);
+    }
+    visitIfStatement(stms) {
+        this.resolveExpression(stms.condition);
+        this.resolveStatement(stms.thenBranch);
+        if (stms.elseBranch)
+            this.resolveStatement(stms.elseBranch);
+    }
+    visitPrintStatement(stms) {
+        this.resolveExpression(stms.expression);
+    }
+    visitReturnStatement(stms) {
+        if (stms.value)
+            this.resolveExpression(stms.value);
+    }
+    visitVarStatement(smts) {
+        this.declare(smts.name);
+        if (smts.initializer) {
+            this.resolveExpression(smts.initializer);
+        }
+        this.define(smts.name);
+    }
+    visitWhileStatement(stms) {
+        if (stms.condition)
+            this.resolveExpression(stms.condition);
+        this.resolveStatement(stms.body);
+    }
+    visitAssignExpression(expr) {
+        this.resolveExpression(expr.expression);
+        this.resolveLocal(expr, expr.name);
+    }
+    visitBinaryExpression(expr) {
+        this.resolveExpression(expr.left);
+        this.resolveExpression(expr.right);
+    }
+    visitCallExpression(expr) {
+        this.resolveExpression(expr.callee);
+        expr.arguments.forEach(arg => this.resolveExpression(arg));
+    }
+    visitGetExpression(expr) {
+        this.resolveExpression(expr.object);
+    }
+    visitGroupingExpression(expr) {
+        this.resolveExpression(expr.expression);
+    }
+    visitLogicalExpression(expr) {
+        this.resolveExpression(expr.left);
+        this.resolveExpression(expr.right);
+    }
+    visitSetExpression(expr) {
+        this.resolveExpression(expr.expression);
+        this.resolveExpression(expr.object);
+    }
+    visitUnaryExpression(expr) {
+        this.resolveExpression(expr.right);
+    }
+    visitVarExpression(expr) {
+        this.resolveLocal(expr, expr.name);
+    }
+    resolveFunction(stms) {
+        this.beginScope();
+        stms.parameters.forEach(param => {
+            this.declare(param);
+            this.define(param);
+        });
+        this.resolveStatements(stms.methods);
+        this.endScope();
+    }
+    declare(token) {
+        const scope = this.scopes[this.scopes.length - 1];
+        if (scope) {
+            if (scope[token.lexeme]) {
+                throw new Error(`Variable ${token.lexeme} is already declared in this scope.`);
+            }
+            else {
+                scope[token.lexeme] = false;
+            }
+        }
+    }
+    define(token) {
+        const scope = this.scopes[this.scopes.length - 1];
+        if (scope) {
+            scope[token.lexeme] = true;
+        }
+    }
+    beginScope() {
+        this.scopes.push({});
+    }
+    endScope() {
+        this.scopes.pop();
+    }
+    resolveStatement(statement) {
+        statement.accept(this);
+    }
+    resolveExpression(expression) {
+        expression.accept(this);
+    }
+    resolveLocal(expression, token) {
+        debugger;
+        for (let i = this.scopes.length - 1; i >= 0; i--) {
+            if (this.scopes[i][token.lexeme]) {
+                this.interpreter.resolve(expression, this.scopes.length - 1 - i);
+                return;
+            }
+        }
+    }
+    visitLiternalExpression(expr) { }
+    visitSuperExpression(expr) { }
+    visitThisExpression(expr) { }
+    visitClassStatement(stms) { }
+}
 
 exports.Lexer = Lexer;
 exports.Parser = Parser;
 exports.Interpreter = Interpreter;
+exports.Resolver = Resolver;

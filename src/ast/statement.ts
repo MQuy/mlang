@@ -2,11 +2,25 @@ import { Token } from "../token";
 import { AstNode } from "./base";
 import { VarExpression, Expression } from "./expression";
 
-export abstract class Statement extends AstNode {
-  abstract accept(vistor: StatementVistor);
+let incrementValue = 0;
+
+export class Statement extends AstNode {
+  hash: number;
+
+  constructor() {
+    super();
+
+    this.hash = incrementValue++;
+  }
+
+  accept(vistor: StatementVistor) {}
 }
 
-export class BlockStatement extends Statement {
+interface Vistor {
+  accept(vistor: StatementVistor);
+}
+
+export class BlockStatement extends Statement implements Vistor {
   statements: Statement[];
 
   constructor(statements: Statement[]) {
@@ -20,7 +34,7 @@ export class BlockStatement extends Statement {
   }
 }
 
-export class FunctionStatement extends Statement {
+export class FunctionStatement extends Statement implements Vistor {
   name: Token;
   parameters: Token[];
   methods: Statement[];
@@ -38,7 +52,7 @@ export class FunctionStatement extends Statement {
   }
 }
 
-export class ClassStatement extends Statement {
+export class ClassStatement extends Statement implements Vistor {
   name: Token;
   superclass?: VarExpression;
   methods: FunctionStatement[];
@@ -60,7 +74,7 @@ export class ClassStatement extends Statement {
   }
 }
 
-export class ExpressionStatement extends Statement {
+export class ExpressionStatement extends Statement implements Vistor {
   expression: Expression;
 
   constructor(expression: Expression) {
@@ -74,7 +88,7 @@ export class ExpressionStatement extends Statement {
   }
 }
 
-export class IfStatement extends Statement {
+export class IfStatement extends Statement implements Vistor {
   condition: Expression;
   thenBranch: Statement;
   elseBranch?: Statement;
@@ -96,7 +110,7 @@ export class IfStatement extends Statement {
   }
 }
 
-export class PrintStatement extends Statement {
+export class PrintStatement extends Statement implements Vistor {
   expression: Expression;
 
   constructor(expression: Expression) {
@@ -110,7 +124,7 @@ export class PrintStatement extends Statement {
   }
 }
 
-export class ReturnStatement extends Statement {
+export class ReturnStatement extends Statement implements Vistor {
   value?: Expression;
 
   constructor(value?: Expression) {
@@ -124,7 +138,7 @@ export class ReturnStatement extends Statement {
   }
 }
 
-export class VarStatement extends Statement {
+export class VarStatement extends Statement implements Vistor {
   name: Token;
   initializer?: Expression;
 
@@ -140,7 +154,7 @@ export class VarStatement extends Statement {
   }
 }
 
-export class WhileStatement extends Statement {
+export class WhileStatement extends Statement implements Vistor {
   condition?: Expression;
   body: Statement;
 

@@ -25,7 +25,7 @@ import {
   WhileStatement,
   Statement
 } from "./ast";
-import { TokenType } from "./token";
+import { TokenType, Token } from "./token";
 import { SymbolTable } from "./symbolTable";
 import { Functionable } from "./ast/function";
 import { ReturnError } from "./ast/base";
@@ -33,14 +33,20 @@ import { ReturnError } from "./ast/base";
 export class Interpreter implements StatementVistor, ExpressionVistor {
   statements: Statement[];
   symbolTable: SymbolTable;
+  locals: { [key: number]: number };
 
   constructor(statements: Statement[]) {
     this.statements = statements;
     this.symbolTable = new SymbolTable();
+    this.locals = {};
   }
 
   interpret() {
     this.statements.forEach(statement => this.execute(statement));
+  }
+
+  resolve(expression: Expression, depth: number) {
+    this.locals[expression.hash] = depth;
   }
 
   visitLiternalExpression(liternal: LiteralExpression) {
@@ -105,13 +111,13 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
   }
 
   visitVarExpression(varExpression: VarExpression) {
-    return this.symbolTable.lookup(varExpression.name);
+    return this.lookupVariable(varExpression.name, varExpression);
   }
 
   visitAssignExpression(assign: AssignExpression) {
     const value = this.evaluate(assign.expression);
 
-    this.symbolTable.assign(assign.name, value);
+    this.symbolTable.assignAt(assign.hash, assign.name, value);
     return value;
   }
 
@@ -198,6 +204,16 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
       statements.forEach(statement => this.execute(statement));
     } finally {
       this.symbolTable = currentScope;
+    }
+  }
+
+  lookupVariable(token: Token, expression: Expression) {
+    const distance = this.locals[expression.hash];
+
+    if (distance != null) {
+      return this.symbolTable.getAt(distance, token);
+    } else {
+      throw new Error(`Cannot find ${token.toString()}`);
     }
   }
 

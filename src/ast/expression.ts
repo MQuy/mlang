@@ -1,11 +1,25 @@
 import { Token } from "../token";
 import { AstNode } from "./base";
 
-export abstract class Expression extends AstNode {
-  abstract accept(vistor: ExpressionVistor);
+let incrementValue = 0;
+
+export class Expression extends AstNode {
+  hash: number;
+
+  constructor() {
+    super();
+
+    this.hash = incrementValue++;
+  }
+
+  accept(vistor: ExpressionVistor) {}
 }
 
-export class AssignExpression extends Expression {
+interface Vistor {
+  accept(vistor: ExpressionVistor);
+}
+
+export class AssignExpression extends Expression implements Vistor {
   name: Token;
   expression: Expression;
 
@@ -21,7 +35,7 @@ export class AssignExpression extends Expression {
   }
 }
 
-export class BinaryExpression extends Expression {
+export class BinaryExpression extends Expression implements Vistor {
   left: Expression;
   operator: Token;
   right: Expression;
@@ -39,7 +53,7 @@ export class BinaryExpression extends Expression {
   }
 }
 
-export class CallExpression extends Expression {
+export class CallExpression extends Expression implements Vistor {
   callee: Expression;
   arguments: Expression[];
 
@@ -55,7 +69,7 @@ export class CallExpression extends Expression {
   }
 }
 
-export class GetExpression extends Expression {
+export class GetExpression extends Expression implements Vistor {
   object: Expression;
   name: Token;
 
@@ -71,7 +85,7 @@ export class GetExpression extends Expression {
   }
 }
 
-export class GroupingExpression extends Expression {
+export class GroupingExpression extends Expression implements Vistor {
   expression: Expression;
 
   constructor(expression: Expression) {
@@ -85,7 +99,7 @@ export class GroupingExpression extends Expression {
   }
 }
 
-export class LiteralExpression extends Expression {
+export class LiteralExpression extends Expression implements Vistor {
   value: string | number | boolean | undefined;
 
   constructor(value: string | number | boolean | undefined) {
@@ -99,7 +113,7 @@ export class LiteralExpression extends Expression {
   }
 }
 
-export class LogicalExpression extends Expression {
+export class LogicalExpression extends Expression implements Vistor {
   left: Expression;
   opeartor: Token;
   right: Expression;
@@ -117,7 +131,7 @@ export class LogicalExpression extends Expression {
   }
 }
 
-export class SetExpression extends Expression {
+export class SetExpression extends Expression implements Vistor {
   object: Expression;
   name: Token;
   expression: Expression;
@@ -135,7 +149,7 @@ export class SetExpression extends Expression {
   }
 }
 
-export class SuperExpression extends Expression {
+export class SuperExpression extends Expression implements Vistor {
   name: Token;
   method: Token;
 
@@ -151,7 +165,7 @@ export class SuperExpression extends Expression {
   }
 }
 
-export class ThisExpression extends Expression {
+export class ThisExpression extends Expression implements Vistor {
   keyword: Token;
 
   constructor(keyword: Token) {
@@ -165,7 +179,7 @@ export class ThisExpression extends Expression {
   }
 }
 
-export class UnaryExpression extends Expression {
+export class UnaryExpression extends Expression implements Vistor {
   opeartor: Token;
   right: Expression;
 
@@ -181,7 +195,7 @@ export class UnaryExpression extends Expression {
   }
 }
 
-export class VarExpression extends Expression {
+export class VarExpression extends Expression implements Vistor {
   name: Token;
 
   constructor(name: Token) {
