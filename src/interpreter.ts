@@ -297,27 +297,3 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     return superclass.lookupMethod(object, superExpression.method);
   }
 }
-
-/*
-tokens = new Lexer(`
-class Doughnut {
-  cook() {
-    print "Fry until golden brown.";
-  }
-}
-
-class BostonCream < Doughnut {
-  cook() {
-    super.cook();
-    print "Pipe full of custard and coat with chocolate.";
-  }
-}
-
-BostonCream().cook();
-`).scan();
-ast = new Parser(tokens).parse();
-interpreter = new Interpreter(ast);
-resolver = new Resolver(interpreter);
-resolver.resolve();
-interpreter.interpret();
-*/
