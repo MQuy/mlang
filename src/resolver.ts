@@ -190,17 +190,30 @@ export class Resolver implements StatementVistor, ExpressionVistor {
 
   visitClassStatement(stms: ClassStatement) {
     this.declare(stms.name);
+    if (stms.superclass) {
+      this.resolveExpression(stms.superclass);
+    }
     this.define(stms.name);
+    if (stms.superclass) {
+      this.beginScope();
+      this.scopes[this.scopes.length - 1]["super"] = true;
+    }
     this.beginScope();
     this.scopes[this.scopes.length - 1]["this"] = true;
     stms.methods.forEach(method => this.resolveFunction(method));
     this.endScope();
+    if (stms.superclass) {
+      this.endScope();
+    }
   }
 
   visitThisExpression(expr: ThisExpression) {
     this.resolveLocal(expr, expr.keyword);
   }
 
+  visitSuperExpression(expr: SuperExpression) {
+    this.resolveLocal(expr, expr.name);
+  }
+
   visitLiternalExpression(expr: LiteralExpression) {}
-  visitSuperExpression(expr: SuperExpression) {}
 }

@@ -918,9 +918,10 @@ class Instance {
 }
 
 class Classable {
-    constructor(name, methods) {
+    constructor(name, methods, superclass) {
         this.name = name;
         this.methods = methods;
+        this.superclass = superclass;
     }
     invoke(interpreter, args) {
         return new Instance(this);
@@ -928,6 +929,9 @@ class Classable {
     lookupMethod(instance, token) {
         if (this.methods[token.lexeme]) {
             return this.methods[token.lexeme].bind(instance);
+        }
+        else if (this.superclass) {
+            return this.superclass.lookupMethod(instance, token);
         }
     }
 }
@@ -1037,7 +1041,6 @@ class Interpreter {
         }
     }
     visitCallExpression(callExpression) {
-        debugger;
         const callee = this.evaluate(callExpression.callee);
         const args = callExpression.arguments.map(argument => this.evaluate(argument));
         return callee.invoke(this, args);
@@ -1054,12 +1057,24 @@ class Interpreter {
         throw new ReturnError(value);
     }
     visitClassStatement(classStatement) {
+        let superclass;
+        let currentScope = this.symbolTable;
+        if (classStatement.superclass) {
+            superclass = this.evaluate(classStatement.superclass);
+        }
         this.symbolTable.define(classStatement.name, undefined);
+        if (classStatement.superclass) {
+            this.symbolTable = new SymbolTable(this.symbolTable);
+            this.symbolTable.define(new Token(TokenType.SUPER, "super", undefined, 0), superclass);
+        }
         const methods = {};
         classStatement.methods.forEach(method => {
             methods[method.name.lexeme] = new Functionable(method.name.lexeme, method, this.symbolTable);
         });
-        const klass = new Classable(classStatement.name.lexeme, methods);
+        const klass = new Classable(classStatement.name.lexeme, methods, superclass);
+        if (superclass) {
+            this.symbolTable = currentScope;
+        }
         this.symbolTable.assign(classStatement.name, klass);
     }
     visitGetExpression(getExpression) {
@@ -1105,7 +1120,12 @@ class Interpreter {
     visitThisExpression(thisExpression) {
         return this.lookupVariable(thisExpression.keyword, thisExpression);
     }
-    visitSuperExpression(superExpression) { }
+    visitSuperExpression(superExpression) {
+        const distance = this.locals[superExpression.hash];
+        const superclass = this.symbolTable.getAt(distance, new Token(TokenType.SUPER, "super", undefined, 0));
+        const object = this.symbolTable.getAt(distance - 1, new Token(TokenType.THIS, "this", undefined, 0));
+        return superclass.lookupMethod(object, superExpression.method);
+    }
 }
 /*
 tokens = new Lexer(`
@@ -1258,17 +1278,29 @@ class Resolver {
     }
     visitClassStatement(stms) {
         this.declare(stms.name);
+        if (stms.superclass) {
+            this.resolveExpression(stms.superclass);
+        }
         this.define(stms.name);
+        if (stms.superclass) {
+            this.beginScope();
+            this.scopes[this.scopes.length - 1]["super"] = true;
+        }
         this.beginScope();
         this.scopes[this.scopes.length - 1]["this"] = true;
         stms.methods.forEach(method => this.resolveFunction(method));
         this.endScope();
+        if (stms.superclass) {
+            this.endScope();
+        }
     }
     visitThisExpression(expr) {
         this.resolveLocal(expr, expr.keyword);
     }
+    visitSuperExpression(expr) {
+        this.resolveLocal(expr, expr.name);
+    }
     visitLiternalExpression(expr) { }
-    visitSuperExpression(expr) { }
 }
 
 exports.Lexer = Lexer;

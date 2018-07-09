@@ -195,7 +195,19 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
   }
 
   visitClassStatement(classStatement: ClassStatement) {
+    let superclass;
+    let currentScope = this.symbolTable;
+    if (classStatement.superclass) {
+      superclass = this.evaluate(classStatement.superclass);
+    }
     this.symbolTable.define(classStatement.name, undefined);
+    if (classStatement.superclass) {
+      this.symbolTable = new SymbolTable(this.symbolTable);
+      this.symbolTable.define(
+        new Token(TokenType.SUPER, "super", undefined, 0),
+        superclass
+      );
+    }
     const methods: { [key: string]: Functionable } = {};
 
     classStatement.methods.forEach(method => {
@@ -205,7 +217,14 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
         this.symbolTable
       );
     });
-    const klass = new Classable(classStatement.name.lexeme, methods);
+    const klass = new Classable(
+      classStatement.name.lexeme,
+      methods,
+      superclass
+    );
+    if (superclass) {
+      this.symbolTable = currentScope;
+    }
     this.symbolTable.assign(classStatement.name, klass);
   }
 
@@ -265,21 +284,36 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     return this.lookupVariable(thisExpression.keyword, thisExpression);
   }
 
-  visitSuperExpression(superExpression: SuperExpression) {}
+  visitSuperExpression(superExpression: SuperExpression) {
+    const distance = this.locals[superExpression.hash];
+    const superclass = this.symbolTable.getAt(
+      distance,
+      new Token(TokenType.SUPER, "super", undefined, 0)
+    );
+    const object = this.symbolTable.getAt(
+      distance - 1,
+      new Token(TokenType.THIS, "this", undefined, 0)
+    );
+    return superclass.lookupMethod(object, superExpression.method);
+  }
 }
 
 /*
 tokens = new Lexer(`
-class Cake {
-  taste() {
-    var adjective = "delicious";
-    print "The " + this.flavor + " cake is " + adjective + "!";
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
   }
 }
 
-var cake = Cake();
-cake.flavor = "German chocolate";
-cake.taste(); // Prints "The German chocolate cake is delicious!".
+class BostonCream < Doughnut {
+  cook() {
+    super.cook();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook();
 `).scan();
 ast = new Parser(tokens).parse();
 interpreter = new Interpreter(ast);
