@@ -180,7 +180,6 @@ export class Resolver implements StatementVistor, ExpressionVistor {
   }
 
   resolveLocal(expression: Expression, token: Token) {
-    debugger;
     for (let i = this.scopes.length - 1; i >= 0; i--) {
       if (this.scopes[i][token.lexeme]) {
         this.interpreter.resolve(expression, this.scopes.length - 1 - i);
@@ -189,8 +188,19 @@ export class Resolver implements StatementVistor, ExpressionVistor {
     }
   }
 
+  visitClassStatement(stms: ClassStatement) {
+    this.declare(stms.name);
+    this.define(stms.name);
+    this.beginScope();
+    this.scopes[this.scopes.length - 1]["this"] = true;
+    stms.methods.forEach(method => this.resolveFunction(method));
+    this.endScope();
+  }
+
+  visitThisExpression(expr: ThisExpression) {
+    this.resolveLocal(expr, expr.keyword);
+  }
+
   visitLiternalExpression(expr: LiteralExpression) {}
   visitSuperExpression(expr: SuperExpression) {}
-  visitThisExpression(expr: ThisExpression) {}
-  visitClassStatement(stms: ClassStatement) {}
 }

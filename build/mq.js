@@ -876,7 +876,8 @@ class SymbolTable {
 }
 
 class Functionable {
-    constructor(declaration, closure) {
+    constructor(name, declaration, closure) {
+        this.name = name;
         this.declaration = declaration;
         this.closure = closure;
     }
@@ -888,6 +889,45 @@ class Functionable {
         }
         catch (e) {
             return e.value;
+        }
+    }
+    bind(instance) {
+        const closure = new SymbolTable(this.closure);
+        closure.define(new Token(TokenType.THIS, "this", undefined, 0), instance);
+        return new Functionable(this.name, this.declaration, closure);
+    }
+}
+
+class Instance {
+    constructor(klass) {
+        this.klass = klass;
+        this.fields = {};
+    }
+    get(token) {
+        if (Object.keys(this.fields).includes(token.lexeme)) {
+            return this.fields[token.lexeme];
+        }
+        const method = this.klass.lookupMethod(this, token);
+        if (method)
+            return method;
+        throw new Error(`Undefined property ${token.lexeme} in ${this.klass.name}`);
+    }
+    set(token, value) {
+        this.fields[token.lexeme] = value;
+    }
+}
+
+class Classable {
+    constructor(name, methods) {
+        this.name = name;
+        this.methods = methods;
+    }
+    invoke(interpreter, args) {
+        return new Instance(this);
+    }
+    lookupMethod(instance, token) {
+        if (this.methods[token.lexeme]) {
+            return this.methods[token.lexeme].bind(instance);
         }
     }
 }
@@ -997,12 +1037,13 @@ class Interpreter {
         }
     }
     visitCallExpression(callExpression) {
+        debugger;
         const callee = this.evaluate(callExpression.callee);
         const args = callExpression.arguments.map(argument => this.evaluate(argument));
         return callee.invoke(this, args);
     }
     visitFunctionStatement(functionStatement) {
-        const func = new Functionable(functionStatement, this.symbolTable);
+        const func = new Functionable(functionStatement.name.lexeme, functionStatement, this.symbolTable);
         this.symbolTable.define(functionStatement.name, func);
     }
     visitReturnStatement(returnStatement) {
@@ -1011,6 +1052,30 @@ class Interpreter {
             value = this.evaluate(returnStatement.value);
         }
         throw new ReturnError(value);
+    }
+    visitClassStatement(classStatement) {
+        this.symbolTable.define(classStatement.name, undefined);
+        const methods = {};
+        classStatement.methods.forEach(method => {
+            methods[method.name.lexeme] = new Functionable(method.name.lexeme, method, this.symbolTable);
+        });
+        const klass = new Classable(classStatement.name.lexeme, methods);
+        this.symbolTable.assign(classStatement.name, klass);
+    }
+    visitGetExpression(getExpression) {
+        const object = this.evaluate(getExpression.object);
+        if (object instanceof Instance) {
+            return object.get(getExpression.name);
+        }
+        throw new Error(`${getExpression.name.lexeme} only instances have properties.`);
+    }
+    visitSetExpression(setExpression) {
+        const object = this.evaluate(setExpression.object);
+        if (object instanceof Instance) {
+            const value = this.evaluate(setExpression.expression);
+            return object.set(setExpression.name, value);
+        }
+        throw new Error(`Only instances have fields.`);
     }
     evaluate(expression) {
         return expression.accept(this);
@@ -1037,24 +1102,24 @@ class Interpreter {
             throw new Error(`Cannot find ${token.toString()}`);
         }
     }
-    visitGetExpression(getExpression) { }
-    visitSetExpression(setExpression) { }
+    visitThisExpression(thisExpression) {
+        return this.lookupVariable(thisExpression.keyword, thisExpression);
+    }
     visitSuperExpression(superExpression) { }
-    visitThisExpression(thisExpression) { }
-    visitClassStatement(classStatement) { }
 }
 /*
 tokens = new Lexer(`
-var a = "global";
-{
-  fun showA() {
-    print a;
+class Cake {
+  taste() {
+    var adjective = "delicious";
+    print "The " + this.flavor + " cake is " + adjective + "!";
   }
+}
 
-  showA();
-  var a = "block";
-  showA();
-}`).scan();
+var cake = Cake();
+cake.flavor = "German chocolate";
+cake.taste(); // Prints "The German chocolate cake is delicious!".
+`).scan();
 ast = new Parser(tokens).parse();
 interpreter = new Interpreter(ast);
 resolver = new Resolver(interpreter);
@@ -1184,7 +1249,6 @@ class Resolver {
         expression.accept(this);
     }
     resolveLocal(expression, token) {
-        debugger;
         for (let i = this.scopes.length - 1; i >= 0; i--) {
             if (this.scopes[i][token.lexeme]) {
                 this.interpreter.resolve(expression, this.scopes.length - 1 - i);
@@ -1192,10 +1256,19 @@ class Resolver {
             }
         }
     }
+    visitClassStatement(stms) {
+        this.declare(stms.name);
+        this.define(stms.name);
+        this.beginScope();
+        this.scopes[this.scopes.length - 1]["this"] = true;
+        stms.methods.forEach(method => this.resolveFunction(method));
+        this.endScope();
+    }
+    visitThisExpression(expr) {
+        this.resolveLocal(expr, expr.keyword);
+    }
     visitLiternalExpression(expr) { }
     visitSuperExpression(expr) { }
-    visitThisExpression(expr) { }
-    visitClassStatement(stms) { }
 }
 
 exports.Lexer = Lexer;

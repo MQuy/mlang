@@ -29,6 +29,8 @@ import { TokenType, Token } from "./token";
 import { SymbolTable } from "./symbolTable";
 import { Functionable } from "./ast/function";
 import { ReturnError } from "./ast/base";
+import { Classable } from "./ast/class";
+import { Instance } from "./ast/instance";
 
 export class Interpreter implements StatementVistor, ExpressionVistor {
   statements: Statement[];
@@ -174,7 +176,11 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
   }
 
   visitFunctionStatement(functionStatement: FunctionStatement) {
-    const func = new Functionable(functionStatement, this.symbolTable);
+    const func = new Functionable(
+      functionStatement.name.lexeme,
+      functionStatement,
+      this.symbolTable
+    );
 
     this.symbolTable.define(functionStatement.name, func);
   }
@@ -186,6 +192,44 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
       value = this.evaluate(returnStatement.value);
     }
     throw new ReturnError(value);
+  }
+
+  visitClassStatement(classStatement: ClassStatement) {
+    this.symbolTable.define(classStatement.name, undefined);
+    const methods: { [key: string]: Functionable } = {};
+
+    classStatement.methods.forEach(method => {
+      methods[method.name.lexeme] = new Functionable(
+        method.name.lexeme,
+        method,
+        this.symbolTable
+      );
+    });
+    const klass = new Classable(classStatement.name.lexeme, methods);
+    this.symbolTable.assign(classStatement.name, klass);
+  }
+
+  visitGetExpression(getExpression: GetExpression) {
+    const object = this.evaluate(getExpression.object);
+
+    if (object instanceof Instance) {
+      return object.get(getExpression.name);
+    }
+
+    throw new Error(
+      `${getExpression.name.lexeme} only instances have properties.`
+    );
+  }
+
+  visitSetExpression(setExpression: SetExpression) {
+    const object = this.evaluate(setExpression.object);
+
+    if (object instanceof Instance) {
+      const value = this.evaluate(setExpression.expression);
+      return object.set(setExpression.name, value);
+    }
+
+    throw new Error(`Only instances have fields.`);
   }
 
   evaluate(expression: Expression) {
@@ -217,9 +261,29 @@ export class Interpreter implements StatementVistor, ExpressionVistor {
     }
   }
 
-  visitGetExpression(getExpression: GetExpression) {}
-  visitSetExpression(setExpression: SetExpression) {}
+  visitThisExpression(thisExpression: ThisExpression) {
+    return this.lookupVariable(thisExpression.keyword, thisExpression);
+  }
+
   visitSuperExpression(superExpression: SuperExpression) {}
-  visitThisExpression(thisExpression: ThisExpression) {}
-  visitClassStatement(classStatement: ClassStatement) {}
 }
+
+/*
+tokens = new Lexer(`
+class Cake {
+  taste() {
+    var adjective = "delicious";
+    print "The " + this.flavor + " cake is " + adjective + "!";
+  }
+}
+
+var cake = Cake();
+cake.flavor = "German chocolate";
+cake.taste(); // Prints "The German chocolate cake is delicious!".
+`).scan();
+ast = new Parser(tokens).parse();
+interpreter = new Interpreter(ast);
+resolver = new Resolver(interpreter);
+resolver.resolve();
+interpreter.interpret();
+*/
