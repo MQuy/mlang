@@ -73,6 +73,7 @@ memberAccessExpression = primaryExpression
 primaryExpression = literalExpression
                     | lambdaExpression
                     | groupExpression
+                    | tupleExpression
                     | newExpression
                     | arrayExpression
 
@@ -83,6 +84,7 @@ lambdaExpression = LEFT_PAREN
                     COLON IDENTIFIER
                     ARROW statement
 groupExpression = LEFT_PAREN expression RIGHT_PAREN
+tupleExpression = LEFT_PAREN expression (COMMA expression)* RIGHT_PAREN
 newExpression = NEW IDENTIFIER
                   LEFT_PAREN
                     (IDENTIFIER (COMMA IDENTIFIER)*)?
