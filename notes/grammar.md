@@ -1,7 +1,14 @@
 ```js
-statement = controlStatement | iterationStatement | declarationStatement | assignmentStatement | emptyStatement
+statement = controlStatement
+            | iterationStatement
+            | declarationStatement
+            | assignmentStatement
+            | emptyStatement
 
-controlStatement = ifStatement | blockStatement | breakStatement | continueStatement
+controlStatement = ifStatement
+                    | blockStatement
+                    | breakStatement
+                    | continueStatement
 ifStatement = IF
                 LEFT_PAREN expression RIGHT_PAREN
                   statement
@@ -23,7 +30,10 @@ forStatement = FOR
                   statement
 whileStatement = WHILE LEFT_PAREN expression? RIGHT_PAREN statement
 
-declarationStatement = varStatement | classStatement | functionStatement | returnStatement
+declarationStatement = varStatement
+                        | classStatement
+                        | functionStatement
+                        | returnStatement
 varStatement = VAR
                 IDENTIFIER COLON IDENTIFIER
                 EQUAL
@@ -60,7 +70,11 @@ memberAccessExpression = primaryExpression
                             | LEFT_BRACKET NUMBER RIGHT_BRACKET
                           )*
 
-primaryExpression = literalExpression | lambdaExpression | groupExpression | newExpression | arrayExpression
+primaryExpression = literalExpression
+                    | lambdaExpression
+                    | groupExpression
+                    | newExpression
+                    | arrayExpression
 
 literalExpression = TRUE | FALSE | NUMBER | STRING | NULL | THIS | SUPER | IDENTIFIER
 lambdaExpression = LEFT_PAREN
@@ -75,5 +89,12 @@ newExpression = NEW IDENTIFIER
                   RIGHT_PAREN
 arrayExpression = LEFT_BRACKET (expression (COMMA expression)*)? RIGHT_BRACKET
 
-IDENTIFIER = ClassName | variableName
+// rules for IDENTIFER
+// + class or type: Pascal case
+// + variable: camel case
+IDENTIFIER = ALPHA (ALPHA | DIGIT)*
+NUMBER = DIGIT+ (DOT DIGIT+)?
+STRING = DOUBLE_QUOTE [^DOUBLE_QUOTE]+ DOUBLE_QUOTE
+ALPHA = [a-z] | [A-Z] | _
+DIGIT= [0-9]
 ```
