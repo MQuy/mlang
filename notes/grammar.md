@@ -1,3 +1,5 @@
+## Syntax grammar
+
 ```js
 statement = controlStatement
             | iterationStatement
