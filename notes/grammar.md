@@ -64,7 +64,7 @@ compareExpression = additionExpression ((GREAT | GREAT_THAN | LESS | LESS_THAN) 
 additionExpression = multiplicationExpression ((PLUS | MINUS) multiplicationExpression)*
 multiplicationExpression = exponentiationExpression ((STAR | SLASH) exponentiationExpression)*
 exponentiationExpression = unaryExpression (** unaryExpression)*
-unaryExpression = (PLUS | MINUS | PLUS_PLUS | MINUS_MINUS)? callExpression
+unaryExpression = (PLUS | MINUS | PLUS_PLUS | MINUS_MINUS | BANG)? callExpression
 callExpression = memberAccessExpression (LEFT_PAREN IDENTIFIER (COMMA IDENTIFIER)* RIGHT_PAREN)*
 memberAccessExpression = primaryExpression
                           (
