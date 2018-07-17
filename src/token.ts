@@ -48,8 +48,7 @@ export enum TokenType {
 
   NUMBER = "NUMBER",
   STRING = "STRING",
-  TRUE = "TRUE",
-  FALSE = "FALSE",
+  BOOLEAN = "BOOLEAN",
   NULL = "NULL",
 
   THIS = "THIS",

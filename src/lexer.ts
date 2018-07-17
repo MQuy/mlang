@@ -17,6 +17,8 @@ const reservedWords = {
   null: TokenType.NULL,
   this: TokenType.THIS,
   super: TokenType.SUPER,
+  true: TokenType.BOOLEAN,
+  false: TokenType.BOOLEAN,
 };
 
 export class Lexer {
@@ -179,9 +181,14 @@ export class Lexer {
     while (/^\w$/.test(this.peek()) && this.notAtEnd()) this.advance();
 
     const lexeme = this.getLexeme();
+    const word = reservedWords[lexeme];
 
-    if (reservedWords[lexeme]) {
-      return this.generateToken(reservedWords[lexeme]);
+    if (word) {
+      if (word === TokenType.BOOLEAN) {
+        return this.generateToken(word, lexeme === "true");
+      } else {
+        return this.generateToken(word);
+      }
     } else {
       return this.generateToken(TokenType.IDENTIFIER);
     }
