@@ -1,7 +1,8 @@
 import { Expression, AssignmentExpression } from "./expression";
 import { Token } from "../token";
+import { TreeNode } from "./type";
 
-export interface Statement {
+export interface Statement extends TreeNode {
   accept(visitor: StatementVisitor): void;
 }
 

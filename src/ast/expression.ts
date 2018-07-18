@@ -1,16 +1,17 @@
 import { Token } from "../token";
 import { Statement } from "./statement";
+import { TreeNode } from "./type";
 
-export interface Expression {
+export interface Expression extends TreeNode {
   accept(visitor: ExpressionVisitor);
 }
 
 export class AssignmentExpression implements Expression {
-  name: Token;
+  object: VarExpression;
   expression: Expression;
 
-  constructor(name: Token, expression: Expression) {
-    this.name = name;
+  constructor(object: VarExpression, expression: Expression) {
+    this.object = object;
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -65,16 +66,32 @@ export class UnaryExpression implements Expression {
 }
 
 export class CallExpression implements Expression {
-  name: Token;
+  callee: Expression;
   args: Expression[];
 
-  constructor(name: Token, args: Expression[]) {
-    this.name = name;
+  constructor(callee: Expression, args: Expression[]) {
+    this.callee = callee;
     this.args = args;
   }
 
   accept(visitor: ExpressionVisitor) {
     return visitor.visitCallExpression(this);
+  }
+}
+
+export class SetExpression implements Expression {
+  object: Expression;
+  name: Token;
+  value: Expression;
+
+  constructor(object: Expression, name: Token, value: Expression) {
+    this.object = object;
+    this.name = name;
+    this.value = value;
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    visitor.visitSetExpression(this);
   }
 }
 
@@ -164,7 +181,43 @@ export class ArrayExpression implements Expression {
   }
 
   accept(visitor: ExpressionVisitor) {
-    visitor.visitArrayExpression(this);
+    return visitor.visitArrayExpression(this);
+  }
+}
+
+export class ThisExpression implements Expression {
+  keyword: Token;
+
+  constructor(keyword: Token) {
+    this.keyword = keyword;
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitThisExpression(this);
+  }
+}
+
+export class SuperExpression implements Expression {
+  keyword: Token;
+
+  constructor(keyword: Token) {
+    this.keyword = keyword;
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitSuperExpression(this);
+  }
+}
+
+export class VarExpression implements Expression {
+  name: Token;
+
+  constructor(name: Token) {
+    this.name = name;
+  }
+
+  accept(visitor: ExpressionVisitor) {
+    return visitor.visitVarExpression(this);
   }
 }
 
@@ -175,10 +228,14 @@ export interface ExpressionVisitor {
   visitUnaryExpression(expression: UnaryExpression);
   visitCallExpression(expression: CallExpression);
   visitGetExpression(expression: GetExpression);
+  visitSetExpression(expression: SetExpression);
   visitLiteralExpression(expression: LiternalExpression);
   visitGroupExpression(expression: GroupExpression);
   visitLambdaExpression(expression: LambdaExpression);
   visitTupleExpression(expression: TupleExpression);
   visitNewExpression(expression: NewExpression);
   visitArrayExpression(expression: ArrayExpression);
+  visitThisExpression(expression: ThisExpression);
+  visitSuperExpression(expression: SuperExpression);
+  visitVarExpression(expression: VarExpression);
 }

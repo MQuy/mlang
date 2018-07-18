@@ -1,6 +1,7 @@
 ## Syntax grammar
 
 ```js
+program = (statement)*
 statement = controlStatement
             | iterationStatement
             | declarationStatement
@@ -65,10 +66,10 @@ additionExpression = multiplicationExpression ((PLUS | MINUS) multiplicationExpr
 multiplicationExpression = exponentiationExpression ((STAR | SLASH) exponentiationExpression)*
 exponentiationExpression = unaryExpression (** unaryExpression)*
 unaryExpression = (PLUS | MINUS | PLUS_PLUS | MINUS_MINUS | BANG)? callExpression
-callExpression = memberAccessExpression (LEFT_PAREN IDENTIFIER (COMMA IDENTIFIER)* RIGHT_PAREN)*
+callExpression = memberAccessExpression (LEFT_PAREN expression (COMMA expression)* RIGHT_PAREN)*
 memberAccessExpression = primaryExpression
                           (
-                            DOT primaryExpression
+                            DOT IDENTIFIER
                             | LEFT_BRACKET NUMBER RIGHT_BRACKET
                           )*
 
@@ -80,16 +81,17 @@ primaryExpression = literalExpression
                     | arrayExpression
 
 literalExpression = TRUE | FALSE | NUMBER | STRING | NULL | THIS | SUPER | IDENTIFIER
-lambdaExpression = LEFT_PAREN
+lambdaExpression = DEF LEFT_PAREN
                       (IDENTIFIER COLON IDENTIFIER (COMMA IDENTIFIER COLON IDENTIFIER)*)?
                     RIGHT_PAREN
                     COLON IDENTIFIER
                     ARROW statement
 groupExpression = LEFT_PAREN expression RIGHT_PAREN
+// Not support yet
 tupleExpression = LEFT_PAREN expression (COMMA expression)* RIGHT_PAREN
 newExpression = NEW IDENTIFIER
                   LEFT_PAREN
-                    (IDENTIFIER (COMMA IDENTIFIER)*)?
+                    (expression (COMMA expression)*)?
                   RIGHT_PAREN
 arrayExpression = LEFT_BRACKET (expression (COMMA expression)*)? RIGHT_BRACKET
 
