@@ -4,7 +4,8 @@ export default {
   input: "src/index.ts",
   output: {
     file: "build/mq.js",
-    format: "cjs",
+    format: "umd",
+    name: "mqlang",
   },
   plugins: [
     typescript({
