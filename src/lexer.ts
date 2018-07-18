@@ -33,7 +33,8 @@ export class Lexer {
 
   scan() {
     const tokens: Token[] = [];
-    this.runner = this.line = 0;
+    this.runner = 0;
+    this.line = 1;
 
     while (this.notAtEnd()) {
       this.current = this.runner;
@@ -100,6 +101,8 @@ export class Lexer {
       case "=":
         if (this.match("=")) {
           return this.generateToken(TokenType.EQUAL_EQUAL);
+        } else if (this.match(">")) {
+          return this.generateToken(TokenType.ARROW);
         } else {
           return this.generateToken(TokenType.EQUAL);
         }
@@ -181,9 +184,10 @@ export class Lexer {
     while (/^\w$/.test(this.peek()) && this.notAtEnd()) this.advance();
 
     const lexeme = this.getLexeme();
-    const word = reservedWords[lexeme];
 
-    if (word) {
+    if (Object.keys(reservedWords).includes(lexeme)) {
+      const word = reservedWords[lexeme];
+
       if (word === TokenType.BOOLEAN) {
         return this.generateToken(word, lexeme === "true");
       } else {

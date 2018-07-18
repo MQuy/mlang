@@ -4,11 +4,12 @@ export default {
   input: "src/index.ts",
   output: {
     file: "build/mq.js",
-    format: "cjs"
+    format: "cjs",
   },
   plugins: [
     typescript({
-      cacheRoot: "./node_modules/.cache/rpt2"
-    })
-  ]
+      cacheRoot: "./node_modules/.cache/rpt2",
+      tsconfig: "./tsconfig.json",
+    }),
+  ],
 };

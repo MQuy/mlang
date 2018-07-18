@@ -2,7 +2,6 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-var TokenType;
 (function (TokenType) {
     TokenType["LEFT_PAREN"] = "LEFT_PAREN";
     TokenType["RIGHT_PAREN"] = "RIGHT_PAREN";
@@ -45,15 +44,14 @@ var TokenType;
     TokenType["BANG"] = "BANG";
     TokenType["NUMBER"] = "NUMBER";
     TokenType["STRING"] = "STRING";
-    TokenType["TRUE"] = "TRUE";
-    TokenType["FALSE"] = "FALSE";
+    TokenType["BOOLEAN"] = "BOOLEAN";
     TokenType["NULL"] = "NULL";
     TokenType["THIS"] = "THIS";
     TokenType["SUPER"] = "SUPER";
     TokenType["IDENTIFIER"] = "IDENTIFIER";
     TokenType["COMMENT"] = "COMMENT";
     TokenType["EOF"] = "EOF";
-})(TokenType || (TokenType = {}));
+})(exports.TokenType || (exports.TokenType = {}));
 class Token {
     constructor(type, lexeme, literal, line) {
         this.type = type;
@@ -64,22 +62,24 @@ class Token {
 }
 
 const reservedWords = {
-    def: TokenType.DEF,
-    class: TokenType.CLASS,
-    var: TokenType.VAR,
-    new: TokenType.NEW,
-    if: TokenType.IF,
-    else: TokenType.ELSE,
-    for: TokenType.FOR,
-    while: TokenType.WHILE,
-    break: TokenType.BREAK,
-    continue: TokenType.CONTINUE,
-    return: TokenType.RETURN,
-    and: TokenType.AND,
-    or: TokenType.OR,
-    null: TokenType.NULL,
-    this: TokenType.THIS,
-    super: TokenType.SUPER,
+    def: exports.TokenType.DEF,
+    class: exports.TokenType.CLASS,
+    var: exports.TokenType.VAR,
+    new: exports.TokenType.NEW,
+    if: exports.TokenType.IF,
+    else: exports.TokenType.ELSE,
+    for: exports.TokenType.FOR,
+    while: exports.TokenType.WHILE,
+    break: exports.TokenType.BREAK,
+    continue: exports.TokenType.CONTINUE,
+    return: exports.TokenType.RETURN,
+    and: exports.TokenType.AND,
+    or: exports.TokenType.OR,
+    null: exports.TokenType.NULL,
+    this: exports.TokenType.THIS,
+    super: exports.TokenType.SUPER,
+    true: exports.TokenType.BOOLEAN,
+    false: exports.TokenType.BOOLEAN,
 };
 class Lexer {
     constructor(source) {
@@ -87,94 +87,98 @@ class Lexer {
     }
     scan() {
         const tokens = [];
-        this.runner = this.line = 0;
+        this.runner = 0;
+        this.line = 1;
         while (this.notAtEnd()) {
             this.current = this.runner;
             const token = this.scanToken();
             if (token)
                 tokens.push(token);
         }
-        tokens.push(new Token(TokenType.EOF, ""));
+        tokens.push(new Token(exports.TokenType.EOF, ""));
         return tokens;
     }
     scanToken() {
         const char = this.advance();
         switch (char) {
             case "{":
-                return this.generateToken(TokenType.LEFT_BRACE);
+                return this.generateToken(exports.TokenType.LEFT_BRACE);
             case "}":
-                return this.generateToken(TokenType.RIGHT_BRACE);
+                return this.generateToken(exports.TokenType.RIGHT_BRACE);
             case "(":
-                return this.generateToken(TokenType.LEFT_PAREN);
+                return this.generateToken(exports.TokenType.LEFT_PAREN);
             case ")":
-                return this.generateToken(TokenType.RIGHT_PAREN);
+                return this.generateToken(exports.TokenType.RIGHT_PAREN);
             case "[":
-                return this.generateToken(TokenType.LEFT_BRACKET);
+                return this.generateToken(exports.TokenType.LEFT_BRACKET);
             case "]":
-                return this.generateToken(TokenType.RIGHT_BRACKET);
+                return this.generateToken(exports.TokenType.RIGHT_BRACKET);
             case ".":
-                return this.generateToken(TokenType.DOT);
+                return this.generateToken(exports.TokenType.DOT);
             case ";":
-                return this.generateToken(TokenType.SEMICOLON);
+                return this.generateToken(exports.TokenType.SEMICOLON);
             case ",":
-                return this.generateToken(TokenType.COMMA);
+                return this.generateToken(exports.TokenType.COMMA);
             case ":":
-                return this.generateToken(TokenType.COLON);
+                return this.generateToken(exports.TokenType.COLON);
             case "/":
                 if (this.match("/")) {
                     return this.comment();
                 }
                 else {
-                    return this.generateToken(TokenType.SLASH);
+                    return this.generateToken(exports.TokenType.SLASH);
                 }
             case "*":
                 if (this.match("*")) {
-                    return this.generateToken(TokenType.STAR_STAR);
+                    return this.generateToken(exports.TokenType.STAR_STAR);
                 }
                 else {
-                    return this.generateToken(TokenType.STAR);
+                    return this.generateToken(exports.TokenType.STAR);
                 }
             case "+":
                 if (this.match("+")) {
-                    return this.generateToken(TokenType.PLUS_PLUS);
+                    return this.generateToken(exports.TokenType.PLUS_PLUS);
                 }
                 else {
-                    return this.generateToken(TokenType.PLUS);
+                    return this.generateToken(exports.TokenType.PLUS);
                 }
             case "-":
                 if (this.match("-")) {
-                    return this.generateToken(TokenType.MINUS_MINUS);
+                    return this.generateToken(exports.TokenType.MINUS_MINUS);
                 }
                 else {
-                    return this.generateToken(TokenType.MINUS);
+                    return this.generateToken(exports.TokenType.MINUS);
                 }
             case "=":
                 if (this.match("=")) {
-                    return this.generateToken(TokenType.EQUAL_EQUAL);
+                    return this.generateToken(exports.TokenType.EQUAL_EQUAL);
+                }
+                else if (this.match(">")) {
+                    return this.generateToken(exports.TokenType.ARROW);
                 }
                 else {
-                    return this.generateToken(TokenType.EQUAL);
+                    return this.generateToken(exports.TokenType.EQUAL);
                 }
             case "!":
                 if (this.match("=")) {
-                    return this.generateToken(TokenType.BANG_EQUAL);
+                    return this.generateToken(exports.TokenType.BANG_EQUAL);
                 }
                 else {
-                    return this.generateToken(TokenType.BANG);
+                    return this.generateToken(exports.TokenType.BANG);
                 }
             case ">":
                 if (this.match("=")) {
-                    return this.generateToken(TokenType.GREAT_THAN);
+                    return this.generateToken(exports.TokenType.GREAT_THAN);
                 }
                 else {
-                    return this.generateToken(TokenType.GREAT);
+                    return this.generateToken(exports.TokenType.GREAT);
                 }
             case "<":
                 if (this.match("=")) {
-                    return this.generateToken(TokenType.LESS_THAN);
+                    return this.generateToken(exports.TokenType.LESS_THAN);
                 }
                 else {
-                    return this.generateToken(TokenType.LESS);
+                    return this.generateToken(exports.TokenType.LESS);
                 }
             case "\n":
                 this.line += 1;
@@ -199,7 +203,7 @@ class Lexer {
     comment() {
         while (this.peek() !== "\n" && this.notAtEnd())
             this.advance();
-        return this.generateToken(TokenType.COMMENT);
+        return this.generateToken(exports.TokenType.COMMENT);
     }
     string() {
         while (this.peek() !== '"' && this.notAtEnd()) {
@@ -211,7 +215,7 @@ class Lexer {
             throw new Error(`${this.line}: Unterminated string.`);
         }
         this.advance();
-        return this.generateToken(TokenType.STRING, this.getLexeme(this.current + 1, this.runner - 1));
+        return this.generateToken(exports.TokenType.STRING, this.getLexeme(this.current + 1, this.runner - 1));
     }
     number() {
         this.runner -= 1;
@@ -221,17 +225,23 @@ class Lexer {
             while (/[0-9]/.test(this.peek()) && this.notAtEnd())
                 this.advance();
         }
-        return this.generateToken(TokenType.NUMBER, parseFloat(this.getLexeme()));
+        return this.generateToken(exports.TokenType.NUMBER, parseFloat(this.getLexeme()));
     }
     identifier() {
         while (/^\w$/.test(this.peek()) && this.notAtEnd())
             this.advance();
         const lexeme = this.getLexeme();
-        if (reservedWords[lexeme]) {
-            return this.generateToken(reservedWords[lexeme]);
+        if (Object.keys(reservedWords).includes(lexeme)) {
+            const word = reservedWords[lexeme];
+            if (word === exports.TokenType.BOOLEAN) {
+                return this.generateToken(word, lexeme === "true");
+            }
+            else {
+                return this.generateToken(word);
+            }
         }
         else {
-            return this.generateToken(TokenType.IDENTIFIER);
+            return this.generateToken(exports.TokenType.IDENTIFIER);
         }
     }
     generateToken(type, literal) {
@@ -263,4 +273,5 @@ class Lexer {
     }
 }
 
+exports.Token = Token;
 exports.Lexer = Lexer;

@@ -3,16 +3,18 @@ import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
 
 export default {
-  input: "src/repl.ts",
+  input: "src/index.ts",
   output: {
     file: "build/repl.js",
-    format: "cjs"
+    format: "cjs",
   },
   plugins: [
     typescript({
-      cacheRoot: "./node_modules/.cache/rpt2"
+      cacheRoot: "./node_modules/.cache/rpt2",
     }),
-    resolve(),
-    commonjs()
-  ]
+    resolve({
+      browser: true,
+    }),
+    commonjs(),
+  ],
 };
