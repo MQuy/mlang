@@ -77,7 +77,7 @@ export class VarStatement implements Statement {
   name: Token;
   initializer?: Expression;
 
-  constructor(name: Token, initializer: Expression) {
+  constructor(name: Token, initializer?: Expression) {
     this.name = name;
     this.initializer = initializer;
   }

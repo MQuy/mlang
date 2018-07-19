@@ -79,4 +79,8 @@ export class Token {
     this.literal = literal;
     this.line = line;
   }
+
+  toString() {
+    return `Line ${this.line}:`;
+  }
 }

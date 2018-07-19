@@ -21,7 +21,7 @@ import {
   UnaryExpression,
   CallExpression,
   GetExpression,
-  LiternalExpression,
+  LiteralExpression,
   ThisExpression,
   SuperExpression,
   GroupExpression,
@@ -45,7 +45,6 @@ export class Parser {
   parse() {
     const statements: Statement[] = [];
 
-    this.tokens = [];
     this.current = 0;
 
     while (this.notAtEnd()) {
@@ -56,38 +55,34 @@ export class Parser {
   }
 
   statement(): Statement {
-    const token = this.peek();
-
-    switch (token.type) {
-      case TokenType.IF:
-        return this.ifStatement();
-      case TokenType.LEFT_BRACE:
-        return this.blockStatement();
-      case TokenType.BREAK:
-        return this.breakStatement();
-      case TokenType.CONTINUE:
-        return this.continueStatement();
-      case TokenType.FOR:
-        return this.forStatement();
-      case TokenType.WHILE:
-        return this.whileStatement();
-      case TokenType.VAR:
-        return new VarsStatement(this.varStatement());
-      case TokenType.CLASS:
-        return this.classStatement();
-      case TokenType.RETURN:
-        return this.returnStatement();
-      case TokenType.SEMICOLON:
-        return this.emptyStatement();
-      default:
-        if (
-          this.check(TokenType.DEF) &&
-          this.next().type === TokenType.IDENTIFIER
-        ) {
-          this.consume(TokenType.DEF, "Expect def");
-          return this.functionStatement();
-        }
-        return this.expressionStatement();
+    if (this.match(TokenType.IF)) {
+      return this.ifStatement();
+    } else if (this.match(TokenType.LEFT_BRACE)) {
+      return this.blockStatement();
+    } else if (this.match(TokenType.BREAK)) {
+      return this.breakStatement();
+    } else if (this.match(TokenType.CONTINUE)) {
+      return this.continueStatement();
+    } else if (this.match(TokenType.FOR)) {
+      return this.forStatement();
+    } else if (this.match(TokenType.WHILE)) {
+      return this.whileStatement();
+    } else if (this.match(TokenType.VAR)) {
+      return new VarsStatement(this.varStatement());
+    } else if (this.match(TokenType.CLASS)) {
+      return this.classStatement();
+    } else if (this.match(TokenType.RETURN)) {
+      return this.returnStatement();
+    } else if (this.match(TokenType.SEMICOLON)) {
+      return this.emptyStatement();
+    } else if (
+      this.check(TokenType.DEF) &&
+      this.next().type === TokenType.IDENTIFIER
+    ) {
+      this.consume(TokenType.DEF, "Expect def");
+      return this.functionStatement();
+    } else {
+      return this.expressionStatement();
     }
   }
 
@@ -166,10 +161,16 @@ export class Parser {
   varStatement() {
     const statements: VarStatement[] = [];
 
-    while (true) {
-      const name = this.consume(TokenType.IDENTIFIER, "Expect identifier");
-      this.consume(TokenType.EQUAL, "Expect =");
-      const intializer = this.expression();
+    while (this.notAtEnd()) {
+      const name = this.consume(
+        TokenType.IDENTIFIER,
+        "Expect identifier after var",
+      );
+      let intializer: Expression | undefined;
+
+      if (this.match(TokenType.EQUAL)) {
+        intializer = this.expression();
+      }
       statements.push(new VarStatement(name, intializer));
 
       if (this.match(TokenType.COMMA)) {
@@ -177,7 +178,7 @@ export class Parser {
       } else if (this.match(TokenType.SEMICOLON)) {
         break;
       } else {
-        this.error(this.peek(), "Unexpected token");
+        this.error(this.previous(), "Expect ; after declaration");
       }
     }
     return statements;
@@ -383,6 +384,7 @@ export class Parser {
   }
 
   primaryExpression(): Expression {
+    debugger;
     if (
       this.match(
         TokenType.BOOLEAN,
@@ -391,7 +393,7 @@ export class Parser {
         TokenType.NULL,
       )
     ) {
-      return new LiternalExpression(this.previous());
+      return new LiteralExpression(this.previous());
     } else if (this.match(TokenType.THIS)) {
       return new ThisExpression(this.previous());
     } else if (this.match(TokenType.SUPER)) {
@@ -427,7 +429,7 @@ export class Parser {
       return new LambdaExpression(paramenters, this.statement());
     }
 
-    return this.error(this.peek(), "Expect expression");
+    return this.error(this.previous(), "Expect expression");
   }
 
   arguments() {

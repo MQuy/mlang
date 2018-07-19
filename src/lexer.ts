@@ -45,7 +45,7 @@ export class Lexer {
       if (token) tokens.push(token);
     }
 
-    tokens.push(new Token(TokenType.EOF, ""));
+    tokens.push(new Token(TokenType.EOF, "", undefined, this.line));
 
     return tokens;
   }

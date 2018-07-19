@@ -12,7 +12,7 @@ it("var statement", () => {
     new Token(TokenType.EQUAL, "=", undefined, 1),
     new Token(TokenType.STRING, '"mqlang"', "mqlang", 1),
     new Token(TokenType.SEMICOLON, ";", undefined, 1),
-    new Token(TokenType.EOF, ""),
+    new Token(TokenType.EOF, "", undefined, 1),
   ]);
 });
 
@@ -33,7 +33,7 @@ it("if statement", () => {
     new Token(TokenType.LEFT_BRACE, "{", undefined, 2),
     new Token(TokenType.COMMENT, "// haha", undefined, 3),
     new Token(TokenType.RIGHT_BRACE, "}", undefined, 4),
-    new Token(TokenType.EOF, ""),
+    new Token(TokenType.EOF, "", undefined, 4),
   ]);
 });
 
@@ -55,7 +55,7 @@ it("while statement", () => {
     new Token(TokenType.NUMBER, "4", 4, 1),
     new Token(TokenType.STAR_STAR, "**", undefined, 1),
     new Token(TokenType.NUMBER, "4", 4, 1),
-    new Token(TokenType.EOF, ""),
+    new Token(TokenType.EOF, "", undefined, 1),
   ]);
 });
 
@@ -94,6 +94,6 @@ it("class statement", () => {
     new Token(TokenType.THIS, "this", undefined, 5),
     new Token(TokenType.SEMICOLON, ";", undefined, 5),
     new Token(TokenType.RIGHT_BRACE, "}", undefined, 6),
-    new Token(TokenType.EOF, ""),
+    new Token(TokenType.EOF, "", undefined, 7),
   ]);
 });

@@ -109,7 +109,7 @@ export class GetExpression implements Expression {
   }
 }
 
-export class LiternalExpression implements Expression {
+export class LiteralExpression implements Expression {
   name: Token;
 
   constructor(name: Token) {
@@ -229,7 +229,7 @@ export interface ExpressionVisitor {
   visitCallExpression(expression: CallExpression);
   visitGetExpression(expression: GetExpression);
   visitSetExpression(expression: SetExpression);
-  visitLiteralExpression(expression: LiternalExpression);
+  visitLiteralExpression(expression: LiteralExpression);
   visitGroupExpression(expression: GroupExpression);
   visitLambdaExpression(expression: LambdaExpression);
   visitTupleExpression(expression: TupleExpression);
