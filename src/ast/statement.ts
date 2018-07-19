@@ -1,4 +1,4 @@
-import { Expression, AssignmentExpression } from "./expression";
+import { Expression } from "./expression";
 import { Token } from "../token";
 import { TreeNode } from "./type";
 
@@ -51,18 +51,21 @@ export class ContinueStatement implements Statement {
 }
 
 export class ForStatement implements Statement {
-  initializer?: VarStatement[] | AssignmentExpression[];
+  initializer?: VarStatement[] | Expression[];
   condition?: Expression;
+  increment?: ExpressionStatement;
   body: Statement;
 
   constructor(
     body: Statement,
     condition?: Expression,
-    intializer?: VarStatement[] | AssignmentExpression[],
+    intializer?: VarStatement[] | Expression[],
+    increment?: ExpressionStatement,
   ) {
     this.body = body;
     this.condition = condition;
     this.initializer = intializer;
+    this.increment = increment;
   }
 
   accept(visitor: StatementVisitor) {
@@ -81,6 +84,18 @@ export class VarStatement implements Statement {
 
   accept(visitor: StatementVisitor) {
     visitor.visitVarStatement(this);
+  }
+}
+
+export class VarsStatement implements Statement {
+  varStatements: VarStatement[];
+
+  constructor(varStatements: VarStatement[]) {
+    this.varStatements = varStatements;
+  }
+
+  accept(visitor: StatementVisitor) {
+    visitor.visitVarsStatements(this);
   }
 }
 
@@ -139,6 +154,18 @@ export class EmptyStatement implements Statement {
   accept(visitor: StatementVisitor) {}
 }
 
+export class ExpressionStatement implements Statement {
+  expression: Expression;
+
+  constructor(expression: Expression) {
+    this.expression = expression;
+  }
+
+  accept(visitor: StatementVisitor) {
+    visitor.visitExpressionStatement(this);
+  }
+}
+
 export interface StatementVisitor {
   visitIfStatement(statement: IfStatement): void;
   visitBlockStatement(statement: BlockStatement): void;
@@ -146,7 +173,9 @@ export interface StatementVisitor {
   visitContinueStatement(statement: ContinueStatement): void;
   visitForStatement(statement: ForStatement): void;
   visitVarStatement(statement: VarStatement): void;
+  visitVarsStatements(statement: VarsStatement): void;
   visitClassStatement(statement: ClassStatement): void;
   visitFunctionStatement(statement: FunctionStatement): void;
   visitReturnStatement(statement: ReturnStatement): void;
+  visitExpressionStatement(statement: ExpressionStatement): void;
 }

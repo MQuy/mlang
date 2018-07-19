@@ -72,7 +72,7 @@ it("class statement", () => {
   expect(tokens).toEqual([
     new Token(TokenType.CLASS, "class", undefined, 2),
     new Token(TokenType.IDENTIFIER, "Lexer", undefined, 2),
-    new Token(TokenType.IDENTIFIER, "extends", undefined, 2),
+    new Token(TokenType.EXTENDS, "extends", undefined, 2),
     new Token(TokenType.IDENTIFIER, "Base", undefined, 2),
     new Token(TokenType.LEFT_BRACE, "{", undefined, 2),
     new Token(TokenType.VAR, "var", undefined, 3),

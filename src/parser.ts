@@ -1,4 +1,18 @@
-import { Statement, IfStatement } from "./ast/statement";
+import {
+  Statement,
+  IfStatement,
+  BlockStatement,
+  BreakStatement,
+  ContinueStatement,
+  VarStatement,
+  ForStatement,
+  ExpressionStatement,
+  ClassStatement,
+  FunctionStatement,
+  ReturnStatement,
+  EmptyStatement,
+  VarsStatement,
+} from "./ast/statement";
 import {
   Expression,
   AssignmentExpression,
@@ -41,12 +55,39 @@ export class Parser {
     return new Program(statements);
   }
 
-  statement() {
+  statement(): Statement {
     const token = this.peek();
 
     switch (token.type) {
       case TokenType.IF:
         return this.ifStatement();
+      case TokenType.LEFT_BRACE:
+        return this.blockStatement();
+      case TokenType.BREAK:
+        return this.breakStatement();
+      case TokenType.CONTINUE:
+        return this.continueStatement();
+      case TokenType.FOR:
+        return this.forStatement();
+      case TokenType.WHILE:
+        return this.whileStatement();
+      case TokenType.VAR:
+        return new VarsStatement(this.varStatement());
+      case TokenType.CLASS:
+        return this.classStatement();
+      case TokenType.RETURN:
+        return this.returnStatement();
+      case TokenType.SEMICOLON:
+        return this.emptyStatement();
+      default:
+        if (
+          this.check(TokenType.DEF) &&
+          this.next().type === TokenType.IDENTIFIER
+        ) {
+          this.consume(TokenType.DEF, "Expect def");
+          return this.functionStatement();
+        }
+        return this.expressionStatement();
     }
   }
 
@@ -58,10 +99,137 @@ export class Parser {
     const thenStatement = this.statement();
     let elseStatement: Statement | undefined;
 
-    if (this.check(TokenType.ELSE)) {
+    if (this.match(TokenType.ELSE)) {
       elseStatement = this.statement();
     }
     return new IfStatement(condition, thenStatement, elseStatement);
+  }
+
+  blockStatement() {
+    const statements: Statement[] = [];
+
+    while (!this.match(TokenType.RIGHT_BRACE)) {
+      statements.push(this.statement());
+    }
+    return new BlockStatement(statements);
+  }
+
+  breakStatement() {
+    this.consume(TokenType.SEMICOLON, "Expect ; after break");
+    return new BreakStatement();
+  }
+
+  continueStatement() {
+    this.consume(TokenType.SEMICOLON, "Expect ; after continue");
+    return new ContinueStatement();
+  }
+
+  forStatement() {
+    this.consume(TokenType.LEFT_PAREN, "Expect ( after for");
+
+    let initializer: VarStatement[] | Expression[] = [];
+
+    if (!this.match(TokenType.SEMICOLON)) {
+      if (this.match(TokenType.VAR)) {
+        initializer = this.varStatement();
+      } else if (this.check(TokenType.IDENTIFIER)) {
+        initializer = [this.expression()];
+        while (!this.match(TokenType.COMMA)) {
+          initializer.push(this.expression());
+        }
+        this.consume(TokenType.SEMICOLON, "Expect ; after while intializer");
+      } else {
+        this.error(this.peek(), "Expect declaration or assignment");
+      }
+    }
+    const condition = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ; after condition");
+    let increment: ExpressionStatement | undefined;
+    if (!this.match(TokenType.RIGHT_PAREN)) {
+      increment = new ExpressionStatement(this.expression());
+    }
+    return new ForStatement(
+      this.statement(),
+      condition,
+      initializer,
+      increment,
+    );
+  }
+
+  whileStatement() {
+    this.consume(TokenType.LEFT_PAREN, "Expect ( after while");
+    const condition = this.expression();
+    this.consume(TokenType.RIGHT_PAREN, "Expect ) after condition");
+    return new ForStatement(this.statement(), condition);
+  }
+
+  varStatement() {
+    const statements: VarStatement[] = [];
+
+    while (true) {
+      const name = this.consume(TokenType.IDENTIFIER, "Expect identifier");
+      this.consume(TokenType.EQUAL, "Expect =");
+      const intializer = this.expression();
+      statements.push(new VarStatement(name, intializer));
+
+      if (this.match(TokenType.COMMA)) {
+        continue;
+      } else if (this.match(TokenType.SEMICOLON)) {
+        break;
+      } else {
+        this.error(this.peek(), "Unexpected token");
+      }
+    }
+    return statements;
+  }
+
+  classStatement() {
+    const name = this.consume(TokenType.IDENTIFIER, "Expect class name");
+    let supercase: Token | undefined;
+
+    if (this.match(TokenType.EXTENDS)) {
+      supercase = this.consume(TokenType.IDENTIFIER, "Expect super class name");
+    }
+    this.consume(TokenType.LEFT_BRACE, "Expect {");
+
+    let varStatements: VarStatement[] = [];
+    let methodStatements: FunctionStatement[] = [];
+    while (!this.match(TokenType.RIGHT_BRACE)) {
+      if (this.match(TokenType.VAR)) {
+        varStatements = [...varStatements, ...this.varStatement()];
+      } else if (this.match(TokenType.DEF)) {
+        methodStatements = [...methodStatements, this.functionStatement()];
+      } else {
+        this.error(this.peek(), "Expect class properties or methods");
+      }
+    }
+    return new ClassStatement(name, varStatements, methodStatements, supercase);
+  }
+
+  functionStatement() {
+    const name = this.consume(TokenType.IDENTIFIER, "Expect name");
+    this.consume(TokenType.LEFT_PAREN, "Expect ( after name");
+    const parameters = this.paramenters();
+    this.consume(TokenType.RIGHT_PAREN, "Expect ) after parameters");
+    const body = this.statement();
+    return new FunctionStatement(name, parameters, body);
+  }
+
+  returnStatement() {
+    if (this.match(TokenType.SEMICOLON)) {
+      return new ReturnStatement();
+    }
+    return new ReturnStatement(this.expression());
+  }
+
+  emptyStatement() {
+    return new EmptyStatement();
+  }
+
+  expressionStatement() {
+    const expression = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ;");
+    return new ExpressionStatement(expression);
   }
 
   expression() {
@@ -331,6 +499,10 @@ export class Parser {
 
   previous() {
     return this.tokens[this.current - 1];
+  }
+
+  next() {
+    return this.tokens[this.current + 1];
   }
 
   error(token: Token, errorMessage: string): never {

@@ -8,6 +8,7 @@ export enum TokenType {
 
   DEF = "DEF",
   CLASS = "CLASS",
+  EXTENDS = "EXTENDS",
   VAR = "VAR",
   NEW = "NEW",
   ARROW = "ARROW",

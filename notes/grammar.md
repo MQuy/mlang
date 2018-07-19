@@ -5,7 +5,7 @@ program = (statement)*
 statement = controlStatement
             | iterationStatement
             | declarationStatement
-            | assignmentStatement
+            | expressionStatement
             | emptyStatement
 
 controlStatement = ifStatement
@@ -39,6 +39,7 @@ declarationStatement = varStatement
                         | returnStatement
 varStatement = VAR
                 IDENTIFIER COLON IDENTIFIER
+                (COMMA IDENTIFIER COLON IDENTIFIER)*
                 EQUAL
                 expression COMMA
 classStatement = CLASS IDENTIFIER (extends IDENTIFIER)?
@@ -54,7 +55,7 @@ functionStatement = DEF IDENTIFIER
 returnStatement = RETURN expression? COMMA
 
 emptyStatement = COMMA
-assignmentStatement = assigmentExpression COMMA
+expressionStatement = expression COMMA
 
 expression = assignmentExpression
 
