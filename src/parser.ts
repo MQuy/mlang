@@ -443,7 +443,6 @@ export class Parser {
   arguments() {
     const args: Expression[] = [];
 
-    this.consume(TokenType.LEFT_PAREN, "Expect ( after identifier");
     while (!this.match(TokenType.RIGHT_PAREN)) {
       args.push(this.expression());
       while (this.match(TokenType.COMMA)) {
