@@ -1,6 +1,9 @@
 import { Lexer, Parser, Token, TokenType } from "../../src";
 import { Program } from "../../src/ast/program";
-import { ExpressionStatement } from "../../src/ast/statement";
+import {
+  ExpressionStatement,
+  ParameterDeclaration,
+} from "../../src/ast/statement";
 import {
   BinaryExpression,
   VarExpression,
@@ -16,7 +19,7 @@ import {
 } from "../../src/ast/expression";
 
 it("multi over add", () => {
-  const source = `x + def (y, z) => 1; * 2.5;`;
+  const source = `x + def(y: String, z: Number): Boolean => 1; * 2.5;`;
   const tokens = new Lexer(source).scan();
   const program = new Parser(tokens).parse();
 
@@ -29,15 +32,28 @@ it("multi over add", () => {
           new BinaryExpression(
             new LambdaExpression(
               [
-                new Token(TokenType.IDENTIFIER, "y", undefined, 1),
-                new Token(TokenType.IDENTIFIER, "z", undefined, 1),
+                new ParameterDeclaration(
+                  new Token(TokenType.IDENTIFIER, "y", undefined, 1),
+                  "String",
+                ),
+                new ParameterDeclaration(
+                  new Token(TokenType.IDENTIFIER, "z", undefined, 1),
+                  "Number",
+                ),
               ],
               new ExpressionStatement(
-                new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1)),
+                new LiteralExpression(
+                  new Token(TokenType.NUMBER, "1", 1, 1),
+                  "Number",
+                ),
               ),
+              "Boolean",
             ),
             new Token(TokenType.STAR, "*", undefined, 1),
-            new LiteralExpression(new Token(TokenType.NUMBER, "2.5", 2.5, 1)),
+            new LiteralExpression(
+              new Token(TokenType.NUMBER, "2.5", 2.5, 1),
+              "Number",
+            ),
           ),
         ),
       ),
@@ -58,6 +74,7 @@ it("group unary over multi", () => {
             new BinaryExpression(
               new LiteralExpression(
                 new Token(TokenType.BOOLEAN, "false", false, 1),
+                "Boolean",
               ),
               new Token(TokenType.MINUS, "-", undefined, 1),
               new NewExpression(
@@ -69,7 +86,10 @@ it("group unary over multi", () => {
           new Token(TokenType.SLASH, "/", undefined, 1),
           new UnaryExpression(
             new Token(TokenType.MINUS, "-", undefined, 1),
-            new LiteralExpression(new Token(TokenType.NUMBER, "2.5", 2.5, 1)),
+            new LiteralExpression(
+              new Token(TokenType.NUMBER, "2.5", 2.5, 1),
+              "Number",
+            ),
           ),
         ),
       ),
@@ -93,7 +113,12 @@ it("get over logical", () => {
               ),
               new Token(TokenType.IDENTIFIER, "y", undefined, 1),
             ),
-            [new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1))],
+            [
+              new LiteralExpression(
+                new Token(TokenType.NUMBER, "1", 1, 1),
+                "Number",
+              ),
+            ],
           ),
           new Token(TokenType.AND, "and", undefined, 1),
           new LogicalExpression(
@@ -102,7 +127,10 @@ it("get over logical", () => {
             ),
             new Token(TokenType.GREAT, ">", undefined, 1),
             new ArrayExpression([
-              new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1)),
+              new LiteralExpression(
+                new Token(TokenType.NUMBER, "1", 1, 1),
+                "Number",
+              ),
             ]),
           ),
         ),

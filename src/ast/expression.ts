@@ -1,12 +1,13 @@
 import { Token } from "../token";
-import { Statement } from "./statement";
-import { TreeNode } from "./type";
+import { Statement, ParameterDeclaration } from "./statement";
 
-export interface Expression extends TreeNode {
+export interface Expression {
+  type?: string;
   accept(visitor: ExpressionVisitor);
 }
 
 export class AssignmentExpression implements Expression {
+  type?: string;
   object: VarExpression;
   expression: Expression;
 
@@ -20,6 +21,7 @@ export class AssignmentExpression implements Expression {
 }
 
 export class LogicalExpression implements Expression {
+  type?: string;
   left: Expression;
   operator: Token;
   right: Expression;
@@ -28,6 +30,7 @@ export class LogicalExpression implements Expression {
     this.left = left;
     this.operator = operator;
     this.right = right;
+    this.type = "Boolean";
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -36,6 +39,7 @@ export class LogicalExpression implements Expression {
 }
 
 export class BinaryExpression implements Expression {
+  type?: string;
   left: Expression;
   operator: Token;
   right: Expression;
@@ -52,6 +56,7 @@ export class BinaryExpression implements Expression {
 }
 
 export class UnaryExpression implements Expression {
+  type?: string;
   operator: Token;
   right: Expression;
 
@@ -66,6 +71,7 @@ export class UnaryExpression implements Expression {
 }
 
 export class CallExpression implements Expression {
+  type?: string;
   callee: Expression;
   args: Expression[];
 
@@ -80,6 +86,7 @@ export class CallExpression implements Expression {
 }
 
 export class SetExpression implements Expression {
+  type?: string;
   object: Expression;
   name: Token;
   value: Expression;
@@ -96,6 +103,7 @@ export class SetExpression implements Expression {
 }
 
 export class GetExpression implements Expression {
+  type?: string;
   object: Expression;
   name: Token;
 
@@ -110,10 +118,12 @@ export class GetExpression implements Expression {
 }
 
 export class LiteralExpression implements Expression {
+  type?: string;
   name: Token;
 
-  constructor(name: Token) {
+  constructor(name: Token, type?: string) {
     this.name = name;
+    this.type = type;
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -122,6 +132,7 @@ export class LiteralExpression implements Expression {
 }
 
 export class GroupExpression implements Expression {
+  type?: string;
   expression: Expression;
 
   constructor(expression: Expression) {
@@ -134,12 +145,19 @@ export class GroupExpression implements Expression {
 }
 
 export class LambdaExpression implements Expression {
-  parameters: Token[];
+  type?: string;
+  returnType?: string;
+  parameters: ParameterDeclaration[];
   body: Statement;
 
-  constructor(parameters: Token[], body: Statement) {
+  constructor(
+    parameters: ParameterDeclaration[],
+    body: Statement,
+    returnType?: string,
+  ) {
     this.parameters = parameters;
     this.body = body;
+    this.returnType = returnType;
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -148,6 +166,7 @@ export class LambdaExpression implements Expression {
 }
 
 export class TupleExpression implements Expression {
+  type?: string;
   values: Expression[];
 
   constructor(values: Expression[]) {
@@ -174,6 +193,7 @@ export class NewExpression implements Expression {
 }
 
 export class ArrayExpression implements Expression {
+  type?: string;
   elements: Expression[];
 
   constructor(elements: Expression[]) {
@@ -186,6 +206,7 @@ export class ArrayExpression implements Expression {
 }
 
 export class ThisExpression implements Expression {
+  type?: string;
   keyword: Token;
 
   constructor(keyword: Token) {
@@ -198,6 +219,7 @@ export class ThisExpression implements Expression {
 }
 
 export class SuperExpression implements Expression {
+  type?: string;
   keyword: Token;
 
   constructor(keyword: Token) {
@@ -210,6 +232,7 @@ export class SuperExpression implements Expression {
 }
 
 export class VarExpression implements Expression {
+  type?: string;
   name: Token;
 
   constructor(name: Token) {

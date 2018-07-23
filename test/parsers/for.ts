@@ -17,7 +17,10 @@ it("for", () => {
     new Program([
       new ForStatement(
         new EmptyStatement(),
-        new LiteralExpression(new Token(TokenType.BOOLEAN, "true", true, 1)),
+        new LiteralExpression(
+          new Token(TokenType.BOOLEAN, "true", true, 1),
+          "Boolean",
+        ),
         [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 1))],
         new ExpressionStatement(
           new UnaryExpression(

@@ -15,10 +15,14 @@ it("if without else", () => {
   expect(program).toEqual(
     new Program([
       new IfStatement(
-        new LiteralExpression(new Token(TokenType.BOOLEAN, "true", true, 1)),
+        new LiteralExpression(
+          new Token(TokenType.BOOLEAN, "true", true, 1),
+          "Boolean",
+        ),
         new ExpressionStatement(
           new LiteralExpression(
             new Token(TokenType.BOOLEAN, "false", false, 1),
+            "Boolean",
           ),
         ),
       ),
@@ -40,7 +44,10 @@ it("if", () => {
   expect(program).toEqual(
     new Program([
       new IfStatement(
-        new LiteralExpression(new Token(TokenType.BOOLEAN, "true", true, 2)),
+        new LiteralExpression(
+          new Token(TokenType.BOOLEAN, "true", true, 2),
+          "Boolean",
+        ),
         new BlockStatement([]),
         new BlockStatement([]),
       ),

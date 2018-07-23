@@ -1,3 +1,4 @@
+import { capitalize } from "lodash";
 import {
   Statement,
   IfStatement,
@@ -12,6 +13,7 @@ import {
   ReturnStatement,
   EmptyStatement,
   VarsStatement,
+  ParameterDeclaration,
 } from "./ast/statement";
 import {
   Expression,
@@ -172,11 +174,21 @@ export class Parser {
         "Expect identifier after var",
       );
       let intializer: Expression | undefined;
+      let type: string | undefined;
+
+      if (this.match(TokenType.COLON)) {
+        const kind = this.consume(
+          TokenType.IDENTIFIER,
+          "Expect type after var",
+        );
+        type = kind.lexeme;
+      }
 
       if (this.match(TokenType.EQUAL)) {
         intializer = this.expression();
       }
-      statements.push(new VarStatement(name, intializer));
+
+      statements.push(new VarStatement(name, intializer, type));
 
       if (this.match(TokenType.COMMA)) {
         continue;
@@ -215,9 +227,21 @@ export class Parser {
   functionStatement() {
     const name = this.consume(TokenType.IDENTIFIER, "Expect name");
     this.consume(TokenType.LEFT_PAREN, "Expect ( after name");
-    const parameters = this.paramenters();
-    const body = this.statement();
-    return new FunctionStatement(name, parameters, body);
+
+    const parameters = this.parameters();
+
+    this.consume(TokenType.COLON, "Expect return type");
+    const kind = this.consume(
+      TokenType.IDENTIFIER,
+      "Expect type after function",
+    );
+
+    return new FunctionStatement(
+      name,
+      parameters,
+      this.statement(),
+      kind.lexeme,
+    );
   }
 
   returnStatement() {
@@ -399,7 +423,10 @@ export class Parser {
         TokenType.NULL,
       )
     ) {
-      return new LiteralExpression(this.previous());
+      return new LiteralExpression(
+        this.previous(),
+        capitalize(this.previous().type),
+      );
     } else if (this.match(TokenType.THIS)) {
       return new ThisExpression(this.previous());
     } else if (this.match(TokenType.SUPER)) {
@@ -431,10 +458,20 @@ export class Parser {
       return new ArrayExpression(elements);
     } else if (this.match(TokenType.DEF)) {
       this.consume(TokenType.LEFT_PAREN, "Expect ( lambda");
-      const paramenters = this.paramenters();
+      const paramenters = this.parameters();
+
+      this.consume(TokenType.COLON, "Expect : after lambda");
+      const returnKind = this.consume(
+        TokenType.IDENTIFIER,
+        "Expect lambda return type",
+      );
 
       this.consume(TokenType.ARROW, "Expect => after lambda");
-      return new LambdaExpression(paramenters, this.statement());
+      return new LambdaExpression(
+        paramenters,
+        this.statement(),
+        returnKind.lexeme,
+      );
     }
 
     return this.error(this.previous(), "Expect expression");
@@ -452,19 +489,30 @@ export class Parser {
     return args;
   }
 
-  paramenters() {
-    const paramenters: Token[] = [];
+  parameters() {
+    const paramenters: ParameterDeclaration[] = [];
 
     while (!this.match(TokenType.RIGHT_PAREN)) {
-      paramenters.push(this.consume(TokenType.IDENTIFIER, "Expect identifier"));
+      paramenters.push(this.parameter());
 
       while (this.match(TokenType.COMMA)) {
-        paramenters.push(
-          this.consume(TokenType.IDENTIFIER, "Expect identifer after ,"),
-        );
+        paramenters.push(this.parameter());
       }
     }
     return paramenters;
+  }
+
+  parameter() {
+    const name = this.consume(TokenType.IDENTIFIER, "Expect parameter name");
+
+    debugger
+    this.consume(TokenType.COLON, "Expect : after parameter name");
+    const kind = this.consume(
+      TokenType.IDENTIFIER,
+      "Expect type after parameter",
+    );
+
+    return new ParameterDeclaration(name, kind.lexeme);
   }
 
   notAtEnd() {

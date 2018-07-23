@@ -1,8 +1,7 @@
 import { Expression } from "./expression";
 import { Token } from "../token";
-import { TreeNode } from "./type";
 
-export interface Statement extends TreeNode {
+export interface Statement {
   accept(visitor: StatementVisitor): void;
 }
 
@@ -74,12 +73,14 @@ export class ForStatement implements Statement {
 }
 
 export class VarStatement implements Statement {
+  type?: string;
   name: Token;
   initializer?: Expression;
 
-  constructor(name: Token, initializer?: Expression) {
+  constructor(name: Token, initializer?: Expression, type?: string) {
     this.name = name;
     this.initializer = initializer;
+    this.type = type;
   }
 
   accept(visitor: StatementVisitor) {
@@ -123,18 +124,35 @@ export class ClassStatement implements Statement {
 }
 
 export class FunctionStatement implements Statement {
+  returnType?: string;
   name: Token;
-  parameters: Token[];
+  parameters: ParameterDeclaration[];
   body: Statement;
 
-  constructor(name: Token, parameters: Token[], body: Statement) {
+  constructor(
+    name: Token,
+    parameters: ParameterDeclaration[],
+    body: Statement,
+    returnType?: string,
+  ) {
     this.name = name;
     this.parameters = parameters;
     this.body = body;
+    this.returnType = returnType;
   }
 
   accept(visitor: StatementVisitor) {
     visitor.visitFunctionStatement(this);
+  }
+}
+
+export class ParameterDeclaration {
+  name: Token;
+  type: string;
+
+  constructor(name: Token, type: string) {
+    this.name = name;
+    this.type = type;
   }
 }
 

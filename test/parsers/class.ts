@@ -12,7 +12,7 @@ it("class", () => {
   class A {
     var x;
 
-    def hello() {}
+    def hello(): A {}
   }
   `;
   const tokens = new Lexer(source).scan();
@@ -28,6 +28,7 @@ it("class", () => {
             new Token(TokenType.IDENTIFIER, "hello", undefined, 5),
             [],
             new BlockStatement([]),
+            "A",
           ),
         ],
       ),

@@ -12,7 +12,10 @@ it("while", () => {
     new Program([
       new ForStatement(
         new EmptyStatement(),
-        new LiteralExpression(new Token(TokenType.BOOLEAN, "true", true, 1)),
+        new LiteralExpression(
+          new Token(TokenType.BOOLEAN, "true", true, 1),
+          "Boolean",
+        ),
       ),
     ]),
   );

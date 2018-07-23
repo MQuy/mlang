@@ -12,7 +12,10 @@ it("block", () => {
     new Program([
       new BlockStatement([
         new ExpressionStatement(
-          new LiteralExpression(new Token(TokenType.BOOLEAN, "true", true, 1)),
+          new LiteralExpression(
+            new Token(TokenType.BOOLEAN, "true", true, 1),
+            "Boolean",
+          ),
         ),
       ]),
     ]),

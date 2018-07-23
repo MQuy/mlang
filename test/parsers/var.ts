@@ -13,7 +13,10 @@ it("one var declaration", () => {
       new VarsStatement([
         new VarStatement(
           new Token(TokenType.IDENTIFIER, "x", undefined, 1),
-          new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1)),
+          new LiteralExpression(
+            new Token(TokenType.NUMBER, "1", 1, 1),
+            "Number",
+          ),
         ),
       ]),
     ]),
@@ -36,13 +39,17 @@ it("three var declarations", () => {
           new Token(TokenType.IDENTIFIER, "y", undefined, 2),
           new LiteralExpression(
             new Token(TokenType.STRING, '"minh quy"', "minh quy", 2),
+            "String",
           ),
         ),
       ]),
       new VarsStatement([
         new VarStatement(
           new Token(TokenType.IDENTIFIER, "z", undefined, 3),
-          new LiteralExpression(new Token(TokenType.BOOLEAN, "true", true, 3)),
+          new LiteralExpression(
+            new Token(TokenType.BOOLEAN, "true", true, 3),
+            "Boolean",
+          ),
         ),
       ]),
     ]),

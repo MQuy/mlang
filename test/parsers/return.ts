@@ -11,7 +11,7 @@ it("return expression", () => {
   expect(program).toEqual(
     new Program([
       new ReturnStatement(
-        new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1)),
+        new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1), "Number"),
       ),
     ]),
   );
