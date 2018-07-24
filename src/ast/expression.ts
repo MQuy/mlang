@@ -1,5 +1,6 @@
 import { Token } from "../token";
 import { Statement, ParameterDeclaration } from "./statement";
+import { BuiltinTypes } from "../semantic/types";
 
 export interface Expression {
   type?: string;
@@ -30,7 +31,7 @@ export class LogicalExpression implements Expression {
     this.left = left;
     this.operator = operator;
     this.right = right;
-    this.type = "Boolean";
+    this.type = BuiltinTypes.Boolean;
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -246,7 +247,7 @@ export class VarExpression implements Expression {
 
 export interface ExpressionVisitor {
   visitAssignmentExpression(expression: AssignmentExpression);
-  visitLogicalExpression(expression: LogicalExpression): boolean;
+  visitLogicalExpression(expression: LogicalExpression);
   visitBinaryExpression(expression: BinaryExpression);
   visitUnaryExpression(expression: UnaryExpression);
   visitCallExpression(expression: CallExpression);

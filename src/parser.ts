@@ -1,4 +1,3 @@
-import { capitalize } from "lodash";
 import {
   Statement,
   IfStatement,
@@ -203,10 +202,13 @@ export class Parser {
 
   classStatement() {
     const name = this.consume(TokenType.IDENTIFIER, "Expect class name");
-    let supercase: Token | undefined;
+    let superclass: Token | undefined;
 
     if (this.match(TokenType.EXTENDS)) {
-      supercase = this.consume(TokenType.IDENTIFIER, "Expect super class name");
+      superclass = this.consume(
+        TokenType.IDENTIFIER,
+        "Expect super class name",
+      );
     }
     this.consume(TokenType.LEFT_BRACE, "Expect {");
 
@@ -221,7 +223,12 @@ export class Parser {
         this.error(this.peek(), "Expect class properties or methods");
       }
     }
-    return new ClassStatement(name, varStatements, methodStatements, supercase);
+    return new ClassStatement(
+      name,
+      varStatements,
+      methodStatements,
+      superclass,
+    );
   }
 
   functionStatement() {
@@ -423,9 +430,10 @@ export class Parser {
         TokenType.NULL,
       )
     ) {
+      const type = this.previous().type.toLowerCase();
       return new LiteralExpression(
         this.previous(),
-        capitalize(this.previous().type),
+        type.slice(0, 1).toUpperCase() + type.slice(1),
       );
     } else if (this.match(TokenType.THIS)) {
       return new ThisExpression(this.previous());
@@ -505,7 +513,7 @@ export class Parser {
   parameter() {
     const name = this.consume(TokenType.IDENTIFIER, "Expect parameter name");
 
-    debugger
+    debugger;
     this.consume(TokenType.COLON, "Expect : after parameter name");
     const kind = this.consume(
       TokenType.IDENTIFIER,

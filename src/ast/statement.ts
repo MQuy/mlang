@@ -102,7 +102,7 @@ export class VarsStatement implements Statement {
 
 export class ClassStatement implements Statement {
   name: Token;
-  supercase?: Token;
+  superclass?: Token;
   properties?: VarStatement[];
   methods?: FunctionStatement[];
 
@@ -113,7 +113,7 @@ export class ClassStatement implements Statement {
     superclass?: Token,
   ) {
     this.name = name;
-    this.supercase = this.supercase;
+    this.superclass = superclass;
     this.properties = properties;
     this.methods = methods;
   }
