@@ -18,15 +18,15 @@ it("for", () => {
       new ForStatement(
         new EmptyStatement(),
         new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 1),
+          new Token(TokenType.BOOLEAN, "true", true, 1, 12),
           "Boolean",
         ),
-        [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 1))],
+        [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 1, 9))],
         new ExpressionStatement(
           new UnaryExpression(
-            new Token(TokenType.PLUS_PLUS, "++", undefined, 1),
+            new Token(TokenType.PLUS_PLUS, "++", undefined, 1, 19),
             new LiteralExpression(
-              new Token(TokenType.IDENTIFIER, "x", undefined, 1),
+              new Token(TokenType.IDENTIFIER, "x", undefined, 1, 21),
             ),
           ),
         ),
@@ -52,6 +52,6 @@ it("missing ;", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect ; after while intializer"),
+    new Error("Line 1:11 Expect ; after while intializer"),
   );
 });

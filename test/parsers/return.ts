@@ -11,7 +11,7 @@ it("return expression", () => {
   expect(program).toEqual(
     new Program([
       new ReturnStatement(
-        new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1), "Number"),
+        new LiteralExpression(new Token(TokenType.NUMBER, "1", 1, 1, 8), "Number"),
       ),
     ]),
   );
@@ -30,6 +30,6 @@ it("missing ;", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect expression"),
+    new Error("Line 1:7 Expect expression"),
   );
 });

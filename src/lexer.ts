@@ -27,6 +27,7 @@ export class Lexer {
   current: number;
   runner: number;
   line: number;
+  column: number;
 
   constructor(source: string) {
     this.source = source;
@@ -36,6 +37,7 @@ export class Lexer {
     const tokens: Token[] = [];
     this.runner = 0;
     this.line = 1;
+    this.column = 1;
 
     while (this.notAtEnd()) {
       this.current = this.runner;
@@ -45,7 +47,7 @@ export class Lexer {
       if (token) tokens.push(token);
     }
 
-    tokens.push(new Token(TokenType.EOF, "", undefined, this.line));
+    tokens.push(new Token(TokenType.EOF, "", undefined, this.line, this.column));
 
     return tokens;
   }
@@ -127,7 +129,7 @@ export class Lexer {
         }
 
       case "\n":
-        this.line += 1;
+        this.newline();
         return;
 
       case '"':
@@ -148,12 +150,13 @@ export class Lexer {
 
   comment() {
     while (this.peek() !== "\n" && this.notAtEnd()) this.advance();
+    this.newline();
     return this.generateToken(TokenType.COMMENT);
   }
 
   string() {
     while (this.peek() !== '"' && this.notAtEnd()) {
-      if (this.peek() === "\n") this.line += 1;
+      if (this.peek() === "\n") this.newline();
 
       this.advance();
     }
@@ -171,7 +174,7 @@ export class Lexer {
   }
 
   number() {
-    this.runner -= 1;
+    this.moveCursor(-1);
 
     while (/^[0-9]$/.test(this.peek()) && this.notAtEnd()) this.advance();
     if (this.match(".")) {
@@ -200,7 +203,7 @@ export class Lexer {
   }
 
   generateToken(type: TokenType, literal?: Literal) {
-    return new Token(type, this.getLexeme(), literal, this.line);
+    return new Token(type, this.getLexeme(), literal, this.line, this.column - (this.runner - this.current));
   }
 
   getLexeme(start = this.current, end = this.runner) {
@@ -218,8 +221,13 @@ export class Lexer {
   match(char: string) {
     if (this.peek() !== char) return false;
 
-    this.runner += 1;
+    this.moveCursor(1);
     return true;
+  }
+
+  newline() {
+    this.line += 1;
+    this.column = 1;
   }
 
   peek() {
@@ -227,7 +235,15 @@ export class Lexer {
   }
 
   advance() {
-    return this.source[this.runner++];
+    return this.source[this.moveCursor(1)];
+  }
+
+  moveCursor(distance) {
+    const current = this.runner;
+
+    this.column += distance;
+    this.runner += distance;
+    return current;
   }
 
   notAtEnd() {

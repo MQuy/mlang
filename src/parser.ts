@@ -194,7 +194,7 @@ export class Parser {
       } else if (this.match(TokenType.SEMICOLON)) {
         break;
       } else {
-        this.error(this.previous(), "Expect ; after declaration");
+        this.error(this.peek(), "Expect ; after declaration");
       }
     }
     return statements;
@@ -482,7 +482,7 @@ export class Parser {
       );
     }
 
-    return this.error(this.previous(), "Expect expression");
+    return this.error(this.peek(), "Expect expression");
   }
 
   arguments() {

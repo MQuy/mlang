@@ -16,12 +16,12 @@ it("if without else", () => {
     new Program([
       new IfStatement(
         new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 1),
+          new Token(TokenType.BOOLEAN, "true", true, 1, 5),
           "Boolean",
         ),
         new ExpressionStatement(
           new LiteralExpression(
-            new Token(TokenType.BOOLEAN, "false", false, 1),
+            new Token(TokenType.BOOLEAN, "false", false, 1, 11),
             "Boolean",
           ),
         ),
@@ -45,7 +45,7 @@ it("if", () => {
     new Program([
       new IfStatement(
         new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 2),
+          new Token(TokenType.BOOLEAN, "true", true, 2, 6),
           "Boolean",
         ),
         new BlockStatement([]),
@@ -60,7 +60,7 @@ it("missing (", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect ( after if"),
+    new Error("Line 1:4 Expect ( after if"),
   );
 });
 
@@ -69,6 +69,6 @@ it("missing then", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect expression"),
+    new Error("Line 1:10 Expect expression"),
   );
 });

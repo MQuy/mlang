@@ -21,11 +21,11 @@ it("class", () => {
   expect(program).toEqual(
     new Program([
       new ClassStatement(
-        new Token(TokenType.IDENTIFIER, "A", undefined, 2),
-        [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 3))],
+        new Token(TokenType.IDENTIFIER, "A", undefined, 2, 9),
+        [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 3, 9))],
         [
           new FunctionStatement(
-            new Token(TokenType.IDENTIFIER, "hello", undefined, 5),
+            new Token(TokenType.IDENTIFIER, "hello", undefined, 5, 9),
             [],
             new BlockStatement([]),
             "A",
@@ -44,10 +44,10 @@ it("superclass", () => {
   expect(program).toEqual(
     new Program([
       new ClassStatement(
-        new Token(TokenType.IDENTIFIER, "A", undefined, 1),
+        new Token(TokenType.IDENTIFIER, "A", undefined, 1, 7),
         [],
         [],
-        new Token(TokenType.IDENTIFIER, "B", undefined, 1),
+        new Token(TokenType.IDENTIFIER, "B", undefined, 1, 17),
       ),
     ]),
   );
@@ -58,6 +58,6 @@ it("missing class name", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect class name"),
+    new Error("Line 1:7 Expect class name"),
   );
 });

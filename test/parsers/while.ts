@@ -13,7 +13,7 @@ it("while", () => {
       new ForStatement(
         new EmptyStatement(),
         new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 1),
+          new Token(TokenType.BOOLEAN, "true", true, 1, 7),
           "Boolean",
         ),
       ),
@@ -26,6 +26,6 @@ it("missing condition", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect expression"),
+    new Error("Line 1:7 Expect expression"),
   );
 });

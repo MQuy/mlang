@@ -14,14 +14,14 @@ it("function", () => {
   expect(program).toEqual(
     new Program([
       new FunctionStatement(
-        new Token(TokenType.IDENTIFIER, "hello", undefined, 1),
+        new Token(TokenType.IDENTIFIER, "hello", undefined, 1, 5),
         [
           new ParameterDeclaration(
-            new Token(TokenType.IDENTIFIER, "x", undefined, 1),
+            new Token(TokenType.IDENTIFIER, "x", undefined, 1, 11),
             "number",
           ),
           new ParameterDeclaration(
-            new Token(TokenType.IDENTIFIER, "y", undefined, 1),
+            new Token(TokenType.IDENTIFIER, "y", undefined, 1, 22),
             "haha",
           ),
         ],
@@ -37,6 +37,6 @@ it("missing parameter type", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect : after parameter name"),
+    new Error("Line 1:12 Expect : after parameter name"),
   );
 });

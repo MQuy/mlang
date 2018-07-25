@@ -65,22 +65,25 @@ export type Literal = number | string | boolean | null;
 export class Token {
   type: TokenType;
   lexeme: string;
-  literal?: Literal;
-  line?: number;
+  literal: Literal | undefined;
+  line: number;
+  column: number;
 
   constructor(
     type: TokenType,
     lexeme: string,
-    literal?: Literal,
-    line?: number,
+    literal: Literal | undefined,
+    line: number,
+    column: number,
   ) {
     this.type = type;
     this.lexeme = lexeme;
     this.literal = literal;
     this.line = line;
+    this.column = column;
   }
 
   toString() {
-    return `Line ${this.line}:`;
+    return `Line ${this.line}:${this.column}`;
   }
 }

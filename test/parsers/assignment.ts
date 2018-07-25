@@ -16,8 +16,8 @@ it("assignment", () => {
     new Program([
       new ExpressionStatement(
         new AssignmentExpression(
-          new VarExpression(new Token(TokenType.IDENTIFIER, "x", undefined, 1)),
-          new LiteralExpression(new Token(TokenType.NULL, "null", null, 1)),
+          new VarExpression(new Token(TokenType.IDENTIFIER, "x", undefined, 1, 1)),
+          new LiteralExpression(new Token(TokenType.NULL, "null", null, 1, 5)),
         ),
       ),
     ]),
@@ -29,6 +29,6 @@ it("missing initializer", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect expression"),
+    new Error("Line 1:5 Expect expression"),
   );
 });

@@ -13,7 +13,7 @@ it("block", () => {
       new BlockStatement([
         new ExpressionStatement(
           new LiteralExpression(
-            new Token(TokenType.BOOLEAN, "true", true, 1),
+            new Token(TokenType.BOOLEAN, "true", true, 1, 3),
             "Boolean",
           ),
         ),
@@ -27,7 +27,7 @@ it("missing {", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect expression"),
+    new Error("Line 1:8 Expect expression"),
   );
 });
 
@@ -36,6 +36,6 @@ it("missing }", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect expression"),
+    new Error("Line 1:9 Expect expression"),
   );
 });

@@ -15,6 +15,6 @@ it("missing ;", () => {
   const tokens = new Lexer(source).scan();
 
   expect(() => new Parser(tokens).parse()).toThrow(
-    new Error("Line 1: Expect ; after break"),
+    new Error("Line 1:6 Expect ; after break"),
   );
 });
