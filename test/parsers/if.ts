@@ -6,6 +6,7 @@ import {
   BlockStatement,
 } from "../../src/ast/statement";
 import { LiteralExpression } from "../../src/ast/expression";
+import { generateExpression, generateStatement } from "../helpers";
 
 it("if without else", () => {
   const source = `if (true) false;`;
@@ -14,17 +15,33 @@ it("if without else", () => {
 
   expect(program).toEqual(
     new Program([
-      new IfStatement(
-        new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 1, 5),
-          "Boolean",
-        ),
-        new ExpressionStatement(
-          new LiteralExpression(
-            new Token(TokenType.BOOLEAN, "false", false, 1, 11),
-            "Boolean",
+      generateStatement(
+        new IfStatement(
+          generateExpression(
+            new LiteralExpression(
+              new Token(TokenType.BOOLEAN, "true", true, 1, 5),
+              "Boolean",
+            ),
+            { line: 1, column: 5 },
+            { line: 1, column: 9 },
+          ),
+          generateStatement(
+            new ExpressionStatement(
+              generateExpression(
+                new LiteralExpression(
+                  new Token(TokenType.BOOLEAN, "false", false, 1, 11),
+                  "Boolean",
+                ),
+                { line: 1, column: 11 },
+                { line: 1, column: 16 },
+              ),
+            ),
+            { line: 1, column: 11 },
+            { line: 1, column: 17 },
           ),
         ),
+        { line: 1, column: 1 },
+        { line: 1, column: 17 },
       ),
     ]),
   );
@@ -43,13 +60,29 @@ it("if", () => {
 
   expect(program).toEqual(
     new Program([
-      new IfStatement(
-        new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 2, 6),
-          "Boolean",
+      generateStatement(
+        new IfStatement(
+          generateExpression(
+            new LiteralExpression(
+              new Token(TokenType.BOOLEAN, "true", true, 2, 6),
+              "Boolean",
+            ),
+            { line: 2, column: 6 },
+            { line: 2, column: 10 },
+          ),
+          generateStatement(
+            new BlockStatement([]),
+            { line: 2, column: 12 },
+            { line: 4, column: 4 },
+          ),
+          generateStatement(
+            new BlockStatement([]),
+            { line: 4, column: 10 },
+            { line: 6, column: 4 },
+          ),
         ),
-        new BlockStatement([]),
-        new BlockStatement([]),
+        { line: 2, column: 3 },
+        { line: 6, column: 4 },
       ),
     ]),
   );

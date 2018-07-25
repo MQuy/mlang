@@ -6,7 +6,12 @@ import {
   VarStatement,
   ExpressionStatement,
 } from "../../src/ast/statement";
-import { LiteralExpression, UnaryExpression } from "../../src/ast/expression";
+import {
+  LiteralExpression,
+  UnaryExpression,
+  VarExpression,
+} from "../../src/ast/expression";
+import { generateExpression, generateStatement } from "../helpers";
 
 it("for", () => {
   const source = `for(var x; true ; ++x);`;
@@ -15,21 +20,53 @@ it("for", () => {
 
   expect(program).toEqual(
     new Program([
-      new ForStatement(
-        new EmptyStatement(),
-        new LiteralExpression(
-          new Token(TokenType.BOOLEAN, "true", true, 1, 12),
-          "Boolean",
-        ),
-        [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 1, 9))],
-        new ExpressionStatement(
-          new UnaryExpression(
-            new Token(TokenType.PLUS_PLUS, "++", undefined, 1, 19),
+      generateStatement(
+        new ForStatement(
+          generateStatement(
+            new EmptyStatement(),
+            { line: 1, column: 23 },
+            { line: 1, column: 24 },
+          ),
+          generateExpression(
             new LiteralExpression(
-              new Token(TokenType.IDENTIFIER, "x", undefined, 1, 21),
+              new Token(TokenType.BOOLEAN, "true", true, 1, 12),
+              "Boolean",
             ),
+            { line: 1, column: 12 },
+            { line: 1, column: 16 },
+          ),
+          [
+            generateStatement(
+              new VarStatement(
+                new Token(TokenType.IDENTIFIER, "x", undefined, 1, 9),
+              ),
+              { line: 1, column: 5 },
+              { line: 1, column: 11 },
+            ),
+          ],
+          generateStatement(
+            new ExpressionStatement(
+              generateExpression(
+                new UnaryExpression(
+                  new Token(TokenType.PLUS_PLUS, "++", undefined, 1, 19),
+                  generateExpression(
+                    new VarExpression(
+                      new Token(TokenType.IDENTIFIER, "x", undefined, 1, 21),
+                    ),
+                    { line: 1, column: 21 },
+                    { line: 1, column: 22 },
+                  ),
+                ),
+                { line: 1, column: 19 },
+                { line: 1, column: 22 },
+              ),
+            ),
+            { line: 1, column: 19 },
+            { line: 1, column: 22 },
           ),
         ),
+        { line: 1, column: 1 },
+        { line: 1, column: 24 },
       ),
     ]),
   );
@@ -42,7 +79,20 @@ it("empty", () => {
 
   expect(program).toEqual(
     new Program([
-      new ForStatement(new EmptyStatement(), undefined, [], undefined),
+      generateStatement(
+        new ForStatement(
+          generateStatement(
+            new EmptyStatement(),
+            { line: 1, column: 10 },
+            { line: 1, column: 11 },
+          ),
+          undefined,
+          [],
+          undefined,
+        ),
+        { line: 1, column: 1 },
+        { line: 1, column: 11 },
+      ),
     ]),
   );
 });

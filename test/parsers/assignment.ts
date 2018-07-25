@@ -6,6 +6,7 @@ import {
   VarExpression,
   LiteralExpression,
 } from "../../src/ast/expression";
+import { generateExpression, generateStatement } from "../helpers";
 
 it("assignment", () => {
   const source = `x = null;`;
@@ -14,11 +15,31 @@ it("assignment", () => {
 
   expect(program).toEqual(
     new Program([
-      new ExpressionStatement(
-        new AssignmentExpression(
-          new VarExpression(new Token(TokenType.IDENTIFIER, "x", undefined, 1, 1)),
-          new LiteralExpression(new Token(TokenType.NULL, "null", null, 1, 5)),
+      generateStatement(
+        new ExpressionStatement(
+          generateExpression(
+            new AssignmentExpression(
+              generateExpression(
+                new VarExpression(
+                  new Token(TokenType.IDENTIFIER, "x", undefined, 1, 1),
+                ),
+                { line: 1, column: 1 },
+                { line: 1, column: 2 },
+              ),
+              generateExpression(
+                new LiteralExpression(
+                  new Token(TokenType.NULL, "null", null, 1, 5),
+                ),
+                { line: 1, column: 5 },
+                { line: 1, column: 9 },
+              ),
+            ),
+            { line: 1, column: 1 },
+            { line: 1, column: 9 },
+          ),
         ),
+        { line: 1, column: 1 },
+        { line: 1, column: 10 },
       ),
     ]),
   );

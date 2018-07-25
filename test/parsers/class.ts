@@ -6,6 +6,7 @@ import {
   FunctionStatement,
   BlockStatement,
 } from "../../src/ast/statement";
+import { generateStatement } from "../helpers";
 
 it("class", () => {
   const source = `
@@ -20,17 +21,37 @@ it("class", () => {
 
   expect(program).toEqual(
     new Program([
-      new ClassStatement(
-        new Token(TokenType.IDENTIFIER, "A", undefined, 2, 9),
-        [new VarStatement(new Token(TokenType.IDENTIFIER, "x", undefined, 3, 9))],
-        [
-          new FunctionStatement(
-            new Token(TokenType.IDENTIFIER, "hello", undefined, 5, 9),
-            [],
-            new BlockStatement([]),
-            "A",
-          ),
-        ],
+      generateStatement(
+        new ClassStatement(
+          new Token(TokenType.IDENTIFIER, "A", undefined, 2, 9),
+          [
+            generateStatement(
+              new VarStatement(
+                new Token(TokenType.IDENTIFIER, "x", undefined, 3, 9),
+              ),
+              { line: 3, column: 5 },
+              { line: 3, column: 11 },
+            ),
+          ],
+          [
+            generateStatement(
+              new FunctionStatement(
+                new Token(TokenType.IDENTIFIER, "hello", undefined, 5, 9),
+                [],
+                generateStatement(
+                  new BlockStatement([]),
+                  { line: 5, column: 20 },
+                  { line: 5, column: 22 },
+                ),
+                "A",
+              ),
+              { line: 5, column: 5 },
+              { line: 5, column: 22 },
+            ),
+          ],
+        ),
+        { line: 2, column: 3 },
+        { line: 6, column: 4 },
       ),
     ]),
   );
@@ -43,11 +64,15 @@ it("superclass", () => {
 
   expect(program).toEqual(
     new Program([
-      new ClassStatement(
-        new Token(TokenType.IDENTIFIER, "A", undefined, 1, 7),
-        [],
-        [],
-        new Token(TokenType.IDENTIFIER, "B", undefined, 1, 17),
+      generateStatement(
+        new ClassStatement(
+          new Token(TokenType.IDENTIFIER, "A", undefined, 1, 7),
+          [],
+          [],
+          new Token(TokenType.IDENTIFIER, "B", undefined, 1, 17),
+        ),
+        { line: 1, column: 1 },
+        { line: 1, column: 21 },
       ),
     ]),
   );

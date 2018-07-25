@@ -1,13 +1,15 @@
+import { Types } from "./types";
+
 export class SymbolTable {
   enclosing?: SymbolTable;
-  symbols: { [name: string]: any };
+  symbols: { [name: string]: Types };
 
   constructor(enclosing?: SymbolTable, symbols = {}) {
     this.enclosing = enclosing;
     this.symbols = symbols;
   }
 
-  define(name: string, value: any) {
+  define(name: string, value: Types) {
     this.symbols = { ...this.symbols, [name]: value };
   }
 

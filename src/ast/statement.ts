@@ -1,11 +1,14 @@
 import { Expression } from "./expression";
 import { Token } from "../token";
+import { IRNode, IRPosition } from "./types";
 
 export interface Statement {
+  pStart: IRPosition;
+  pEnd: IRPosition;
   accept(visitor: StatementVisitor): void;
 }
 
-export class IfStatement implements Statement {
+export class IfStatement extends IRNode implements Statement {
   condition: Expression;
   thenStatement: Statement;
   elseStatement?: Statement;
@@ -15,6 +18,8 @@ export class IfStatement implements Statement {
     thenStatement: Statement,
     elseStatement?: Statement,
   ) {
+    super();
+
     this.condition = condition;
     this.thenStatement = thenStatement;
     this.elseStatement = elseStatement;
@@ -25,10 +30,12 @@ export class IfStatement implements Statement {
   }
 }
 
-export class BlockStatement implements Statement {
+export class BlockStatement extends IRNode implements Statement {
   statements: Statement[];
 
   constructor(statements: Statement[]) {
+    super();
+
     this.statements = statements;
   }
 
@@ -37,19 +44,19 @@ export class BlockStatement implements Statement {
   }
 }
 
-export class BreakStatement implements Statement {
+export class BreakStatement extends IRNode implements Statement {
   accept(visitor: StatementVisitor) {
     visitor.visitBreakStatement(this);
   }
 }
 
-export class ContinueStatement implements Statement {
+export class ContinueStatement extends IRNode implements Statement {
   accept(visitor: StatementVisitor) {
     visitor.visitContinueStatement(this);
   }
 }
 
-export class ForStatement implements Statement {
+export class ForStatement extends IRNode implements Statement {
   initializer?: VarStatement[] | Expression[];
   condition?: Expression;
   increment?: ExpressionStatement;
@@ -61,6 +68,8 @@ export class ForStatement implements Statement {
     intializer?: VarStatement[] | Expression[],
     increment?: ExpressionStatement,
   ) {
+    super();
+
     this.body = body;
     this.condition = condition;
     this.initializer = intializer;
@@ -72,12 +81,14 @@ export class ForStatement implements Statement {
   }
 }
 
-export class VarStatement implements Statement {
+export class VarStatement extends IRNode implements Statement {
   type?: string;
   name: Token;
   initializer?: Expression;
 
   constructor(name: Token, initializer?: Expression, type?: string) {
+    super();
+
     this.name = name;
     this.initializer = initializer;
     this.type = type;
@@ -88,10 +99,12 @@ export class VarStatement implements Statement {
   }
 }
 
-export class VarsStatement implements Statement {
+export class VarsStatement extends IRNode implements Statement {
   varStatements: VarStatement[];
 
   constructor(varStatements: VarStatement[]) {
+    super();
+
     this.varStatements = varStatements;
   }
 
@@ -100,7 +113,7 @@ export class VarsStatement implements Statement {
   }
 }
 
-export class ClassStatement implements Statement {
+export class ClassStatement extends IRNode implements Statement {
   name: Token;
   superclass?: Token;
   properties?: VarStatement[];
@@ -112,6 +125,8 @@ export class ClassStatement implements Statement {
     methods: FunctionStatement[],
     superclass?: Token,
   ) {
+    super();
+
     this.name = name;
     this.superclass = superclass;
     this.properties = properties;
@@ -123,7 +138,7 @@ export class ClassStatement implements Statement {
   }
 }
 
-export class FunctionStatement implements Statement {
+export class FunctionStatement extends IRNode implements Statement {
   returnType?: string;
   name: Token;
   parameters: ParameterDeclaration[];
@@ -135,6 +150,8 @@ export class FunctionStatement implements Statement {
     body: Statement,
     returnType?: string,
   ) {
+    super();
+
     this.name = name;
     this.parameters = parameters;
     this.body = body;
@@ -156,10 +173,12 @@ export class ParameterDeclaration {
   }
 }
 
-export class ReturnStatement implements Statement {
+export class ReturnStatement extends IRNode implements Statement {
   value?: Expression;
 
   constructor(value?: Expression) {
+    super();
+
     this.value = value;
   }
 
@@ -168,14 +187,16 @@ export class ReturnStatement implements Statement {
   }
 }
 
-export class EmptyStatement implements Statement {
+export class EmptyStatement extends IRNode implements Statement {
   accept(visitor: StatementVisitor) {}
 }
 
-export class ExpressionStatement implements Statement {
+export class ExpressionStatement extends IRNode implements Statement {
   expression: Expression;
 
   constructor(expression: Expression) {
+    super();
+
     this.expression = expression;
   }
 

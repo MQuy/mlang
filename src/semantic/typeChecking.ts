@@ -35,10 +35,13 @@ import {
   Expression,
 } from "../ast/expression";
 import { SymbolTable } from "./symbolTable";
-import { checkInheritance, BuiltinTypes } from "./types";
+import {
+  checkInheritance,
+  BuiltinTypes,
+  Classable,
+  Functionable,
+} from "./types";
 import { TokenType, Token } from "../token";
-import { Classable } from "./classable";
-import { Functionable } from "./functionable";
 
 export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   program: Program;
@@ -91,7 +94,9 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitVarStatement(statement: VarStatement) {
-    this.checkVarStatement(statement, (name: string, type: any) => this.scope.define(name, type))
+    this.checkVarStatement(statement, (name: string, type: any) =>
+      this.scope.define(name, type),
+    );
   }
 
   visitVarsStatements(statement: VarsStatement) {
@@ -114,13 +119,19 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     if (statement.properties) {
       statement.properties.forEach(property => {
-        this.checkVarStatement(property, (name: string, type: any) => klass.properties[name] = type);
+        this.checkVarStatement(
+          property,
+          (name: string, type: any) => (klass.properties[name] = type),
+        );
       });
     }
 
     if (statement.methods) {
       statement.methods.forEach(method => {
-        this.checkFunctionStatement(method, (name: string, type: Functionable) => klass.methods[name] = type);
+        this.checkFunctionStatement(
+          method,
+          (name: string, type: Functionable) => (klass.methods[name] = type),
+        );
       });
     }
 
@@ -128,7 +139,9 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitFunctionStatement(statement: FunctionStatement) {
-    this.checkFunctionStatement(statement, (name: string, type: Functionable) => this.scope.define(name, type));
+    this.checkFunctionStatement(statement, (name: string, type: Functionable) =>
+      this.scope.define(name, type),
+    );
   }
 
   visitExpressionStatement(statement: ExpressionStatement) {
@@ -136,10 +149,14 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitReturnStatement(statement: ReturnStatement) {
-    const kunction: Functionable = this.scope.lookup("this");
-    const type = this.evaluateExpression(statement.value);
+    const kunction = this.scope.lookup("this");
 
-    checkInheritance(type, kunction.returnType)
+    if (kunction instanceof Functionable) {
+      const type = this.evaluateExpression(statement.value);
+      checkInheritance(type, kunction.returnType);
+    } else {
+      throw new Error("return is not correct");
+    }
   }
 
   visitAssignmentExpression(expression: AssignmentExpression) {
@@ -170,7 +187,10 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     ) {
       return (expression.type = BuiltinTypes.Number);
     } else {
-      throw new Error("Only do binary expression in number or string type");
+      this.error(
+        expression.operator,
+        "Only can do binary operator for number and string type",
+      );
     }
   }
 
@@ -186,7 +206,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
       case TokenType.MINUS_MINUS:
         return (expression.type = BuiltinTypes.Number);
       default:
-        throw new Error(`Unknow operator ${expression.operator.type}`);
+        this.error(expression.operator, "Unknow operator");
     }
   }
 
@@ -220,12 +240,12 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
       checkInheritance(setType, type);
       return type;
     } else {
-      throw new Error("cannot set");
+      this.error(expression.name, "cannot set");
     }
   }
 
   visitLiteralExpression(expression: LiteralExpression) {
-    return expression.type;
+    return expression.type as BuiltinTypes;
   }
 
   visitGroupExpression(expression: GroupExpression) {
@@ -234,10 +254,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitLambdaExpression(expression: LambdaExpression) {
-    const kunction = new Functionable(
-      undefined,
-      this.scope.lookup(expression.returnType),
-    );
+    const kunction = new Functionable(this.scope.lookup(expression.returnType));
     expression.parameters.forEach(parameter =>
       kunction.parameters.push(this.scope.lookup(parameter.type)),
     );
@@ -291,7 +308,10 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     throw new Error(`${token.toString()} ${errorMessage}`);
   }
 
-  checkVarStatement(statement: VarStatement, define: (name: string, type: any) => void) {
+  checkVarStatement(
+    statement: VarStatement,
+    define: (name: string, type: any) => void,
+  ) {
     const initializerType = this.evaluateExpression(statement.initializer);
 
     if (statement.type) {
@@ -305,10 +325,13 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     }
   }
 
-  checkFunctionStatement(statement: FunctionStatement, define: (name: string, type: Functionable) => void) {
+  checkFunctionStatement(
+    statement: FunctionStatement,
+    define: (name: string, type: Functionable) => void,
+  ) {
     const kunction = new Functionable(
-      statement.name.lexeme,
       this.scope.lookup(statement.returnType),
+      statement.name.lexeme,
     );
 
     statement.parameters.forEach(parameter => {
@@ -321,6 +344,5 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     this.scope.define("this", kunction);
     this.evaluateStatement(statement.body);
     this.endScope();
-
   }
 }

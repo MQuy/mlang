@@ -2,6 +2,7 @@ import { Lexer, Parser, Token, TokenType } from "../../src";
 import { Program } from "../../src/ast/program";
 import { BlockStatement, ExpressionStatement } from "../../src/ast/statement";
 import { LiteralExpression } from "../../src/ast/expression";
+import { generateExpression, generateStatement } from "../helpers";
 
 it("block", () => {
   const source = `{ true; }`;
@@ -10,14 +11,26 @@ it("block", () => {
 
   expect(program).toEqual(
     new Program([
-      new BlockStatement([
-        new ExpressionStatement(
-          new LiteralExpression(
-            new Token(TokenType.BOOLEAN, "true", true, 1, 3),
-            "Boolean",
+      generateStatement(
+        new BlockStatement([
+          generateStatement(
+            new ExpressionStatement(
+              generateExpression(
+                new LiteralExpression(
+                  new Token(TokenType.BOOLEAN, "true", true, 1, 3),
+                  "Boolean",
+                ),
+                { line: 1, column: 3 },
+                { line: 1, column: 7 },
+              ),
+            ),
+            { line: 1, column: 3 },
+            { line: 1, column: 8 },
           ),
-        ),
-      ]),
+        ]),
+        { line: 1, column: 1 },
+        { line: 1, column: 10 },
+      ),
     ]),
   );
 });

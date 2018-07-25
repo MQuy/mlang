@@ -5,6 +5,7 @@ import {
   BlockStatement,
   ParameterDeclaration,
 } from "../../src/ast/statement";
+import { generateStatement } from "../helpers";
 
 it("function", () => {
   const source = `def hello(x: number, y: haha): huhu {}`;
@@ -13,20 +14,28 @@ it("function", () => {
 
   expect(program).toEqual(
     new Program([
-      new FunctionStatement(
-        new Token(TokenType.IDENTIFIER, "hello", undefined, 1, 5),
-        [
-          new ParameterDeclaration(
-            new Token(TokenType.IDENTIFIER, "x", undefined, 1, 11),
-            "number",
+      generateStatement(
+        new FunctionStatement(
+          new Token(TokenType.IDENTIFIER, "hello", undefined, 1, 5),
+          [
+            new ParameterDeclaration(
+              new Token(TokenType.IDENTIFIER, "x", undefined, 1, 11),
+              "number",
+            ),
+            new ParameterDeclaration(
+              new Token(TokenType.IDENTIFIER, "y", undefined, 1, 22),
+              "haha",
+            ),
+          ],
+          generateStatement(
+            new BlockStatement([]),
+            { line: 1, column: 37 },
+            { line: 1, column: 39 },
           ),
-          new ParameterDeclaration(
-            new Token(TokenType.IDENTIFIER, "y", undefined, 1, 22),
-            "haha",
-          ),
-        ],
-        new BlockStatement([]),
-        "huhu",
+          "huhu",
+        ),
+        { line: 1, column: 1 },
+        { line: 1, column: 39 },
       ),
     ]),
   );
