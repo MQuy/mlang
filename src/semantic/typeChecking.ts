@@ -36,7 +36,7 @@ import {
 } from "../ast/expression";
 import { SymbolTable } from "./symbolTable";
 import { checkInheritance, BuiltinTypes } from "./types";
-import { TokenType } from "../token";
+import { TokenType, Token } from "../token";
 import { Classable } from "./classable";
 import { Functionable } from "./functionable";
 
@@ -91,15 +91,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitVarStatement(statement: VarStatement) {
-    const initializerType = this.evaluateExpression(statement.initializer);
-
-    if (statement.type) {
-      const variableType = this.scope.lookup(statement.type);
-      checkInheritance(initializerType, variableType);
-      this.scope.define(statement.name.lexeme, variableType);
-    } else {
-      this.scope.define(statement.name.lexeme, initializerType);
-    }
+    this.checkVarStatement(statement, (name: string, type: any) => this.scope.define(name, type))
   }
 
   visitVarsStatements(statement: VarsStatement) {
@@ -122,27 +114,13 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     if (statement.properties) {
       statement.properties.forEach(property => {
-        const initializerType = this.evaluateExpression(property.initializer);
-        const variableType = this.scope.lookup(property.type);
-        checkInheritance(initializerType, variableType);
-        klass.properties[property.name.lexeme] = variableType;
+        this.checkVarStatement(property, (name: string, type: any) => klass.properties[name] = type);
       });
     }
 
     if (statement.methods) {
       statement.methods.forEach(method => {
-        const kethod = new Functionable(
-          method.name.lexeme,
-          this.scope.lookup(method.returnType),
-        );
-
-        method.parameters.forEach(parameter => {
-          kethod.parameters.push(this.scope.lookup(parameter.type));
-        });
-
-        klass.methods[method.name.lexeme] = kethod;
-
-        this.evaluateStatement(method.body);
+        this.checkFunctionStatement(method, (name: string, type: Functionable) => klass.methods[name] = type);
       });
     }
 
@@ -150,29 +128,18 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitFunctionStatement(statement: FunctionStatement) {
-    const kunction = new Functionable(
-      statement.name.lexeme,
-      this.scope.lookup(statement.returnType),
-    );
-
-    this.scope.define(statement.name.lexeme, kunction);
-
-    statement.parameters.forEach(parameter => {
-      kunction.parameters[parameter.type] = this.scope.lookup(parameter.type);
-    });
-
-    this.beginScope();
-    this.evaluateStatement(statement.body);
-    this.endScope();
+    this.checkFunctionStatement(statement, (name: string, type: Functionable) => this.scope.define(name, type));
   }
 
   visitExpressionStatement(statement: ExpressionStatement) {
     this.evaluateExpression(statement.expression);
   }
 
-  // TODO:
   visitReturnStatement(statement: ReturnStatement) {
-    // const type = this.evaluateExpression(statement.value);
+    const kunction: Functionable = this.scope.lookup("this");
+    const type = this.evaluateExpression(statement.value);
+
+    checkInheritance(type, kunction.returnType)
   }
 
   visitAssignmentExpression(expression: AssignmentExpression) {
@@ -318,5 +285,42 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     if (this.scope.enclosing) {
       this.scope = this.scope.enclosing;
     }
+  }
+
+  error(token: Token, errorMessage: string): never {
+    throw new Error(`${token.toString()} ${errorMessage}`);
+  }
+
+  checkVarStatement(statement: VarStatement, define: (name: string, type: any) => void) {
+    const initializerType = this.evaluateExpression(statement.initializer);
+
+    if (statement.type) {
+      const variableType = this.scope.lookup(statement.type);
+      checkInheritance(initializerType, variableType);
+      define(statement.name.lexeme, variableType);
+    } else if (initializerType) {
+      define(statement.name.lexeme, initializerType);
+    } else {
+      this.error(statement.name, "cannot declare without type");
+    }
+  }
+
+  checkFunctionStatement(statement: FunctionStatement, define: (name: string, type: Functionable) => void) {
+    const kunction = new Functionable(
+      statement.name.lexeme,
+      this.scope.lookup(statement.returnType),
+    );
+
+    statement.parameters.forEach(parameter => {
+      kunction.parameters[parameter.type] = this.scope.lookup(parameter.type);
+    });
+
+    define(statement.name.lexeme, kunction);
+
+    this.beginScope();
+    this.scope.define("this", kunction);
+    this.evaluateStatement(statement.body);
+    this.endScope();
+
   }
 }
