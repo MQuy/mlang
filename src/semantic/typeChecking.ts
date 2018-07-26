@@ -41,7 +41,8 @@ import {
   Classable,
   Functionable,
 } from "./types";
-import { TokenType, Token } from "../token";
+import { TokenType } from "../token";
+import { error } from "../utils/print";
 
 export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   program: Program;
@@ -113,8 +114,13 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     this.scope.define("this", klass);
     if (statement.superclass) {
-      klass.superclass = this.scope.lookup(statement.superclass.lexeme);
-      this.scope.define("super", klass.superclass);
+      const superType = this.scope.lookup(statement.superclass.lexeme);
+      if (superType instanceof Classable) {
+        klass.superclass = superType;
+        this.scope.define("super", klass.superclass);
+      } else {
+        error(statement.superclass, "super has to be classname");
+      }
     }
 
     if (statement.properties) {
@@ -153,9 +159,9 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     if (kunction instanceof Functionable) {
       const type = this.evaluateExpression(statement.value);
-      checkInheritance(type, kunction.returnType);
+      checkInheritance(type, kunction.returnType, statement.pStart);
     } else {
-      throw new Error("return is not correct");
+      error(statement.pStart, "cannot return without function's scope");
     }
   }
 
@@ -163,7 +169,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     const expressionType = this.evaluateExpression(expression.expression);
     const variableType = this.evaluateExpression(expression.object);
 
-    checkInheritance(expressionType, variableType);
+    checkInheritance(expressionType, variableType, expression.pStart);
     return variableType;
   }
 
@@ -187,7 +193,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     ) {
       return (expression.type = BuiltinTypes.Number);
     } else {
-      this.error(
+      error(
         expression.operator,
         "Only can do binary operator for number and string type",
       );
@@ -206,7 +212,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
       case TokenType.MINUS_MINUS:
         return (expression.type = BuiltinTypes.Number);
       default:
-        this.error(expression.operator, "Unknow operator");
+        error(expression.operator, "Unknow operator");
     }
   }
 
@@ -217,11 +223,11 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
       type.parameters.forEach((parameterType, index) => {
         const argType = this.evaluateExpression(expression.args[index]);
 
-        checkInheritance(argType, parameterType);
+        checkInheritance(argType, parameterType, expression.pStart);
       });
       return type.returnType;
     } else {
-      throw new Error("is not callable");
+      error(expression.callee.pStart, "is not callable");
     }
   }
 
@@ -237,10 +243,10 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
       const type = object.get(expression.name.lexeme);
       const setType = this.evaluateExpression(expression.value);
 
-      checkInheritance(setType, type);
+      checkInheritance(setType, type, expression.name);
       return type;
     } else {
-      this.error(expression.name, "cannot set");
+      error(expression.name, "cannot set");
     }
   }
 
@@ -255,9 +261,19 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
   visitLambdaExpression(expression: LambdaExpression) {
     const kunction = new Functionable(this.scope.lookup(expression.returnType));
-    expression.parameters.forEach(parameter =>
-      kunction.parameters.push(this.scope.lookup(parameter.type)),
-    );
+
+    expression.parameters.forEach(parameter => {
+      const parameterType = this.scope.lookup(parameter.type);
+
+      kunction.parameters.push(parameterType);
+      this.scope.define(parameter.name.lexeme, parameterType);
+    });
+
+    this.beginScope();
+    this.scope.define("this", kunction);
+    this.evaluateStatement(expression.body);
+    this.endScope();
+
     return kunction;
   }
 
@@ -274,6 +290,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitVarExpression(expression: VarExpression) {
+    debugger;
     return this.scope.lookup(expression.name.lexeme);
   }
 
@@ -304,10 +321,6 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     }
   }
 
-  error(token: Token, errorMessage: string): never {
-    throw new Error(`${token.toString()} ${errorMessage}`);
-  }
-
   checkVarStatement(
     statement: VarStatement,
     define: (name: string, type: any) => void,
@@ -316,12 +329,12 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     if (statement.type) {
       const variableType = this.scope.lookup(statement.type);
-      checkInheritance(initializerType, variableType);
+      checkInheritance(initializerType, variableType, statement.name);
       define(statement.name.lexeme, variableType);
     } else if (initializerType) {
       define(statement.name.lexeme, initializerType);
     } else {
-      this.error(statement.name, "cannot declare without type");
+      error(statement.name, "cannot declare without type");
     }
   }
 
@@ -335,7 +348,10 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     );
 
     statement.parameters.forEach(parameter => {
-      kunction.parameters[parameter.type] = this.scope.lookup(parameter.type);
+      const parameterType = this.scope.lookup(parameter.type);
+
+      kunction.parameters.push(parameterType);
+      this.scope.define(parameter.name.lexeme, parameterType);
     });
 
     define(statement.name.lexeme, kunction);

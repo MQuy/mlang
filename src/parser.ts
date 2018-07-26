@@ -35,6 +35,7 @@ import {
 import { Token, TokenType } from "./token";
 import { Program } from "./ast/program";
 import { IRPosition } from "./ast/types";
+import { error } from "./utils/print";
 
 export class Parser {
   tokens: Token[];
@@ -144,7 +145,7 @@ export class Parser {
         }
         this.consume(TokenType.SEMICOLON, "Expect ; after while intializer");
       } else {
-        this.error(this.peek(), "Expect declaration or assignment");
+        error(this.peek(), "Expect declaration or assignment");
       }
     }
 
@@ -226,7 +227,7 @@ export class Parser {
       } else if (this.match(TokenType.SEMICOLON)) {
         break;
       } else {
-        this.error(this.peek(), "Expect ; after declaration");
+        error(this.peek(), "Expect ; after declaration");
       }
     }
     return statements;
@@ -253,7 +254,7 @@ export class Parser {
       } else if (this.match(TokenType.DEF)) {
         methodStatements = [...methodStatements, this.functionStatement()];
       } else {
-        this.error(this.peek(), "Expect class properties or methods");
+        error(this.peek(), "Expect class properties or methods");
       }
     }
     return this.generateStatement(
@@ -495,12 +496,8 @@ export class Parser {
       )
     ) {
       const literalToken = this.previous();
-      const type = literalToken.type.toLowerCase();
       return this.generateExpression(
-        new LiteralExpression(
-          this.previous(),
-          type.slice(0, 1).toUpperCase() + type.slice(1),
-        ),
+        new LiteralExpression(literalToken),
         literalToken,
       );
     } else if (this.match(TokenType.THIS)) {
@@ -566,7 +563,7 @@ export class Parser {
       );
     }
 
-    return this.error(this.peek(), "Expect expression");
+    return error(this.peek(), "Expect expression");
   }
 
   arguments() {
@@ -597,7 +594,6 @@ export class Parser {
   parameter() {
     const name = this.consume(TokenType.IDENTIFIER, "Expect parameter name");
 
-    debugger;
     this.consume(TokenType.COLON, "Expect : after parameter name");
     const kind = this.consume(
       TokenType.IDENTIFIER,
@@ -651,7 +647,7 @@ export class Parser {
       return this.advance();
     }
 
-    return this.error(this.peek(), errorMessage);
+    return error(this.peek(), errorMessage);
   }
 
   check(type: TokenType) {
@@ -672,9 +668,5 @@ export class Parser {
 
   next() {
     return this.tokens[this.current + 1];
-  }
-
-  error(token: Token, errorMessage: string): never {
-    throw new Error(`${token.toString()} ${errorMessage}`);
   }
 }

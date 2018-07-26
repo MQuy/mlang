@@ -32,7 +32,14 @@
       }
     },
     "testMatch": [
-      "**/test/**/*.+(ts|tsx|js)"
+      "<rootDir>/test/**/*.+(ts|tsx|js)"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/test/helpers.ts"
+    ],
+    "watchPathIgnorePatterns": [
+      "<rootDir>/node_modules/"
     ]
   }
 }

@@ -1,16 +1,17 @@
 import { Token } from "../token";
 import { Statement, ParameterDeclaration } from "./statement";
-import { BuiltinTypes } from "../semantic/types";
+import { BuiltinTypes, Types } from "../semantic/types";
 import { IRNode, IRPosition } from "./types";
 
 export interface Expression {
+  type?: Types;
   pStart: IRPosition;
   pEnd: IRPosition;
   accept(visitor: ExpressionVisitor);
 }
 
 export class AssignmentExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   object: VarExpression;
   expression: Expression;
 
@@ -26,7 +27,7 @@ export class AssignmentExpression extends IRNode implements Expression {
 }
 
 export class LogicalExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   left: Expression;
   operator: Token;
   right: Expression;
@@ -46,7 +47,7 @@ export class LogicalExpression extends IRNode implements Expression {
 }
 
 export class BinaryExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   left: Expression;
   operator: Token;
   right: Expression;
@@ -65,7 +66,7 @@ export class BinaryExpression extends IRNode implements Expression {
 }
 
 export class UnaryExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   operator: Token;
   right: Expression;
 
@@ -82,7 +83,7 @@ export class UnaryExpression extends IRNode implements Expression {
 }
 
 export class CallExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   callee: Expression;
   args: Expression[];
 
@@ -99,7 +100,7 @@ export class CallExpression extends IRNode implements Expression {
 }
 
 export class SetExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   object: Expression;
   name: Token;
   value: Expression;
@@ -118,7 +119,7 @@ export class SetExpression extends IRNode implements Expression {
 }
 
 export class GetExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   object: Expression;
   name: Token;
 
@@ -135,14 +136,16 @@ export class GetExpression extends IRNode implements Expression {
 }
 
 export class LiteralExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   name: Token;
 
-  constructor(name: Token, type?: string) {
+  constructor(name: Token) {
     super();
 
     this.name = name;
-    this.type = type;
+
+    const type = name.type.toLowerCase();
+    this.type = (type.slice(0, 1).toUpperCase() + type.slice(1)) as Types;
   }
 
   accept(visitor: ExpressionVisitor) {
@@ -151,7 +154,7 @@ export class LiteralExpression extends IRNode implements Expression {
 }
 
 export class GroupExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   expression: Expression;
 
   constructor(expression: Expression) {
@@ -166,15 +169,15 @@ export class GroupExpression extends IRNode implements Expression {
 }
 
 export class LambdaExpression extends IRNode implements Expression {
-  type?: string;
-  returnType?: string;
+  type?: Types;
+  returnType: string;
   parameters: ParameterDeclaration[];
   body: Statement;
 
   constructor(
     parameters: ParameterDeclaration[],
     body: Statement,
-    returnType?: string,
+    returnType: string,
   ) {
     super();
 
@@ -189,7 +192,7 @@ export class LambdaExpression extends IRNode implements Expression {
 }
 
 export class TupleExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   values: Expression[];
 
   constructor(values: Expression[]) {
@@ -220,7 +223,7 @@ export class NewExpression extends IRNode implements Expression {
 }
 
 export class ArrayExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   elements: Expression[];
 
   constructor(elements: Expression[]) {
@@ -235,7 +238,7 @@ export class ArrayExpression extends IRNode implements Expression {
 }
 
 export class ThisExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   keyword: Token;
 
   constructor(keyword: Token) {
@@ -250,7 +253,7 @@ export class ThisExpression extends IRNode implements Expression {
 }
 
 export class SuperExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   keyword: Token;
 
   constructor(keyword: Token) {
@@ -265,7 +268,7 @@ export class SuperExpression extends IRNode implements Expression {
 }
 
 export class VarExpression extends IRNode implements Expression {
-  type?: string;
+  type?: Types;
   name: Token;
 
   constructor(name: Token) {
