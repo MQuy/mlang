@@ -47,20 +47,20 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
   program: Program;
   scope: SymbolTable;
 
-  constructor(program: Program) {
+  constructor(program: Program, scope?: SymbolTable) {
     this.program = program;
+    this.scope = scope || new SymbolTable();
   }
 
   interpret() {
-    this.scope = new SymbolTable();
     this.program.statements.forEach(this.execute);
   }
 
   visitIfStatement(statement: IfStatement) {
     if (this.evaluate(statement.condition)) {
-      this.execute(statement.thenStatement);
+      return this.execute(statement.thenStatement);
     } else {
-      this.execute(statement.elseStatement);
+      return this.execute(statement.elseStatement);
     }
   }
 
@@ -136,6 +136,7 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
       });
     }
     this.endScope();
+    return klass;
   }
 
   visitFunctionStatement(statement: FunctionStatement) {
@@ -146,6 +147,7 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
       statement.name.lexeme,
     );
     this.scope.define(statement.name.lexeme, kunction);
+    return kunction;
   }
 
   visitReturnStatement(statement: ReturnStatement) {
@@ -162,7 +164,7 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
   }
 
   visitExpressionStatement(statement: ExpressionStatement) {
-    this.evaluate(statement.expression);
+    return this.evaluate(statement.expression);
   }
 
   visitAssignmentExpression(expression: AssignmentExpression) {
@@ -310,7 +312,7 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
   };
 
   execute = (statement?: Statement) => {
-    statement && statement.accept(this);
+    return statement ? statement.accept(this) : undefined;
   };
 
   executeFunctionBody(statement: Statement, scope: SymbolTable) {

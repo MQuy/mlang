@@ -48,12 +48,12 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   program: Program;
   scope: SymbolTable;
 
-  constructor(program: Program) {
+  constructor(program: Program, scope?: SymbolTable) {
     this.program = program;
+    this.scope = scope || new SymbolTable(undefined, BuiltinTypes);
   }
 
   run() {
-    this.scope = new SymbolTable(undefined, BuiltinTypes);
     this.program.statements.forEach(statement =>
       this.evaluateStatement(statement),
     );

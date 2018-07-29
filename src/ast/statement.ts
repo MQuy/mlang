@@ -5,7 +5,7 @@ import { IRNode, IRPosition } from "./types";
 export interface Statement {
   pStart: IRPosition;
   pEnd: IRPosition;
-  accept(visitor: StatementVisitor): void;
+  accept(visitor: StatementVisitor);
 }
 
 export class IfStatement extends IRNode implements Statement {
@@ -26,7 +26,7 @@ export class IfStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitIfStatement(this);
+    return visitor.visitIfStatement(this);
   }
 }
 
@@ -40,19 +40,19 @@ export class BlockStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitBlockStatement(this);
+    return visitor.visitBlockStatement(this);
   }
 }
 
 export class BreakStatement extends IRNode implements Statement {
   accept(visitor: StatementVisitor) {
-    visitor.visitBreakStatement(this);
+    return visitor.visitBreakStatement(this);
   }
 }
 
 export class ContinueStatement extends IRNode implements Statement {
   accept(visitor: StatementVisitor) {
-    visitor.visitContinueStatement(this);
+    return visitor.visitContinueStatement(this);
   }
 }
 
@@ -77,7 +77,7 @@ export class ForStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitForStatement(this);
+    return visitor.visitForStatement(this);
   }
 }
 
@@ -95,7 +95,7 @@ export class VarStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitVarStatement(this);
+    return visitor.visitVarStatement(this);
   }
 }
 
@@ -109,7 +109,7 @@ export class VarsStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitVarsStatements(this);
+    return visitor.visitVarsStatements(this);
   }
 }
 
@@ -134,7 +134,7 @@ export class ClassStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitClassStatement(this);
+    return visitor.visitClassStatement(this);
   }
 }
 
@@ -159,7 +159,7 @@ export class FunctionStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitFunctionStatement(this);
+    return visitor.visitFunctionStatement(this);
   }
 }
 
@@ -183,12 +183,14 @@ export class ReturnStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitReturnStatement(this);
+    return visitor.visitReturnStatement(this);
   }
 }
 
 export class EmptyStatement extends IRNode implements Statement {
-  accept(visitor: StatementVisitor) {}
+  accept(visitor: StatementVisitor) {
+    return undefined;
+  }
 }
 
 export class ExpressionStatement extends IRNode implements Statement {
@@ -201,20 +203,20 @@ export class ExpressionStatement extends IRNode implements Statement {
   }
 
   accept(visitor: StatementVisitor) {
-    visitor.visitExpressionStatement(this);
+    return visitor.visitExpressionStatement(this);
   }
 }
 
 export interface StatementVisitor {
-  visitIfStatement(statement: IfStatement): void;
-  visitBlockStatement(statement: BlockStatement): void;
-  visitBreakStatement(statement: BreakStatement): void;
-  visitContinueStatement(statement: ContinueStatement): void;
-  visitForStatement(statement: ForStatement): void;
-  visitVarStatement(statement: VarStatement): void;
-  visitVarsStatements(statement: VarsStatement): void;
-  visitClassStatement(statement: ClassStatement): void;
-  visitFunctionStatement(statement: FunctionStatement): void;
-  visitReturnStatement(statement: ReturnStatement): void;
-  visitExpressionStatement(statement: ExpressionStatement): void;
+  visitIfStatement(statement: IfStatement);
+  visitBlockStatement(statement: BlockStatement);
+  visitBreakStatement(statement: BreakStatement);
+  visitContinueStatement(statement: ContinueStatement);
+  visitForStatement(statement: ForStatement);
+  visitVarStatement(statement: VarStatement);
+  visitVarsStatements(statement: VarsStatement);
+  visitClassStatement(statement: ClassStatement);
+  visitFunctionStatement(statement: FunctionStatement);
+  visitReturnStatement(statement: ReturnStatement);
+  visitExpressionStatement(statement: ExpressionStatement);
 }
