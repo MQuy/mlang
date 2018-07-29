@@ -38,7 +38,10 @@ import { SymbolTable } from "./symbolTable";
 import { Classable } from "./classable";
 import { Functionable } from "./functionable";
 import { ReturnCall, BreakCall, ContinueCall } from "../utils/error";
-import { TokenType, Token } from "../token";
+import { TokenType } from "../token";
+import { Instance } from "./instance";
+import { Lambda } from "./lambda";
+import { error } from "../utils/print";
 
 export class Interpreter implements StatementVisitor, ExpressionVisitor {
   program: Program;
@@ -226,9 +229,35 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
     }
   }
 
-  visitCallExpression(expression: CallExpression) {}
-  visitGetExpression(expression: GetExpression) {}
-  visitSetExpression(expression: SetExpression) {}
+  visitCallExpression(expression: CallExpression) {
+    const callee = this.evaluate(expression.callee);
+
+    if (callee instanceof Functionable) {
+      return callee.invoke(this, expression.args.map(this.evaluate));
+    }
+  }
+
+  visitGetExpression(expression: GetExpression) {
+    const instance = this.evaluate(expression.object);
+
+    if (instance instanceof Instance) {
+      return instance.get(expression.name.lexeme);
+    } else {
+      error(expression.pStart, "has to be instance");
+    }
+  }
+
+  visitSetExpression(expression: SetExpression) {
+    const instance = this.evaluate(expression.object);
+    const value = this.evaluate(expression.value);
+
+    if (instance instanceof Instance) {
+      instance.set(expression.name.lexeme, value);
+      return value;
+    } else {
+      error(expression.pStart, "has to be instance");
+    }
+  }
 
   visitLiteralExpression(expression: LiteralExpression) {
     return expression.name.literal;
@@ -238,10 +267,19 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
     return this.evaluate(expression.expression);
   }
 
-  visitLambdaExpression(expression: LambdaExpression) {}
-  visitTupleExpression(expression: TupleExpression) {}
-  visitNewExpression(expression: NewExpression) {}
-  visitArrayExpression(expression: ArrayExpression) {}
+  visitNewExpression(expression: NewExpression) {
+    const klass = this.scope.lookup(expression.name.lexeme);
+
+    if (klass instanceof Classable) {
+      return new Instance(klass);
+    } else {
+      error(expression.name, "has to be class name");
+    }
+  }
+
+  visitLambdaExpression(expression: LambdaExpression) {
+    return new Lambda(expression, this.scope);
+  }
 
   visitThisExpression(expression: ThisExpression) {
     return this.scope.lookup("this");
@@ -252,8 +290,11 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
   }
 
   visitVarExpression(expression: VarExpression) {
-    this.scope.lookup(expression.name.lexeme);
+    return this.scope.lookup(expression.name.lexeme);
   }
+
+  visitTupleExpression(expression: TupleExpression) {}
+  visitArrayExpression(expression: ArrayExpression) {}
 
   evaluate = (expression?: Expression) => {
     return expression ? expression.accept(this) : undefined;
@@ -263,12 +304,23 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
     statement && statement.accept(this);
   };
 
-  beginScope() {
-    const currentScope = new SymbolTable(this.scope);
-    const enclosing = this.scope;
+  executeInScope(statement: Statement, scope: SymbolTable) {
+    const currentScope = this.scope;
 
-    this.scope = currentScope;
-    return enclosing;
+    try {
+      this.scope = scope;
+      statement.accept(this);
+    } finally {
+      this.scope = currentScope;
+    }
+  }
+
+  beginScope() {
+    const newScope = new SymbolTable(this.scope);
+    const currentScope = this.scope;
+
+    this.scope = newScope;
+    return currentScope;
   }
 
   endScope() {

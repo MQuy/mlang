@@ -8,5 +8,7 @@ export class Classable {
 
   constructor(name: string) {
     this.name = name;
+    this.properties = {};
+    this.methods = {};
   }
 }
