@@ -22,9 +22,10 @@ export class Instance {
       const klassMethod = klass.methods[iter];
       const scope = new SymbolTable(klassMethod.closure);
       const method = new Functionable(
-        klassMethod.name,
-        klassMethod.declaration,
+        klassMethod.parameters,
+        klassMethod.body,
         scope,
+        klassMethod.name,
       );
 
       scope.define("this", this);

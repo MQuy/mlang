@@ -128,9 +128,10 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
     if (statement.methods) {
       statement.methods.forEach(method => {
         klass.methods[method.name.lexeme] = new Functionable(
-          method.name.lexeme,
-          method,
+          method.parameters,
+          method.body,
           this.scope,
+          method.name.lexeme,
         );
       });
     }
@@ -139,9 +140,10 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
 
   visitFunctionStatement(statement: FunctionStatement) {
     const kunction = new Functionable(
-      statement.name.lexeme,
-      statement,
+      statement.parameters,
+      statement.body,
       this.scope,
+      statement.name.lexeme,
     );
     this.scope.define(statement.name.lexeme, kunction);
   }
@@ -164,9 +166,8 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
   }
 
   visitAssignmentExpression(expression: AssignmentExpression) {
-    const object: VarExpression = this.evaluate(expression.object);
     const value = this.evaluate(expression.expression);
-    this.scope.define(object.name.lexeme, value);
+    this.scope.assign(expression.name.lexeme, value);
     return value;
   }
 
@@ -220,19 +221,27 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
         return !value;
       case TokenType.PLUS:
         return +value;
-      case TokenType.PLUS_PLUS:
-        return value + 1;
       case TokenType.MINUS:
         return -value;
+      case TokenType.PLUS_PLUS:
       case TokenType.MINUS_MINUS:
-        return value - 1;
+        const newValue =
+          expression.operator.type === TokenType.PLUS_PLUS
+            ? value + 1
+            : value - 1;
+        if (expression.right instanceof VarExpression) {
+          this.scope.define(expression.right.name.lexeme, newValue);
+        } else {
+          error(expression.right.pStart, "has to be variable name");
+        }
+        return newValue;
     }
   }
 
   visitCallExpression(expression: CallExpression) {
     const callee = this.evaluate(expression.callee);
 
-    if (callee instanceof Functionable) {
+    if (callee instanceof Functionable || callee instanceof Lambda) {
       return callee.invoke(this, expression.args.map(this.evaluate));
     }
   }
@@ -278,7 +287,7 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
   }
 
   visitLambdaExpression(expression: LambdaExpression) {
-    return new Lambda(expression, this.scope);
+    return new Lambda(expression.parameters, expression.body, this.scope);
   }
 
   visitThisExpression(expression: ThisExpression) {
@@ -304,7 +313,7 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
     statement && statement.accept(this);
   };
 
-  executeInScope(statement: Statement, scope: SymbolTable) {
+  executeFunctionBody(statement: Statement, scope: SymbolTable) {
     const currentScope = this.scope;
 
     try {

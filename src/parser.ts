@@ -325,7 +325,7 @@ export class Parser {
         );
       } else if (logical instanceof VarExpression) {
         logical = this.generateExpression(
-          new AssignmentExpression(logical, this.logicalExpression()),
+          new AssignmentExpression(logical.name, this.logicalExpression()),
           logical.pStart,
         );
       }
@@ -457,11 +457,12 @@ export class Parser {
     while (this.match(TokenType.LEFT_PAREN)) {
       const args: Expression[] = [];
 
-      args.push(this.expression());
-      while (this.match(TokenType.COMMA)) {
+      while (!this.match(TokenType.RIGHT_PAREN)) {
         args.push(this.expression());
+        while (this.match(TokenType.COMMA)) {
+          args.push(this.expression());
+        }
       }
-      this.consume(TokenType.RIGHT_PAREN, "Expect ) after arguments");
       member = this.generateExpression(
         new CallExpression(member, args),
         member.pStart,

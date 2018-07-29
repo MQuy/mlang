@@ -12,13 +12,14 @@ export interface Expression {
 
 export class AssignmentExpression extends IRNode implements Expression {
   type?: Types;
-  object: VarExpression;
+  name: Token;
   expression: Expression;
 
-  constructor(object: VarExpression, expression: Expression) {
+  constructor(name: Token, expression: Expression) {
     super();
 
-    this.object = object;
+    this.name = name;
+    this.expression = expression;
   }
 
   accept(visitor: ExpressionVisitor) {

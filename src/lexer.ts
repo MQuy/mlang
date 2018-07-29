@@ -47,7 +47,9 @@ export class Lexer {
       if (token) tokens.push(token);
     }
 
-    tokens.push(new Token(TokenType.EOF, "", undefined, this.line, this.column));
+    tokens.push(
+      new Token(TokenType.EOF, "", undefined, this.line, this.column),
+    );
 
     return tokens;
   }
@@ -194,6 +196,8 @@ export class Lexer {
 
       if (word === TokenType.BOOLEAN) {
         return this.generateToken(word, lexeme === "true");
+      } else if (word === TokenType.NULL) {
+        return this.generateToken(word, null);
       } else {
         return this.generateToken(word);
       }
@@ -203,7 +207,13 @@ export class Lexer {
   }
 
   generateToken(type: TokenType, literal?: Literal) {
-    return new Token(type, this.getLexeme(), literal, this.line, this.column - (this.runner - this.current));
+    return new Token(
+      type,
+      this.getLexeme(),
+      literal,
+      this.line,
+      this.column - (this.runner - this.current),
+    );
   }
 
   getLexeme(start = this.current, end = this.runner) {

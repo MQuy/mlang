@@ -167,7 +167,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
   visitAssignmentExpression(expression: AssignmentExpression) {
     const expressionType = this.evaluateExpression(expression.expression);
-    const variableType = this.evaluateExpression(expression.object);
+    const variableType = this.scope.lookup(expression.name.lexeme);
 
     checkInheritance(expressionType, variableType, expression.pStart);
     return variableType;

@@ -19,13 +19,7 @@ it("assignment", () => {
         new ExpressionStatement(
           generateExpression(
             new AssignmentExpression(
-              generateExpression(
-                new VarExpression(
-                  new Token(TokenType.IDENTIFIER, "x", undefined, 1, 1),
-                ),
-                { line: 1, column: 1 },
-                { line: 1, column: 2 },
-              ),
+              new Token(TokenType.IDENTIFIER, "x", undefined, 1, 1),
               generateExpression(
                 new LiteralExpression(
                   new Token(TokenType.NULL, "null", null, 1, 5),
