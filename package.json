@@ -1,4 +1,5 @@
 {
+  "version": "0.1.0",
   "scripts": {
     "build:repl": "rollup --config ./config/rollup.repl.js",
     "build:lib": "rollup --config ./config/rollup.lib.js",

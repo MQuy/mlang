@@ -17,6 +17,8 @@ export class Repl {
   }
 
   execute() {
+    this.welcome();
+
     while (true) {
       const tokens = new Lexer(this.getInput()).scan();
       const ast = new Parser(tokens).parse();
@@ -34,6 +36,10 @@ export class Repl {
 
   getInput() {
     return readlineSync.question("> ");
+  }
+
+  welcome() {
+    console.log("mqlang, version 0.1.0");
   }
 }
 

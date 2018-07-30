@@ -3019,6 +3019,7 @@ class Repl {
         this.scopeTypes = new SymbolTable$1(undefined, BuiltinTypes);
     }
     execute() {
+        this.welcome();
         while (true) {
             const tokens = new Lexer(this.getInput()).scan();
             const ast = new Parser(tokens).parse();
@@ -3030,6 +3031,9 @@ class Repl {
     }
     getInput() {
         return readlineSync_6("> ");
+    }
+    welcome() {
+        console.log("mqlang, version 0.1.0");
     }
 }
 new Repl().execute();
