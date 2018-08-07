@@ -37,10 +37,11 @@ import {
 } from "../ast/expression";
 import { SymbolTable } from "./symbolTable";
 import {
-  checkInheritance,
+  checkTypeAssignable,
   BuiltinTypes,
   Classable,
   Functionable,
+  leastUpperBound,
 } from "./types";
 import { TokenType } from "../token";
 import { error } from "../utils/print";
@@ -55,22 +56,18 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   run() {
-    this.program.statements.forEach(statement =>
-      this.evaluateStatement(statement),
-    );
+    this.program.statements.forEach(statement => this.execute(statement));
   }
 
   visitIfStatement(statement: IfStatement) {
-    this.evaluateExpression(statement.condition);
-    this.evaluateStatement(statement.thenStatement);
-    this.evaluateStatement(statement.elseStatement);
+    this.evaluate(statement.condition);
+    this.execute(statement.thenStatement);
+    this.execute(statement.elseStatement);
   }
 
   visitBlockStatement(statement: BlockStatement) {
     this.beginScope();
-    statement.statements.forEach(statement =>
-      this.evaluateStatement(statement),
-    );
+    statement.statements.forEach(statement => this.execute(statement));
     this.endScope();
   }
 
@@ -81,17 +78,17 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     initializers.forEach(
       declaration =>
         declaration instanceof VarStatement
-          ? this.evaluateStatement(declaration)
-          : this.evaluateExpression(declaration),
+          ? this.execute(declaration)
+          : this.evaluate(declaration),
     );
 
-    this.evaluateExpression(statement.condition);
+    this.evaluate(statement.condition);
 
     this.beginScope();
-    this.evaluateStatement(statement.body);
+    this.execute(statement.body);
     this.endScope();
 
-    this.evaluateStatement(statement.increment);
+    this.execute(statement.increment);
     this.endScope();
   }
 
@@ -152,25 +149,25 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitExpressionStatement(statement: ExpressionStatement) {
-    this.evaluateExpression(statement.expression);
+    this.evaluate(statement.expression);
   }
 
   visitReturnStatement(statement: ReturnStatement) {
     const kunction = this.scope.lookup("this");
 
     if (kunction instanceof Functionable) {
-      const type = this.evaluateExpression(statement.value);
-      checkInheritance(type, kunction.returnType, statement.pStart);
+      const type = this.evaluate(statement.value);
+      checkTypeAssignable(type, kunction.returnType, statement.pStart);
     } else {
       error(statement.pStart, "cannot return without function's scope");
     }
   }
 
   visitAssignmentExpression(expression: AssignmentExpression) {
-    const expressionType = this.evaluateExpression(expression.expression);
+    const expressionType = this.evaluate(expression.expression);
     const variableType = this.scope.lookup(expression.name.lexeme);
 
-    checkInheritance(expressionType, variableType, expression.pStart);
+    checkTypeAssignable(expressionType, variableType, expression.pStart);
     return variableType;
   }
 
@@ -179,8 +176,8 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitBinaryExpression(expression: BinaryExpression) {
-    const leftType = this.evaluateExpression(expression.left);
-    const rightType = this.evaluateExpression(expression.right);
+    const leftType = this.evaluate(expression.left);
+    const rightType = this.evaluate(expression.right);
 
     if (
       leftType === BuiltinTypes.String &&
@@ -202,7 +199,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitUnaryExpression(expression: UnaryExpression) {
-    this.evaluateExpression(expression.right);
+    this.evaluate(expression.right);
 
     switch (expression.operator.type) {
       case TokenType.BANG:
@@ -218,13 +215,13 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitCallExpression(expression: CallExpression) {
-    const type = this.evaluateExpression(expression.callee);
+    const type = this.evaluate(expression.callee);
 
     if (type instanceof Functionable) {
       type.parameters.forEach((parameterType, index) => {
-        const argType = this.evaluateExpression(expression.args[index]);
+        const argType = this.evaluate(expression.args[index]);
 
-        checkInheritance(argType, parameterType, expression.pStart);
+        checkTypeAssignable(argType, parameterType, expression.pStart);
       });
       return type.returnType;
     } else {
@@ -233,18 +230,18 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitGetExpression(expression: GetExpression) {
-    const type: Classable = this.evaluateExpression(expression.object);
+    const type: Classable = this.evaluate(expression.object);
     return type.get(expression.name.lexeme);
   }
 
   visitSetExpression(expression: SetExpression) {
-    const object: Classable = this.evaluateExpression(expression.object);
+    const object: Classable = this.evaluate(expression.object);
 
     if (object instanceof Classable) {
       const type = object.get(expression.name.lexeme);
-      const setType = this.evaluateExpression(expression.value);
+      const setType = this.evaluate(expression.value);
 
-      checkInheritance(setType, type, expression.name);
+      checkTypeAssignable(setType, type, expression.name);
       return type;
     } else {
       error(expression.name, "cannot set");
@@ -256,7 +253,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitGroupExpression(expression: GroupExpression) {
-    this.evaluateExpression(expression.expression);
+    this.evaluate(expression.expression);
     return (expression.type = expression.expression.type);
   }
 
@@ -272,7 +269,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     this.beginScope();
     this.scope.define("this", kunction);
-    this.evaluateStatement(expression.body);
+    this.execute(expression.body);
     this.endScope();
 
     return kunction;
@@ -294,18 +291,35 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     return this.scope.lookup(expression.name.lexeme);
   }
 
-  visitArrayExpression(expression: ArrayExpression) {}
+  visitArrayExpression(expression: ArrayExpression) {
+    if (expression.elements.length > 0) {
+      let baseType = this.evaluate(expression.elements[0]);
+      for (let i = 1; i < expression.elements.length; ++i) {
+        const otherType = this.evaluate(expression.elements[i]);
+        const tempType = leastUpperBound(otherType, baseType);
+        if (tempType) {
+          baseType = tempType;
+        } else {
+          error(expression.elements[i].pStart, "Not same type");
+        }
+      }
+      return new Array(expression.elements.length).fill(baseType);
+    }
+    return [];
+  }
+
   visitTupleExpression(expression: TupleExpression) {}
 
+  // NOTE: Don't need to check type for these statements
   visitPrintStatement(statement: PrintStatement) {}
   visitBreakStatement(statement: BreakStatement) {}
   visitContinueStatement(statement: ContinueStatement) {}
 
-  evaluateStatement(statement?: Statement) {
+  execute(statement?: Statement) {
     statement && statement.accept(this);
   }
 
-  evaluateExpression(expression?: Expression) {
+  evaluate(expression?: Expression) {
     return expression && expression.accept(this);
   }
 
@@ -326,11 +340,11 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
     statement: VarStatement,
     define: (name: string, type: any) => void,
   ) {
-    const initializerType = this.evaluateExpression(statement.initializer);
+    const initializerType = this.evaluate(statement.initializer);
 
     if (statement.type) {
       const variableType = this.scope.lookup(statement.type);
-      checkInheritance(initializerType, variableType, statement.name);
+      checkTypeAssignable(initializerType, variableType, statement.name);
       define(statement.name.lexeme, variableType);
     } else if (initializerType) {
       define(statement.name.lexeme, initializerType);
@@ -359,7 +373,7 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
 
     this.beginScope();
     this.scope.define("this", kunction);
-    this.evaluateStatement(statement.body);
+    this.execute(statement.body);
     this.endScope();
   }
 }
