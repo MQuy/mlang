@@ -1347,6 +1347,7 @@ var TokenType;
     TokenType["VAR"] = "VAR";
     TokenType["NEW"] = "NEW";
     TokenType["ARROW"] = "ARROW";
+    TokenType["PRINT"] = "PRINT";
     TokenType["IF"] = "IF";
     TokenType["ELSE"] = "ELSE";
     TokenType["FOR"] = "FOR";
@@ -1403,6 +1404,7 @@ const reservedWords = {
     class: TokenType.CLASS,
     var: TokenType.VAR,
     extends: TokenType.EXTENDS,
+    print: TokenType.PRINT,
     new: TokenType.NEW,
     if: TokenType.IF,
     else: TokenType.ELSE,
@@ -1744,6 +1746,15 @@ class ExpressionStatement extends IRNode {
         return visitor.visitExpressionStatement(this);
     }
 }
+class PrintStatement extends IRNode {
+    constructor(expression) {
+        super();
+        this.expression = expression;
+    }
+    accept(visitor) {
+        return visitor.visitPrintStatement(this);
+    }
+}
 
 function error(token, errorMessage) {
     throw new Error(`Line ${token.line}:${token.column} ${errorMessage}`);
@@ -1755,6 +1766,7 @@ var BuiltinTypes;
     BuiltinTypes["Number"] = "Number";
     BuiltinTypes["Null"] = "Null";
     BuiltinTypes["Boolean"] = "Boolean";
+    BuiltinTypes["void"] = "void";
 })(BuiltinTypes || (BuiltinTypes = {}));
 class Functionable {
     constructor(returnType, name) {
@@ -2003,6 +2015,9 @@ class Parser {
         else if (this.match(TokenType.RETURN)) {
             return this.returnStatement();
         }
+        else if (this.match(TokenType.PRINT)) {
+            return this.printStatement();
+        }
         else if (this.match(TokenType.SEMICOLON)) {
             return this.emptyStatement();
         }
@@ -2157,6 +2172,11 @@ class Parser {
             this.consume(TokenType.SEMICOLON, "Expect ; after return expression");
         }
         return this.generateStatement(new ReturnStatement(expression), returnToken);
+    }
+    printStatement() {
+        const expression = this.expression();
+        this.consume(TokenType.SEMICOLON, "Expect ;");
+        return this.generateStatement(new PrintStatement(expression), expression.pStart);
     }
     emptyStatement() {
         return this.generateStatement(new EmptyStatement(), this.previous());
@@ -2611,6 +2631,10 @@ class Interpreter {
     visitContinueStatement(statement) {
         throw new ContinueCall();
     }
+    visitPrintStatement(statement) {
+        const value = this.evaluate(statement.expression);
+        console.log(value);
+    }
     visitExpressionStatement(statement) {
         return this.evaluate(statement.expression);
     }
@@ -2961,11 +2985,11 @@ class TypeChecking {
         return this.scope.lookup(expression.keyword.lexeme);
     }
     visitVarExpression(expression) {
-        debugger;
         return this.scope.lookup(expression.name.lexeme);
     }
     visitArrayExpression(expression) { }
     visitTupleExpression(expression) { }
+    visitPrintStatement(statement) { }
     visitBreakStatement(statement) { }
     visitContinueStatement(statement) { }
     evaluateStatement(statement) {

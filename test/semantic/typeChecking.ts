@@ -82,6 +82,10 @@ it("program", () => {
     def hello(name: String): String {
       return super.hi(name);
     }
+
+    def echo(name: String): void {
+      print 1 + 1;
+    }
   }
   var b = new B();
   b.hello("world");

@@ -13,6 +13,7 @@ import {
   EmptyStatement,
   VarsStatement,
   ParameterDeclaration,
+  PrintStatement,
 } from "./ast/statement";
 import {
   Expression,
@@ -76,6 +77,8 @@ export class Parser {
       return this.classStatement();
     } else if (this.match(TokenType.RETURN)) {
       return this.returnStatement();
+    } else if (this.match(TokenType.PRINT)) {
+      return this.printStatement();
     } else if (this.match(TokenType.SEMICOLON)) {
       return this.emptyStatement();
     } else if (
@@ -291,6 +294,15 @@ export class Parser {
       this.consume(TokenType.SEMICOLON, "Expect ; after return expression");
     }
     return this.generateStatement(new ReturnStatement(expression), returnToken);
+  }
+
+  printStatement() {
+    const expression = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ;");
+    return this.generateStatement(
+      new PrintStatement(expression),
+      expression.pStart,
+    );
   }
 
   emptyStatement() {

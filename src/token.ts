@@ -12,6 +12,7 @@ export enum TokenType {
   VAR = "VAR",
   NEW = "NEW",
   ARROW = "ARROW",
+  PRINT = "PRINT",
 
   IF = "IF",
   ELSE = "ELSE",

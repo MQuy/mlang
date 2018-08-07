@@ -12,6 +12,7 @@ import {
   ReturnStatement,
   ExpressionStatement,
   Statement,
+  PrintStatement,
 } from "../ast/statement";
 import {
   ExpressionVisitor,
@@ -161,6 +162,11 @@ export class Interpreter implements StatementVisitor, ExpressionVisitor {
 
   visitContinueStatement(statement: ContinueStatement) {
     throw new ContinueCall();
+  }
+
+  visitPrintStatement(statement: PrintStatement) {
+    const value = this.evaluate(statement.expression);
+    console.log(value);
   }
 
   visitExpressionStatement(statement: ExpressionStatement) {

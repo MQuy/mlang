@@ -6,6 +6,7 @@ statement = controlStatement
             | iterationStatement
             | declarationStatement
             | expressionStatement
+            | printStatement
             | emptyStatement
 
 controlStatement = ifStatement
@@ -54,6 +55,7 @@ functionStatement = DEF IDENTIFIER
                       statement
 returnStatement = RETURN expression? COMMA
 
+printStatement = PRINT expression
 emptyStatement = COMMA
 expressionStatement = expression COMMA
 

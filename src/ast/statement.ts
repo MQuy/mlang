@@ -207,6 +207,20 @@ export class ExpressionStatement extends IRNode implements Statement {
   }
 }
 
+export class PrintStatement extends IRNode implements Statement {
+  expression: Expression;
+
+  constructor(expression: Expression) {
+    super();
+
+    this.expression = expression;
+  }
+
+  accept(visitor: StatementVisitor) {
+    return visitor.visitPrintStatement(this);
+  }
+}
+
 export interface StatementVisitor {
   visitIfStatement(statement: IfStatement);
   visitBlockStatement(statement: BlockStatement);
@@ -219,4 +233,5 @@ export interface StatementVisitor {
   visitFunctionStatement(statement: FunctionStatement);
   visitReturnStatement(statement: ReturnStatement);
   visitExpressionStatement(statement: ExpressionStatement);
+  visitPrintStatement(statement: PrintStatement);
 }

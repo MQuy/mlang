@@ -17,6 +17,7 @@
       TokenType["VAR"] = "VAR";
       TokenType["NEW"] = "NEW";
       TokenType["ARROW"] = "ARROW";
+      TokenType["PRINT"] = "PRINT";
       TokenType["IF"] = "IF";
       TokenType["ELSE"] = "ELSE";
       TokenType["FOR"] = "FOR";
@@ -73,6 +74,7 @@
       class: exports.TokenType.CLASS,
       var: exports.TokenType.VAR,
       extends: exports.TokenType.EXTENDS,
+      print: exports.TokenType.PRINT,
       new: exports.TokenType.NEW,
       if: exports.TokenType.IF,
       else: exports.TokenType.ELSE,
@@ -414,6 +416,15 @@
           return visitor.visitExpressionStatement(this);
       }
   }
+  class PrintStatement extends IRNode {
+      constructor(expression) {
+          super();
+          this.expression = expression;
+      }
+      accept(visitor) {
+          return visitor.visitPrintStatement(this);
+      }
+  }
 
   function error(token, errorMessage) {
       throw new Error(`Line ${token.line}:${token.column} ${errorMessage}`);
@@ -425,6 +436,7 @@
       BuiltinTypes["Number"] = "Number";
       BuiltinTypes["Null"] = "Null";
       BuiltinTypes["Boolean"] = "Boolean";
+      BuiltinTypes["void"] = "void";
   })(BuiltinTypes || (BuiltinTypes = {}));
   class Functionable {
       constructor(returnType, name) {
@@ -673,6 +685,9 @@
           else if (this.match(exports.TokenType.RETURN)) {
               return this.returnStatement();
           }
+          else if (this.match(exports.TokenType.PRINT)) {
+              return this.printStatement();
+          }
           else if (this.match(exports.TokenType.SEMICOLON)) {
               return this.emptyStatement();
           }
@@ -827,6 +842,11 @@
               this.consume(exports.TokenType.SEMICOLON, "Expect ; after return expression");
           }
           return this.generateStatement(new ReturnStatement(expression), returnToken);
+      }
+      printStatement() {
+          const expression = this.expression();
+          this.consume(exports.TokenType.SEMICOLON, "Expect ;");
+          return this.generateStatement(new PrintStatement(expression), expression.pStart);
       }
       emptyStatement() {
           return this.generateStatement(new EmptyStatement(), this.previous());
@@ -1245,11 +1265,11 @@
           return this.scope.lookup(expression.keyword.lexeme);
       }
       visitVarExpression(expression) {
-          debugger;
           return this.scope.lookup(expression.name.lexeme);
       }
       visitArrayExpression(expression) { }
       visitTupleExpression(expression) { }
+      visitPrintStatement(statement) { }
       visitBreakStatement(statement) { }
       visitContinueStatement(statement) { }
       evaluateStatement(statement) {
@@ -1532,6 +1552,10 @@
       }
       visitContinueStatement(statement) {
           throw new ContinueCall();
+      }
+      visitPrintStatement(statement) {
+          const value = this.evaluate(statement.expression);
+          console.log(value);
       }
       visitExpressionStatement(statement) {
           return this.evaluate(statement.expression);

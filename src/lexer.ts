@@ -5,6 +5,7 @@ const reservedWords = {
   class: TokenType.CLASS,
   var: TokenType.VAR,
   extends: TokenType.EXTENDS,
+  print: TokenType.PRINT,
   new: TokenType.NEW,
   if: TokenType.IF,
   else: TokenType.ELSE,

@@ -7,6 +7,7 @@ export enum BuiltinTypes {
   Number = "Number",
   Null = "Null",
   Boolean = "Boolean",
+  void = "void",
 }
 
 export type Types = Classable | Functionable | BuiltinTypes;

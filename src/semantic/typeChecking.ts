@@ -13,6 +13,7 @@ import {
   FunctionStatement,
   ReturnStatement,
   ExpressionStatement,
+  PrintStatement,
 } from "../ast/statement";
 import {
   ExpressionVisitor,
@@ -290,13 +291,13 @@ export class TypeChecking implements StatementVisitor, ExpressionVisitor {
   }
 
   visitVarExpression(expression: VarExpression) {
-    debugger;
     return this.scope.lookup(expression.name.lexeme);
   }
 
   visitArrayExpression(expression: ArrayExpression) {}
   visitTupleExpression(expression: TupleExpression) {}
 
+  visitPrintStatement(statement: PrintStatement) {}
   visitBreakStatement(statement: BreakStatement) {}
   visitContinueStatement(statement: ContinueStatement) {}
 
