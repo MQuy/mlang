@@ -73,17 +73,27 @@ langDef = Token.LanguageDef
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser langDef
 
-identifier = Token.identifier       lexer -- parses an identifier
-reserved   = Token.reserved         lexer -- parses a reserved name
-reservedOp = Token.reservedOp       lexer -- parses an operator
-parens     = Token.parens           lexer -- parses surrounding parenthesis:
-integer    = Token.integer          lexer -- parses an integer
-semi       = Token.semi             lexer -- parses a semicolon
-whiteSpace = Token.whiteSpace       lexer -- parses whitespace
+identifier = Token.identifier lexer -- parses an identifier
+reserved = Token.reserved lexer -- parses a reserved name
+reservedOp = Token.reservedOp lexer -- parses an operator
+parens = Token.parens lexer -- parses surrounding parenthesis:
+integer = Token.integer lexer -- parses an integer
+semi = Token.semi lexer -- parses a semicolon
+whiteSpace = Token.whiteSpace lexer -- parses whitespace
 stringLiteral = Token.stringLiteral lexer -- parses a string
+symbol = Token.symbol lexer -- parses a symbol
+
+program :: Parser [Statement]
+program = do
+  statements <- sepBy1 statement semi
+  eof
+  return statements
 
 statement :: Parser Statement
-statement =
+statement = whiteSpace >> statementWithoutSpace <* whiteSpace
+
+statementWithoutSpace :: Parser Statement
+statementWithoutSpace =
   ifStatement
   <|> blockStatement
   <|> breakStatement
@@ -103,9 +113,9 @@ ifStatement = do
 
 blockStatement :: Parser Statement
 blockStatement = do
-  char '{'
+  symbol "{"
   list <- (sepBy statement semi)
-  char '}'
+  symbol "}"
   return $ Block list
 
 breakStatement :: Parser Statement
@@ -124,7 +134,7 @@ varStatement :: Parser Statement
 varStatement = do
   reserved "var"
   name <- identifier
-  char '='
+  symbol "="
   expr <- expression
   semi
   return $ VarStatement name expr
