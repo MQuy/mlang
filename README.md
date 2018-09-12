@@ -65,3 +65,6 @@ var baz = def (counter: Number): Boolean {
   - http://www.cs.sfu.ca/~msiahban/personal/teaching/CMPT-379-Spring-2016/typecheck.pdf
   - http://web.cs.iastate.edu/~weile/cs440.540/5.SemanticAnalysis.types.pdfType
   - https://www.coursera.org/learn/programming-languages/lecture/zHyUU/what-is-type-inference
+
+#### Parser
+- https://www.youtube.com/watch?v=RDalzi7mhdY
