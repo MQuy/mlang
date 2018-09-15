@@ -1,1 +1,5 @@
 node_modules/
+*.swo
+*.swp
+**/.cabal-sandbox
+**/cabal.sandbox.config
