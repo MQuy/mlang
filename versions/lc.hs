@@ -48,6 +48,7 @@ import qualified Text.ParserCombinators.Parsec.Token
 import           Data.Functor.Identity
 import qualified Data.Text.Lazy                as Lazy
 
+-- Parser
 type Name = String
 
 data Expr =
@@ -107,13 +108,6 @@ whiteSpace = Token.whiteSpace lexer
 
 symbol :: String -> Parser String
 symbol = Token.symbol lexer
-
-contents :: Parser a -> Parser a
-contents p = do
-  whiteSpace
-  r <- p
-  eof
-  return r
 
 variable :: Parser Expr
 variable = do
@@ -182,5 +176,30 @@ table =
 expr :: Parser Expr
 expr = Ex.buildExpressionParser table term
 
-parseExpr :: String -> Either ParseError Expr
-parseExpr input = parse (contents expr) "<stdin>" input
+program :: Parser [Expr]
+program = do
+  exprs <- endBy1 expr semi
+  eof
+  return exprs
+
+parseExpr :: String -> Either ParseError [Expr]
+parseExpr input = parse program "<stdin>" input
+
+-- Types
+newtype TVar = TV String
+  deriving (Show, Eq, Ord)
+
+data Type
+  = TVar TVar
+  | TCon String
+  | TArr Type Type
+  deriving (Show, Eq, Ord)
+
+data Scheme = Forall [TVar] Type
+  deriving (Show, Eq, Ord)
+
+typeInt, typeBool :: Type
+typeInt  = TCon "Int"
+typeBool = TCon "Bool"
+
+-- Infer

@@ -143,7 +143,7 @@ symbol = Token.symbol lexer
 
 program :: Parser [Statement]
 program = do
-  statements <- sepBy1 statement semi
+  statements <- endBy1 statement semi
   eof
   return statements
 
