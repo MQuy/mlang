@@ -1,240 +1,70 @@
-{-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fwarn-unused-do-bind #-}
-
 module Parser where
 
-import           Text.Parsec.String             ( Parser )
-import           Text.Parsec.Char               ( oneOf
-                                                , digit
-                                                , string
-                                                , anyChar
-                                                , char
-                                                , letter
-                                                , alphaNum
-                                                )
-import           Text.Parsec.Combinator         ( many1
-                                                , manyTill
-                                                , eof
-                                                , choice
-                                                , between
-                                                , sepBy
-                                                , optionMaybe
-                                                , sepBy1
-                                                , manyTill
-                                                , anyToken
-                                                )
-import           Text.Parsec                    ( try
-                                                , parse
-                                                , ParseError
-                                                )
-import           Control.Applicative            ( many
-                                                , (<*)
-                                                , (<$>)
-                                                , (*>)
-                                                , (<|>)
-                                                , (<$)
-                                                , (<*>)
-                                                )
-import           Control.Monad                  ( liftM
-                                                , void
-                                                , guard
-                                                )
-import qualified Text.Parsec.Expr              as Ex
-import qualified Text.ParserCombinators.Parsec.Token
-                                               as Token
+import           Data.Char
+import           Control.Monad
+import           Control.Applicative
 
-data Statement =
-  If Expression Statement Statement
-  | Block [Statement]
-  | Break
-  | Continue
-  | VarStatement String Expression
-  | While Expression Statement
-  | ExpressionStatement Expression
-  deriving Show
+newtype Parser a = Parser { parse :: String -> [(a, String)]}
 
-data Expression =
-  BoolConst Bool
-  | IntConst Integer
-  | StringConst String
-  | Var String
-  | Neg Expression
-  | Not Expression
-  | Binary BinOp Expression Expression
-  deriving Show
+item :: Parser Char
+item = Parser $ \s -> case s of
+  []       -> []
+  (c : cs) -> [(c, cs)]
 
-data BinOp =
-  Add
-  | Subtract
-  | Multiply
-  | Divide
-  | And
-  | Or
-  deriving Show
+instance Functor Parser where
+  fmap f (Parser cs) = Parser $ \s -> [(f a, s1) | (a, s1) <- cs s]
 
-langDef :: Token.LanguageDef ()
-langDef = Token.LanguageDef
-  { Token.commentStart    = "/*"
-  , Token.commentEnd      = "*/"
-  , Token.commentLine     = "//"
-  , Token.nestedComments  = True
-  , Token.identStart      = letter
-  , Token.identLetter     = alphaNum <|> oneOf "_"
-  , Token.opStart         = oneOf ":!#$%&*+./<=>?@\\^|-~"
-  , Token.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
-  , Token.reservedNames   = [ "if"
-                            , "then"
-                            , "else"
-                            , "while"
-                            , "do"
-                            , "skip"
-                            , "true"
-                            , "false"
-                            , "not"
-                            , "and"
-                            , "or"
-                            , "break"
-                            , "continue"
-                            , "var"
-                            ]
-  , Token.reservedOpNames = [ "+"
-                            , "-"
-                            , "*"
-                            , "/"
-                            , "="
-                            , "<"
-                            , ">"
-                            , "and"
-                            , "or"
-                            , "not"
-                            ]
-  , Token.caseSensitive   = True
-  }
+instance Applicative Parser where
+  pure = return
+  (Parser cs1) <*> (Parser cs2) = Parser $ \s -> [(f a, s2) | (f, s1) <- cs1 s, (a, s2) <- cs2 s1]
 
-lexer :: Token.TokenParser ()
-lexer = Token.makeTokenParser langDef
+instance Monad Parser where
+  return a = Parser $ \s -> [(a, s)]
+  p >>= f = Parser $ \s -> concat [parse (f a) s1 | (a, s1) <- parse p s]
 
-identifier :: Parser String
-identifier = Token.identifier lexer
+instance Alternative Parser where
+  empty = failure
+  (<|>) = option
 
-reserved :: String -> Parser ()
-reserved = Token.reserved lexer
+failure :: Parser a
+failure = Parser $ \_ -> []
 
-reservedOp :: String -> Parser ()
-reservedOp = Token.reservedOp lexer
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy f = do
+  c <- item
+  case f c of
+    True  -> return c
+    False -> failure
 
-parens :: Parser a -> Parser a
-parens = Token.parens lexer
+char :: Char -> Parser Char
+char c = satisfy (c ==)
 
-integer :: Parser Integer
-integer = Token.integer lexer
+string :: String -> Parser String
+string []       = return []
+string (c : cs) = do
+  char c
+  string cs
+  return (c : cs)
 
-semi :: Parser String
-semi = Token.semi lexer
+option :: Parser a -> Parser a -> Parser a
+option p q = Parser $ \s -> case parse p s of
+  []  -> parse q s
+  res -> res
 
-whiteSpace :: Parser ()
-whiteSpace = Token.whiteSpace lexer
+many1 :: Parser a -> Parser [a]
+many1 p = do
+  c  <- p
+  cs <- many p
+  return (c : cs)
 
-stringLiteral :: Parser String
-stringLiteral = Token.stringLiteral lexer
+sepBy1 :: Parser a -> Parser b -> Parser [a]
+sepBy1 p q = Parser $ \s -> case parse p s of
+  []        -> []
+  [(c, cs)] -> case parse q cs of
+    []          -> []
+    [(c1, cs1)] -> case parse p cs1 of
+      []  -> [([c], cs1)]
+      res -> [foldl sepBy1Combine ([c], cs1) ((parse (sepBy1 p q) cs1))]
 
-symbol :: String -> Parser String
-symbol = Token.symbol lexer
-
-program :: Parser [Statement]
-program = do
-  statements <- endBy1 statement semi
-  eof
-  return statements
-
-statement :: Parser Statement
-statement = whiteSpace >> statementWithoutSpace <* whiteSpace
-
-statementWithoutSpace :: Parser Statement
-statementWithoutSpace =
-  ifStatement
-    <|> blockStatement
-    <|> breakStatement
-    <|> continueStatement
-    <|> varStatement
-    <|> whileStatement
-    <|> expressionStatement
-
-ifStatement :: Parser Statement
-ifStatement = do
-  reserved "if"
-  condition     <- expression
-  thenStatement <- statement
-  reserved "else"
-  elseStatement <- statement
-  return $ If condition thenStatement elseStatement
-
-blockStatement :: Parser Statement
-blockStatement = do
-  symbol "{"
-  list <- (sepBy statement semi)
-  symbol "}"
-  return $ Block list
-
-breakStatement :: Parser Statement
-breakStatement = do
-  reserved "break"
-  semi
-  return Break
-
-continueStatement :: Parser Statement
-continueStatement = do
-  reserved "continue"
-  semi
-  return Continue
-
-varStatement :: Parser Statement
-varStatement = do
-  reserved "var"
-  name <- identifier
-  symbol "="
-  expr <- expression
-  semi
-  return $ VarStatement name expr
-
-whileStatement :: Parser Statement
-whileStatement = do
-  reserved "while"
-  condition <- expression
-  stmt      <- statement
-  return $ While condition stmt
-
-expressionStatement :: Parser Statement
-expressionStatement = do
-  expr <- expression
-  semi
-  return $ ExpressionStatement expr
-
-expression :: Parser Expression
-expression = Ex.buildExpressionParser operators terms
-
-operators =
-  [ [Ex.Prefix (reservedOp "-" >> return Neg)]
-  , [ Ex.Infix (reservedOp "*" >> return (Binary Multiply)) Ex.AssocLeft
-    , Ex.Infix (reservedOp "/" >> return (Binary Divide)) Ex.AssocLeft
-    ]
-  , [ Ex.Infix (reservedOp "+" >> return (Binary Add)) Ex.AssocLeft
-    , Ex.Infix (reservedOp "-" >> return (Binary Subtract)) Ex.AssocLeft
-    ]
-  , [Ex.Prefix (reservedOp "not" >> return Not)]
-  , [ Ex.Infix (reservedOp "and" >> return (Binary And)) Ex.AssocLeft
-    , Ex.Infix (reservedOp "or" >> return (Binary Or)) Ex.AssocLeft
-    ]
-  ]
-
-terms :: Parser Expression
-terms =
-  parens expression
-    <|> Var
-    <$> identifier
-    <|> IntConst
-    <$> integer
-    <|> StringConst
-    <$> stringLiteral
-    <|> (reserved "true" >> return (BoolConst True))
-    <|> (reserved "false" >> return (BoolConst False))
+sepBy1Combine :: ([a], String) -> ([a], String) -> ([a], String)
+sepBy1Combine (c1, _) (c2, s2) = (c1 ++ c2, s2)
