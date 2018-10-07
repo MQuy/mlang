@@ -26,6 +26,7 @@ import           Text.Parsec                    ( try
 import           Text.Parsec.Combinator
 
 import           Types
+import           Print
 
 langDef :: Token.LanguageDef ()
 langDef = Token.LanguageDef
@@ -40,6 +41,7 @@ langDef = Token.LanguageDef
   , Token.reservedNames = ["data", "let", "letrec", "case", "in", "of", "Pack"]
   , Token.reservedOpNames = [ "|"
                             , "\\"
+                            , "->"
                             , "+"
                             , "-"
                             , "*"
@@ -98,12 +100,14 @@ uppercased = do
   return (first : rest)
 
 -- Parser entry point
-parseProgram :: String -> Either ParseError Program
-parseProgram = parse pCoreProgram "core"
+parseProgram :: String -> IO ()
+parseProgram s = putStrLn $ case parse pProgram "core" s of
+  Left  _       -> "wrong"
+  Right program -> pprint program
 
 -- Program -> SuperCombinators
-pCoreProgram :: Parser Program
-pCoreProgram = do
+pProgram :: Parser Program
+pProgram = do
   scs <- sepEndBy1 pSuperCombinator semi
   eof
   return scs
@@ -156,7 +160,7 @@ pAlternative = do
 -- Lambda -> \x y -> expr
 pLambda :: Parser Expr
 pLambda = do
-  args <- reserved "\\" *> many identifier
+  args <- reservedOp "\\" *> many1 identifier
   expr <- reservedOp "->" *> pExpression
   return (ELam args expr)
 
