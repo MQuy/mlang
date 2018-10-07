@@ -1,4 +1,4 @@
-module Parser where
+module SimpleParser where
 
 import           Data.Char
 import           Control.Monad

@@ -1,6 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fwarn-unused-do-bind #-}
-
 module MQLang where
 
 import           Text.Parsec.String             ( Parser )
@@ -23,6 +20,7 @@ import           Text.Parsec.Combinator         ( many1
                                                 , manyTill
                                                 , anyToken
                                                 )
+import           Text.Parsec.Combinator
 import           Text.Parsec                    ( try
                                                 , parse
                                                 , ParseError
@@ -227,14 +225,12 @@ operators =
     ]
   ]
 
+
 terms :: Parser Expression
 terms =
   parens expression
-    <|> Var
-    <$> identifier
-    <|> IntConst
-    <$> integer
-    <|> StringConst
-    <$> stringLiteral
+    <|> (Var <$> identifier)
+    <|> (IntConst <$> integer)
+    <|> (StringConst <$> stringLiteral)
     <|> (reserved "true" >> return (BoolConst True))
     <|> (reserved "false" >> return (BoolConst False))
