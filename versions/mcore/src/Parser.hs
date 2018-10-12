@@ -1,6 +1,5 @@
 module Parser where
 
-import           Control.Monad.Identity
 import           Text.Parsec.String             ( Parser )
 import qualified Text.Parsec.Expr              as Ex
 import qualified Text.ParserCombinators.Parsec.Token
@@ -167,7 +166,6 @@ pLambda = do
 pAExpression :: Parser Expr
 pAExpression = Ex.buildExpressionParser operators terms
 
-operators :: [[Ex.Operator String () Identity Expr]]
 operators =
   [ [Ex.Prefix (reservedOp "-" >> return (EAp (EVar "-")))]
   , [ Ex.Infix (reservedOp "*" >> return (binOp (EVar "*"))) Ex.AssocLeft
