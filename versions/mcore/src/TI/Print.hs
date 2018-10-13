@@ -40,8 +40,14 @@ showNode :: Node -> Iseq
 showNode (NAp a1 a2) =
   iConcat [iStr "NAp ", showAddr a1, iStr " ", showAddr a2]
 showNode (NSupercomb name _ _) = iStr ("NSupercomb " ++ name)
-showNode (NNum n             ) = (iStr "NNum ") `iAppend` (iNum n)
-showNode (NPrim name _       ) = (iStr "NPrim ") `iAppend` (iStr name)
+showNode (NNum n             ) = iStr "NNum " `iAppend` iNum n
+showNode (NInd name          ) = iConcat [iStr "Ind ", showAddr name]
+showNode (NPrim name _       ) = iStr "NPrim " `iAppend` iStr name
+showNode (NData tag arity) = iConcat [iStr "NData ", iNum tag, iStr " ", showAddrs arity]
+
+showAddrs :: [Addr] -> Iseq
+showAddrs addrs =
+  let pad addr = showAddr addr `iAppend` iStr " " in iConcat (map pad addrs)
 
 showAddr :: Addr -> Iseq
 showAddr addr = iStr (show addr)

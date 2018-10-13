@@ -18,7 +18,20 @@ extraPreludeDefs :: [a]
 extraPreludeDefs = []
 
 primitives :: [(String, Primitive)]
-primitives = [("negate", Neg), ("+", Add), ("-", Sub), ("*", Mul), ("/", Div)]
+primitives =
+  [ ("negate", Neg)
+  , ("+"     , Add)
+  , ("-"     , Sub)
+  , ("*"     , Mul)
+  , ("/"     , Div)
+  , ("if"    , If)
+  , (">"     , Greater)
+  , (">="    , GreaterEq)
+  , ("<"     , Less)
+  , ("<="    , LessEq)
+  , ("=="    , Eq)
+  , ("/="    , NotEq)
+  ]
 
 buildInitialHeap :: [ScDefn] -> (TiHeap, TiGlobals)
 buildInitialHeap scDefs = (heap1, sc_addrs ++ pri_addrs)

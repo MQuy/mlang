@@ -6,18 +6,45 @@ data Node =
   NAp Addr Addr
   | NSupercomb String [String] Expr
   | NNum Integer
+  | NInd Addr
   | NPrim String Primitive
+  | NData Integer [Addr]
   deriving Show
 
-data Primitive = Neg | Add | Sub | Mul | Div deriving Show
+data Primitive =
+  Neg
+  | Add
+  | Sub
+  | Mul
+  | Div
+  | Construct Integer Integer
+  | If
+  | Less
+  | LessEq
+  | Greater
+  | GreaterEq
+  | Eq
+  | NotEq
+  deriving Show
+
+isValueNode :: Node -> Bool
+isValueNode node = isDataNode node || isNumNode node
 
 isDataNode :: Node -> Bool
-isDataNode (NNum _) = True
-isDataNode _        = False
+isDataNode (NData _ _) = True
+isDataNode _           = False
 
 isNumNode :: Node -> Bool
 isNumNode (NNum _) = True
 isNumNode _        = False
+
+isTrueNode :: Node -> Bool
+isTrueNode (NPrim _ (Construct 0 _)) = True
+isTrueNode _                         = False
+
+isFalseNode :: Node -> Bool
+isFalseNode (NPrim _ (Construct 1 _)) = True
+isFalseNode _                         = False
 
 type TiState = (TiStack, TiDump, TiHeap, TiGlobals, TiStats)
 
@@ -44,6 +71,15 @@ hAlloc :: Heap a -> a -> (Heap a, Addr)
 hAlloc (Heap size (next : free) xs) x =
   (Heap (size + 1) free ((next, x) : xs), next)
 hAlloc (Heap _ [] _) _ = error "Heap.hs:hAlloc - Empty free list"
+
+hUpdate :: Heap a -> Addr -> a -> Heap a
+hUpdate (Heap size free xs) a x = Heap size free ((a, x) : remove xs a)
+
+remove :: [(Integer, a)] -> Integer -> [(Integer, a)]
+remove [] adr = error
+  ("Heap.remove - Attemot to update or free nonexistent address" ++ show adr)
+remove ((a, x) : xs) adr | a == adr  = xs
+                         | otherwise = (a, x) : remove xs adr
 
 hLookup :: Heap a -> Addr -> a
 hLookup (Heap _ _ xs) a =

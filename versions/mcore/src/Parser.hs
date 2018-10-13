@@ -164,7 +164,7 @@ pLambda = do
   return (ELam args expr)
 
 pAExpression :: Parser Expr
-pAExpression = Ex.buildExpressionParser operators terms
+pAExpression = Ex.buildExpressionParser operators pTerms
 
 operators =
   [ [Ex.Prefix (reservedOp "-" >> return (EAp (EVar "-")))]
@@ -190,8 +190,8 @@ binOp :: Expr -> Expr -> Expr -> Expr
 binOp op left right = foldl1 EAp [op, left, right]
 
 -- Application -> Atom [Atom]*
-terms :: Parser Expr
-terms = makeSpine <$> many1 pAtom where makeSpine = foldl1 EAp
+pTerms :: Parser Expr
+pTerms = makeSpine <$> many1 pAtom where makeSpine = foldl1 EAp
 
 -- Atom -> Constructor | var | num | ( Expr )
 pAtom :: Parser Expr
@@ -199,4 +199,11 @@ pAtom =
   parens pExpression
     <|> (EVar <$> identifier)
     <|> (ENum <$> natural)
+    <|> pConstructor
     <?> "constructor, identifier, number, or parenthesized expression"
+
+pConstructor :: Parser Expr
+pConstructor =
+  EConst
+    <$> (reserved "Pack" >> reservedOp "{" >> natural <* comma)
+    <*> (natural <* reservedOp "}")

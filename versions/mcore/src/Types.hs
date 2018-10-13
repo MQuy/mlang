@@ -52,15 +52,14 @@ isAtomicExpr _        = False
 -- compose f g x = f (g x)
 -- twice f = compose f f
 preludeDefs :: Program
--- preludeDefs =
---   [ ("I" , ["x"]          , EVar "x")
---   , ("K" , ["x", "y"]     , EVar "x")
---   , ("K1", ["f", "g", "x"], EVar "y")
---   , ( "S"
---     , ["f", "g", "x"]
---     , EAp (EAp (EVar "f") (EVar "x")) (EAp (EVar "g") (EVar "x"))
---     )
---   , ("compose", ["f", "g", "x"], EAp (EVar "f") (EAp (EVar "g") (EVar "x")))
---   , ("twice", ["f"], EAp (EAp (EVar "compose") (EVar "f")) (EVar "f"))
---   ]
-preludeDefs = []
+preludeDefs =
+      [ ("I" , ["x"]          , EVar "x")
+      , ("K" , ["x", "y"]     , EVar "x")
+      , ("K1", ["f", "g", "x"], EVar "y")
+      , ( "S"
+        , ["f", "g", "x"]
+        , EAp (EAp (EVar "f") (EVar "x")) (EAp (EVar "g") (EVar "x"))
+        )
+      , ("compose", ["f", "g", "x"], EAp (EVar "f") (EAp (EVar "g") (EVar "x")))
+      , ("twice", ["f"], EAp (EAp (EVar "compose") (EVar "f")) (EVar "f"))
+      ]
