@@ -14,25 +14,6 @@ compile program =
   addressOfMain          = aLookup globals "main" (error "main is not defined")
   scDefs                 = program ++ preludeDefs ++ extraPreludeDefs
 
-extraPreludeDefs :: [a]
-extraPreludeDefs = []
-
-primitives :: [(String, Primitive)]
-primitives =
-  [ ("negate", Neg)
-  , ("+"     , Add)
-  , ("-"     , Sub)
-  , ("*"     , Mul)
-  , ("/"     , Div)
-  , ("if"    , If)
-  , (">"     , Greater)
-  , (">="    , GreaterEq)
-  , ("<"     , Less)
-  , ("<="    , LessEq)
-  , ("=="    , Eq)
-  , ("/="    , NotEq)
-  ]
-
 buildInitialHeap :: [ScDefn] -> (TiHeap, TiGlobals)
 buildInitialHeap scDefs = (heap1, sc_addrs ++ pri_addrs)
  where

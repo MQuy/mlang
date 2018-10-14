@@ -25,7 +25,56 @@ data Primitive =
   | GreaterEq
   | Eq
   | NotEq
+  | CasePair
   deriving Show
+
+extraPreludeDefs :: Program
+extraPreludeDefs =
+  [ ( "and"
+    , ["x", "y"]
+    , EAp (EAp (EAp (EVar "if") (EVar "x")) (EVar "y")) (EVar "False")
+    )
+  , ( "or"
+    , ["x", "y"]
+    , EAp (EAp (EAp (EVar "if") (EVar "x")) (EVar "True")) (EVar "y")
+    )
+  , ( "not"
+    , ["x"]
+    , EAp (EAp (EAp (EVar "if") (EVar "x")) (EVar "False")) (EVar "True")
+    )
+  , ("fst", ["p"], EAp (EAp (EVar "casePair") (EVar "p")) (EVar "K"))
+  , ("snd", ["p"], EAp (EAp (EVar "casePair") (EVar "p")) (EVar "K1"))
+  , ( "head"
+    , ["ls"]
+    , EAp (EAp (EAp (EVar "caseList") (EVar "ls")) (EVar "abort")) (EVar "K")
+    )
+  , ( "tail"
+    , ["ls"]
+    , EAp (EAp (EAp (EVar "caseList") (EVar "ls")) (EVar "abort")) (EVar "K1")
+    )
+  ]
+
+primitives :: [(String, Primitive)]
+primitives =
+  [ ("negate"  , Neg)
+  , ("+"       , Add)
+  , ("-"       , Sub)
+  , ("*"       , Mul)
+  , ("/"       , Div)
+  , ("if"      , If)
+  , (">"       , Greater)
+  , (">="      , GreaterEq)
+  , ("<"       , Less)
+  , ("<="      , LessEq)
+  , ("=="      , Eq)
+  , ("/="      , NotEq)
+  , ("casePair", CasePair)
+  , ("True"    , Construct 0 0)
+  , ("False"   , Construct 1 0)
+  , ("MkPair"  , Construct 2 2)
+  , ("Nil"     , Construct 3 0)
+  , ("Cons"    , Construct 4 2)
+  ]
 
 isValueNode :: Node -> Bool
 isValueNode node = isDataNode node || isNumNode node
@@ -39,12 +88,22 @@ isNumNode (NNum _) = True
 isNumNode _        = False
 
 isTrueNode :: Node -> Bool
-isTrueNode (NPrim _ (Construct 0 _)) = True
-isTrueNode _                         = False
+isTrueNode (NData 0 []) = True
+isTrueNode _            = False
 
 isFalseNode :: Node -> Bool
-isFalseNode (NPrim _ (Construct 1 _)) = True
-isFalseNode _                         = False
+isFalseNode (NData 1 []) = True
+isFalseNode _            = False
+
+isPairNode (NData 2 [_, _]) = True
+isPairNode _                = False
+
+pairApply heap (NData 2 [x, y]) f = (heap2, app)
+ where
+  (heap1, addr ) = hAlloc heap (NAp f x)
+  (heap2, addr1) = hAlloc heap1 (NAp addr y)
+  app            = hLookup heap2 addr1
+pairApply _ _ _ = error "Function expects a pair"
 
 type TiState = (TiStack, TiDump, TiHeap, TiGlobals, TiStats)
 
