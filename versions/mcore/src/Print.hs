@@ -18,6 +18,9 @@ iStr = IStr
 iNum :: Integer -> Iseq
 iNum n = IStr (show n)
 
+iInt :: Int -> Iseq
+iInt n = iStr (show n)
+
 iAppend :: Iseq -> Iseq -> Iseq
 iAppend = IAppend
 

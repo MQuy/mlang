@@ -4,10 +4,6 @@ import           Text.Parsec.String             ( Parser )
 import qualified Text.Parsec.Expr              as Ex
 import qualified Text.ParserCombinators.Parsec.Token
                                                as Token
-import           Text.Parsec.Char               ( oneOf
-                                                , letter
-                                                , alphaNum
-                                                )
 import           Text.Parsec.Char
 import           Control.Applicative            ( many
                                                 , (<*)
@@ -30,7 +26,7 @@ import           Print
 langDef :: Token.LanguageDef ()
 langDef = Token.LanguageDef
   { Token.commentStart    = "{-"
-  , Token.commentEnd      = "}-"
+  , Token.commentEnd      = "-}"
   , Token.commentLine     = "--"
   , Token.nestedComments  = True
   , Token.identStart      = letter
@@ -53,6 +49,8 @@ langDef = Token.LanguageDef
                             , "!="
                             , "&&"
                             , "||"
+                            , "{"
+                            , "}"
                             ]
   , Token.caseSensitive   = True
   }
@@ -143,18 +141,17 @@ pBinding = do
 -- Case -> case expr of [alternative]
 pCase :: Parser Expr
 pCase = do
-  expr <- reserved "case" *> pExpression
-  reserved "of"
+  expr   <- reserved "case" *> pExpression <* reserved "of"
   alters <- pAlternative `sepEndBy1` semi
   return (ECase expr alters)
 
 -- Alter -> Constructor [args]* -> expr
 pAlternative :: Parser Alter
 pAlternative = do
-  name <- uppercased
-  args <- many identifier
-  expr <- reservedOp "->" *> pExpression
-  return (PCon name, args, expr)
+  EConst tag arity <- pConstructor
+  args             <- many identifier
+  expr             <- reservedOp "->" *> pExpression
+  return (tag, args, expr)
 
 -- Lambda -> \x y -> expr
 pLambda :: Parser Expr
@@ -205,5 +202,5 @@ pAtom =
 pConstructor :: Parser Expr
 pConstructor =
   EConst
-    <$> (reserved "Pack" >> reservedOp "{" >> natural <* comma)
-    <*> (natural <* reservedOp "}")
+    <$> (reserved "Pack" >> reservedOp "{" >> natural)
+    <*> (comma *> natural <* reservedOp "}")

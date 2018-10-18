@@ -120,7 +120,7 @@ initialTiDump = []
 -- TiHeap
 type TiHeap = Heap Node
 
-data Heap a = Heap Addr [Addr] [(Addr, a)]
+data Heap a = Heap Integer [Integer] [(Addr, a)]
 
 
 hInitial :: Heap a
