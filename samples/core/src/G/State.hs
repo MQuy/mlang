@@ -81,7 +81,7 @@ getVStack (o, i, stack, dump, vstack, heap, globals, stats) = vstack
 
 putVStack :: GMVStack -> GMState -> GMState
 putVStack newVstack (o, i, stack, dump, vstack, heap, globals, stats) =
- (o, i, stack, dump, newVstack, heap, globals, stats)
+  (o, i, stack, dump, newVstack, heap, globals, stats)
 
 -- GMHeap
 data Node
@@ -206,8 +206,8 @@ primitives =
     , ["c", "t", "f"]
     , EAp (EAp (EAp (EVar "if") (EVar "c")) (EVar "t")) (EVar "f")
     )
-  , ("True" , [], EConst 2 0)
-  , ("False", [], EConst 1 0)
+  , ("True" , [], EConst 1 0)
+  , ("False", [], EConst 2 0)
   ]
 
 compiledPrimitives :: [GMCompiledSC]

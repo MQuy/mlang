@@ -1,14 +1,14 @@
 ### How to setup
 
 ```
-$ git clone https://github.com/MQuy/mqlang && cd mqlang
+$ git clone https://github.com/MQuy/mts && cd mts
 $ yarn install
 ```
 
 **To run**
 ```
 $ node ./build/repl.ts
-mqlang, version 0.1.0
+mts, version 0.1.0
 >
 ```
 
@@ -18,7 +18,7 @@ mqlang, version 0.1.0
 
 ```
 class Foo extends Baz {
-  var name = "mqlang";
+  var name = "mts";
   var counter: Number;
 
   def hello(name: String): String {

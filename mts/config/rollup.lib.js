@@ -5,7 +5,7 @@ export default {
   output: {
     file: "build/mq.js",
     format: "umd",
-    name: "mqlang",
+    name: "mts",
   },
   plugins: [
     typescript({

@@ -1,5 +1,7 @@
-node_modules/
+**/node_modules/
 *.swo
 *.swp
 **/.cabal-sandbox
 **/cabal.sandbox.config
+.vscode/
+samples/core/dist/

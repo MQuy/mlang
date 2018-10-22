@@ -59,7 +59,7 @@ showInstruction (Cond i1 i2  ) = iConcat
   , iStr "]"
   ]
 showInstruction (Pack t a) =
-  (iStr "Pack " `iAppend` iNum (fromIntegral t)) `iAppend` iNum (fromIntegral a)
+  iConcat [iStr "Pack ", iNum (fromIntegral t), iStr " ", iNum (fromIntegral a)]
 showInstruction (Casejump nis) =
   iStr "Casejump " `iAppend` showAlternatives nis
 showInstruction (Split n) = iStr "Split " `iAppend` iNum (fromIntegral n)

@@ -3,7 +3,7 @@ import { Lexer, Parser, Interpreter } from "../../src";
 it("class", () => {
   const source = `
   class Foo {
-    var name = "mqlang";
+    var name = "mts";
 
     def hello(message: String): String {
       return this.name + ": " + message;

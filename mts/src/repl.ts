@@ -39,7 +39,7 @@ export class Repl {
   }
 
   welcome() {
-    console.log("mqlang, version 0.1.0");
+    console.log("mts, version 0.1.0");
   }
 }
 

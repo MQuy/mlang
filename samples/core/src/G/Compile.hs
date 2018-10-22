@@ -72,8 +72,8 @@ compileC (ENum n) env = [Pushint (fromIntegral n)]
 compileC (EAp e1 e2) env =
   compileC e2 env ++ compileC e1 (argOffset 1 env) ++ [Mkap]
 compileC (ELet recursive defs e) env
-  | recursive = compileLetrec compileC defs e env
-  | otherwise = compileLet compileC defs e env
+  | recursive = compileLetrec compileC defs e env ++ [Slide (length defs)]
+  | otherwise = compileLet compileC defs e env ++ [Slide (length defs)]
 compileC (ECase e alters) env =
   compileE e env ++ [Casejump (compileAlts compileAE alters env)]
 

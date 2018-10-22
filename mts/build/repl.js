@@ -1793,7 +1793,7 @@ class Classable {
         }
     }
 }
-function checkInheritance(type1, type2, position) {
+function checkTypeAssignable(type1, type2, position) {
     if (type1 === type2) {
         return true;
     }
@@ -1806,7 +1806,43 @@ function checkInheritance(type1, type2, position) {
             superclass = superclass.superclass;
         }
     }
+    else if (Array.isArray(type1) &&
+        Array.isArray(type2) &&
+        type1.length === type2.length) {
+        for (let i = 0; i < type1.length; ++i) {
+            checkTypeAssignable(type1[i], type2[i], position);
+        }
+    }
     error(position, `Type '${getTypeName(type1)}' is not assignable to type '${getTypeName(type2)}'`);
+}
+function leastUpperBound(type1, type2) {
+    if (type1 === type2) {
+        return type1;
+    }
+    else if (type1 === BuiltinTypes.Null) {
+        return type2;
+    }
+    else if (type2 === BuiltinTypes.Null) {
+        return type1;
+    }
+    else if (type1 instanceof Classable && type2 instanceof Classable) {
+        const type1Line = getInheritanceLine(type1);
+        const type2Line = getInheritanceLine(type2);
+        for (let i = 0; i < type1Line.length; ++i) {
+            for (let j = 0; j < type2Line.length; ++j) {
+                if (type1Line[i] === type2Line[j]) {
+                    return type1Line[i];
+                }
+            }
+        }
+    }
+}
+function getInheritanceLine(type) {
+    const line = [type];
+    for (let trace = type.superclass; trace; trace = trace.superclass) {
+        line.push(trace);
+    }
+    return line;
 }
 function getTypeName(type) {
     if (type instanceof Classable || type instanceof Functionable) {
@@ -2813,29 +2849,29 @@ class TypeChecking {
         this.scope = scope || new SymbolTable$1(undefined, BuiltinTypes);
     }
     run() {
-        this.program.statements.forEach(statement => this.evaluateStatement(statement));
+        this.program.statements.forEach(statement => this.execute(statement));
     }
     visitIfStatement(statement) {
-        this.evaluateExpression(statement.condition);
-        this.evaluateStatement(statement.thenStatement);
-        this.evaluateStatement(statement.elseStatement);
+        this.evaluate(statement.condition);
+        this.execute(statement.thenStatement);
+        this.execute(statement.elseStatement);
     }
     visitBlockStatement(statement) {
         this.beginScope();
-        statement.statements.forEach(statement => this.evaluateStatement(statement));
+        statement.statements.forEach(statement => this.execute(statement));
         this.endScope();
     }
     visitForStatement(statement) {
         this.beginScope();
         const initializers = statement.initializer || [];
         initializers.forEach(declaration => declaration instanceof VarStatement
-            ? this.evaluateStatement(declaration)
-            : this.evaluateExpression(declaration));
-        this.evaluateExpression(statement.condition);
+            ? this.execute(declaration)
+            : this.evaluate(declaration));
+        this.evaluate(statement.condition);
         this.beginScope();
-        this.evaluateStatement(statement.body);
+        this.execute(statement.body);
         this.endScope();
-        this.evaluateStatement(statement.increment);
+        this.execute(statement.increment);
         this.endScope();
     }
     visitVarStatement(statement) {
@@ -2875,30 +2911,30 @@ class TypeChecking {
         this.checkFunctionStatement(statement, (name, type) => this.scope.define(name, type));
     }
     visitExpressionStatement(statement) {
-        this.evaluateExpression(statement.expression);
+        this.evaluate(statement.expression);
     }
     visitReturnStatement(statement) {
         const kunction = this.scope.lookup("this");
         if (kunction instanceof Functionable) {
-            const type = this.evaluateExpression(statement.value);
-            checkInheritance(type, kunction.returnType, statement.pStart);
+            const type = this.evaluate(statement.value);
+            checkTypeAssignable(type, kunction.returnType, statement.pStart);
         }
         else {
             error(statement.pStart, "cannot return without function's scope");
         }
     }
     visitAssignmentExpression(expression) {
-        const expressionType = this.evaluateExpression(expression.expression);
+        const expressionType = this.evaluate(expression.expression);
         const variableType = this.scope.lookup(expression.name.lexeme);
-        checkInheritance(expressionType, variableType, expression.pStart);
+        checkTypeAssignable(expressionType, variableType, expression.pStart);
         return variableType;
     }
     visitLogicalExpression(expression) {
         return expression.type;
     }
     visitBinaryExpression(expression) {
-        const leftType = this.evaluateExpression(expression.left);
-        const rightType = this.evaluateExpression(expression.right);
+        const leftType = this.evaluate(expression.left);
+        const rightType = this.evaluate(expression.right);
         if (leftType === BuiltinTypes.String &&
             rightType === BuiltinTypes.String &&
             expression.operator.type === TokenType.PLUS) {
@@ -2913,7 +2949,7 @@ class TypeChecking {
         }
     }
     visitUnaryExpression(expression) {
-        this.evaluateExpression(expression.right);
+        this.evaluate(expression.right);
         switch (expression.operator.type) {
             case TokenType.BANG:
                 return (expression.type = BuiltinTypes.Boolean);
@@ -2927,11 +2963,11 @@ class TypeChecking {
         }
     }
     visitCallExpression(expression) {
-        const type = this.evaluateExpression(expression.callee);
+        const type = this.evaluate(expression.callee);
         if (type instanceof Functionable) {
             type.parameters.forEach((parameterType, index) => {
-                const argType = this.evaluateExpression(expression.args[index]);
-                checkInheritance(argType, parameterType, expression.pStart);
+                const argType = this.evaluate(expression.args[index]);
+                checkTypeAssignable(argType, parameterType, expression.pStart);
             });
             return type.returnType;
         }
@@ -2940,15 +2976,15 @@ class TypeChecking {
         }
     }
     visitGetExpression(expression) {
-        const type = this.evaluateExpression(expression.object);
+        const type = this.evaluate(expression.object);
         return type.get(expression.name.lexeme);
     }
     visitSetExpression(expression) {
-        const object = this.evaluateExpression(expression.object);
+        const object = this.evaluate(expression.object);
         if (object instanceof Classable) {
             const type = object.get(expression.name.lexeme);
-            const setType = this.evaluateExpression(expression.value);
-            checkInheritance(setType, type, expression.name);
+            const setType = this.evaluate(expression.value);
+            checkTypeAssignable(setType, type, expression.name);
             return type;
         }
         else {
@@ -2959,7 +2995,7 @@ class TypeChecking {
         return expression.type;
     }
     visitGroupExpression(expression) {
-        this.evaluateExpression(expression.expression);
+        this.evaluate(expression.expression);
         return (expression.type = expression.expression.type);
     }
     visitLambdaExpression(expression) {
@@ -2971,7 +3007,7 @@ class TypeChecking {
         });
         this.beginScope();
         this.scope.define("this", kunction);
-        this.evaluateStatement(expression.body);
+        this.execute(expression.body);
         this.endScope();
         return kunction;
     }
@@ -2987,15 +3023,32 @@ class TypeChecking {
     visitVarExpression(expression) {
         return this.scope.lookup(expression.name.lexeme);
     }
-    visitArrayExpression(expression) { }
+    visitArrayExpression(expression) {
+        if (expression.elements.length > 0) {
+            let baseType = this.evaluate(expression.elements[0]);
+            for (let i = 1; i < expression.elements.length; ++i) {
+                const otherType = this.evaluate(expression.elements[i]);
+                const tempType = leastUpperBound(otherType, baseType);
+                if (tempType) {
+                    baseType = tempType;
+                }
+                else {
+                    error(expression.elements[i].pStart, "Not same type");
+                }
+            }
+            return new Array(expression.elements.length).fill(baseType);
+        }
+        return [];
+    }
     visitTupleExpression(expression) { }
+    // NOTE: Don't need to check type for these statements
     visitPrintStatement(statement) { }
     visitBreakStatement(statement) { }
     visitContinueStatement(statement) { }
-    evaluateStatement(statement) {
+    execute(statement) {
         statement && statement.accept(this);
     }
-    evaluateExpression(expression) {
+    evaluate(expression) {
         return expression && expression.accept(this);
     }
     beginScope() {
@@ -3009,10 +3062,10 @@ class TypeChecking {
         }
     }
     checkVarStatement(statement, define) {
-        const initializerType = this.evaluateExpression(statement.initializer);
+        const initializerType = this.evaluate(statement.initializer);
         if (statement.type) {
             const variableType = this.scope.lookup(statement.type);
-            checkInheritance(initializerType, variableType, statement.name);
+            checkTypeAssignable(initializerType, variableType, statement.name);
             define(statement.name.lexeme, variableType);
         }
         else if (initializerType) {
@@ -3032,7 +3085,7 @@ class TypeChecking {
         define(statement.name.lexeme, kunction);
         this.beginScope();
         this.scope.define("this", kunction);
-        this.evaluateStatement(statement.body);
+        this.execute(statement.body);
         this.endScope();
     }
 }
@@ -3057,7 +3110,7 @@ class Repl {
         return readlineSync_6("> ");
     }
     welcome() {
-        console.log("mqlang, version 0.1.0");
+        console.log("mts, version 0.1.0");
     }
 }
 new Repl().execute();

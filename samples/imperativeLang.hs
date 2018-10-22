@@ -1,4 +1,4 @@
-module MQLang where
+module Lang where
 
 import           Text.Parsec.String             ( Parser )
 import           Text.Parsec.Char               ( oneOf
