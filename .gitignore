@@ -5,3 +5,4 @@
 **/cabal.sandbox.config
 .vscode/
 samples/core/dist/
+mhaskell/dist/
