@@ -34,12 +34,34 @@ import           Text.Parsec.Combinator         ( sepEndBy
 import           Text.Parsec.Prim               ( ParsecT
                                                 , modifyState
                                                 , getState
+                                                , unexpected
                                                 , Parsec
                                                 )
 import           Data.Char                      ( chr )
 import           Type
 
 type SParser = Parsec String PEInfo
+
+reservedNames = ["data", "let", "letrec", "case", "in", "of"]
+reservedOpNames =
+  [ "|"
+  , "\\"
+  , "->"
+  , "+"
+  , "-"
+  , "*"
+  , "/"
+  , "=="
+  , "<"
+  , ">"
+  , ">="
+  , "<="
+  , "!="
+  , "&&"
+  , "||"
+  , "{"
+  , "}"
+  ]
 
 langDef :: Token.LanguageDef PEInfo
 langDef = Token.LanguageDef
@@ -51,25 +73,8 @@ langDef = Token.LanguageDef
   , Token.identLetter     = alphaNum <|> oneOf "_"
   , Token.opStart         = oneOf ":!#$%&*+./<=>?@\\^|-~"
   , Token.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
-  , Token.reservedNames   = ["data", "let", "letrec", "case", "in", "of"]
-  , Token.reservedOpNames = [ "|"
-                            , "\\"
-                            , "->"
-                            , "+"
-                            , "-"
-                            , "*"
-                            , "/"
-                            , "=="
-                            , "<"
-                            , ">"
-                            , ">="
-                            , "<="
-                            , "!="
-                            , "&&"
-                            , "||"
-                            , "{"
-                            , "}"
-                            ]
+  , Token.reservedNames   = reservedNames
+  , Token.reservedOpNames = reservedOpNames
   , Token.caseSensitive   = True
   }
 
@@ -98,16 +103,21 @@ symbol :: String -> SParser String
 symbol = Token.symbol lexer
 
 pUppercased :: SParser String
-pUppercased = do
+pUppercased = try $ do
   first <- whiteSpace *> upper
   rest  <- many (alphaNum <|> char '_' <|> char '\'') <* whiteSpace
-  return $ first : rest
+  nameParser $ first : rest
 
 pVariable :: SParser String
-pVariable = do
+pVariable = try $ do
   first <- whiteSpace *> lower
   rest  <- many (alphaNum <|> char '_' <|> char '\'') <* whiteSpace
-  return $ first : rest
+  nameParser $ first : rest
+
+nameParser :: String -> SParser String
+nameParser name = if name `elem` reservedNames
+  then unexpected ("reserved word " ++ show name)
+  else return name
 
 pProgram :: SParser Program
 pProgram = do
@@ -228,7 +238,8 @@ pScDataConst = do
   modifyState $ peTagInc name (length arity)
   return $ buildScDc tag (length arity)
 
--- NOTE: Max number of arguments is 26
+-- MQ 2018-10-24
+-- Max number of arguments is 26
 buildScDc :: Int -> Int -> ScDefn
 buildScDc tag 0 = (show tag, [], EConst tag 0)
 buildScDc tag n = (show tag, params, expr)
