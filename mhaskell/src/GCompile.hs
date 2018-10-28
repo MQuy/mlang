@@ -2,7 +2,7 @@ module GCompile where
 
 import           Type
 import           Data.List                      ( mapAccumL )
-import           Data.Char
+import           Data.Char                      ( isDigit )
 
 type GMCompiledSC = (String, Int, GMCode)
 type GMEnvironment = [(String, Addr)]
@@ -103,7 +103,7 @@ compileC (ECase e alters) env =
 
 compileAlter :: GMCompiler -> [String] -> Expr -> GMEnvironment -> GMCode
 compileAlter compile names expr env =
-  [Split n] ++ compile expr env ++ [Slide n]
+  [Split n] ++ compile expr env1 ++ [Slide n]
  where
   n    = length names
   env1 = zip names [0 ..] ++ argOffset n env
@@ -145,7 +145,6 @@ compileD (ENum n) env = [Pushint n]
 compileD (EVar v) env | v `elem` aDomain env = [Push n]
                       | otherwise            = [Pushglobal v]
   where n = aLookup env v (error "Can't happen")
-compileD (EConst t a) env = [Pack t a]
-compileD (EAp e1 e2) env =
-  compileD e2 env ++ compileD e1 (argOffset 1 env) ++ [Mkap]
+compileD (EConst t  a ) env = [Pack t a]
+compileD (EAp    e1 e2) env = compileD e2 env ++ compileD e1 (argOffset 1 env)
 

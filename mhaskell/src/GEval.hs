@@ -54,7 +54,9 @@ dispatch Unwind            = unwind
 dispatch Print             = gmprint
 
 gmprint :: GMState -> GMState
-gmprint state@(o, i, a:s, v, dump, heap, global, stats) = newState (hLookup heap a) state
+gmprint state@(o, i, a : s, v, dump, heap, global, stats) = newState
+  (hLookup heap a)
+  state
  where
   newState (NConst t as) =
     putOutput ("Pack{" ++ show t ++ "," ++ show (length as) ++ "}")
@@ -83,6 +85,12 @@ newState (NGlobal n c) state@(o, i, s1 : ss, v, dump, heap, global, stats)
  where
   ((i1, s2) : d1) = dump
   rs              = rearrange n heap (s1 : ss)
+
+updateFromDump :: Addr -> GMDump -> GMState -> GMState
+updateFromDump a dump state@(o, _, _, v, _, heap, global, stats) = case dump of
+  []             -> state
+  ((i1, s1) : d) -> (o, i1, a : s1, v, d, heap, global, stats)
+
 
 pack :: Int -> Int -> GMState -> GMState
 pack tag arity (o, i, s, v, dump, heap, global, stats) =
@@ -187,11 +195,6 @@ comparison f (o, i, s, v1 : v2 : vs, dump, heap, global, stats) =
  where
   cond | f v1 v2   = cTrue
        | otherwise = cFalse
-
-updateFromDump :: Addr -> GMDump -> GMState -> GMState
-updateFromDump a dump state@(o, _, _, v, _, heap, global, stats) = case dump of
-  []             -> state
-  ((i1, s1) : d) -> (o, i1, a : s1, v, d, heap, global, stats)
 
 printcode :: Int -> [Instruction]
 printcode 0 = []

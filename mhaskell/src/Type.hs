@@ -275,3 +275,27 @@ replaceStats stats (o, i, s, v, dump, heap, global, _) =
 
 statGetSteps :: Int -> Int
 statGetSteps s = s
+
+
+-- Annotated Expression Types
+data AExpr a b =
+  AVar String
+  | ANum Int
+  | AConst Int Int
+  | AAp (Annotated a b) (Annotated a b)
+  | ALet Bool [ADef a b] (Annotated a b)
+  | ACase (Annotated a b) [AAlter a b]
+  | ALam [a] (Annotated a b)
+  deriving Show
+
+type Annotated a b = (b, AExpr a b)
+type ADef a b = (a, Annotated a b)
+type AAlter a b = (Int, [a], Annotated a b)
+type AProgram a b = [(String, [a], Annotated a b)]
+
+-- Get binders and bindees
+bindersOf :: [(a, b)] -> [a]
+bindersOf = map fst
+
+rhssOf :: [(a, b)] -> [b]
+rhssOf = map snd

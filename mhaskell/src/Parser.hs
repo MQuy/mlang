@@ -139,7 +139,7 @@ pExpr = pLet <|> pCase <|> pLam <|> pAExpr
 -- Lambda ~ \x y -> expr
 pLam :: SParser Expr
 pLam = do
-  params <- reservedOp "\"" *> many pVariable
+  params <- reservedOp "\\" *> many pVariable
   expr   <- reservedOp "->" *> pExpr
   return $ ELam params expr
 
