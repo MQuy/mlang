@@ -91,7 +91,6 @@ updateFromDump a dump state@(o, _, _, v, _, heap, global, stats) = case dump of
   []             -> state
   ((i1, s1) : d) -> (o, i1, a : s1, v, d, heap, global, stats)
 
-
 pack :: Int -> Int -> GMState -> GMState
 pack tag arity (o, i, s, v, dump, heap, global, stats) =
   (o, i, a : drop arity s, v, dump, heap1, global, stats)
@@ -106,7 +105,7 @@ casejump alters (o, i, s1 : ss, v, dump, heap, global, stats) =
   (o, i1 ++ i, s1 : ss, v, dump, heap, global, stats)
  where
   (NConst t as) = hLookup heap s1
-  i1            = aLookup alters t (error ("No case for constructor" ++ show t))
+  i1 = aLookup alters t (error "Pattern match(es) are non-exhaustive")
 
 split :: Int -> GMState -> GMState
 split n (o, i, s1 : ss, v, dump, heap, global, stats) =

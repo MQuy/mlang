@@ -51,8 +51,17 @@ primitives =
     )
   ]
 
+cTrue = 1
+cFalse = 2
+cOtherwise = 3
+cExit = 4
+
 preludeDcs =
-  [(show cTrue, [], EConst cTrue 0), (show cFalse, [], EConst cFalse 0)]
+  [ (show cTrue     , [], EConst cTrue 0)
+  , (show cFalse    , [], EConst cFalse 0)
+  , (show cOtherwise, [], EConst cOtherwise 0)
+  , (show cExit     , [], EConst cExit 0)
+  ]
 
 -- Infor which is used during parsing {currentTag, {name: (tag, arity)}}
 data PEInfo = PEInfo {
@@ -66,7 +75,12 @@ data PEInfo = PEInfo {
 peInfo :: PEInfo
 peInfo = PEInfo
   { currentTag = 16
-  , tName      = M.fromList [("True", (cTrue, 0)), ("False", (cFalse, 1))]
+  , tName      = M.fromList
+    [ ("True"     , (cTrue, 0))
+    , ("False"    , (cFalse, 0))
+    , ("otherwise", (cOtherwise, 0))
+    , ("exit"     , (cExit, 0))
+    ]
   }
 
 peTagInc :: String -> Int -> PEInfo -> PEInfo
@@ -78,6 +92,11 @@ isAtomicExpr :: Expr -> Bool
 isAtomicExpr (EVar _) = True
 isAtomicExpr (ENum _) = True
 isAtomicExpr _        = False
+
+-- Prestep to handle pattern matching
+data PPattern = PVar String | PConst Int [PPattern] deriving Show
+type PScDefn = (String, [PPattern], Expr)
+type PProgram = [PScDefn]
 
 -- G-Machine State
 type GMState = (GMOutput, GMCode, GMStack, GMVStack, GMDump, GMHeap, GMGlobal, GMStats)
@@ -92,9 +111,6 @@ data Node =
   | NInd Addr
   | NConst Int [Addr]
   deriving Show
-
-cTrue = 1 :: Int
-cFalse = 2 :: Int
 
 -- Output
 type GMOutput = String
@@ -275,7 +291,6 @@ replaceStats stats (o, i, s, v, dump, heap, global, _) =
 
 statGetSteps :: Int -> Int
 statGetSteps s = s
-
 
 -- Annotated Expression Types
 data AExpr a b =

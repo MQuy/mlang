@@ -42,7 +42,7 @@ import           Type
 
 type SParser = Parsec String PEInfo
 
-reservedNames = ["data", "let", "letrec", "case", "in", "of"]
+reservedNames = ["data", "let", "letrec", "case", "in", "of", "otherwise"]
 reservedOpNames =
   [ "|"
   , "\\"
@@ -119,17 +119,17 @@ nameParser name = if name `elem` reservedNames
   then unexpected ("reserved word " ++ show name)
   else return name
 
-pProgram :: SParser Program
+pProgram :: SParser PProgram
 pProgram = do
   defs <- sepEndBy (pScData <|> pScDefn) semi
   eof
   return $ foldl1 (++) defs
 
 -- Supercombinator parser
-pScDefn :: SParser Program
+pScDefn :: SParser PProgram
 pScDefn = do
   name       <- pVariable
-  parameters <- many pVariable
+  parameters <- many pScPattern
   expr       <- reservedOp "=" *> pExpr
   return [(name, parameters, expr)]
 
@@ -153,7 +153,7 @@ pCase = do
 -- Case alter ~ data constructor [arg]* -> expr
 pCaseAlter :: SParser (Int, [String], Expr)
 pCaseAlter = do
-  EConst tag arity <- pDataConst
+  EConst tag arity <- pDataConst <|> pOtherwise
   args             <- many pVariable
   expr             <- reservedOp "->" *> pExpr
   return (tag, args, expr)
@@ -214,6 +214,7 @@ pAtom =
     <|> pDataConst
     <?> "constructor, variable, number, or parenthesized expression"
 
+-- Data constructor parser
 pDataConst :: SParser Expr
 pDataConst = do
   name <- pUppercased
@@ -222,32 +223,48 @@ pDataConst = do
     Nothing           -> fail $ "cannot find data constructor " ++ name
     Just (tag, arity) -> return $ EConst tag arity
 
+pOtherwise :: SParser Expr
+pOtherwise = do
+  reserved "otherwise"
+  return $ EConst cOtherwise 0
+
 -- Data type parser
-pScData :: SParser Program
+pScData :: SParser PProgram
 pScData = do
   name  <- reserved "data" *> pUppercased
   types <- many pVariable <* reservedOp "="
   sepEndBy pScDataConst (reservedOp "|")
 
--- Data constructor parser
-pScDataConst :: SParser ScDefn
+-- Sc data constructor parser
+pScDataConst :: SParser PScDefn
 pScDataConst = do
   name                        <- pUppercased
-  arity                       <- many pVariable
+  args                        <- many pScPattern
   PEInfo { currentTag = tag } <- getState
-  modifyState $ peTagInc name (length arity)
-  return $ buildScDc tag (length arity)
+  modifyState $ peTagInc name (length args)
+  return $ buildScDc tag (length args)
+
+-- Sc parameter parser
+-- f x (Just y) = ...
+pScPattern :: SParser PPattern
+pScPattern = parens pScPattern <|> (PVar <$> pVariable) <|> pScConst
+
+pScConst :: SParser PPattern
+pScConst = do
+  (EConst tag arity) <- pDataConst
+  patterns           <- many pScPattern
+  return $ PConst tag patterns
 
 -- MQ 2018-10-24
 -- Max number of arguments is 26
-buildScDc :: Int -> Int -> ScDefn
+buildScDc :: Int -> Int -> PScDefn
 buildScDc tag 0 = (show tag, [], EConst tag 0)
-buildScDc tag n = (show tag, params, expr)
+buildScDc tag n = (show tag, map PVar params, expr)
  where
   params = [ [chr (96 + i)] | i <- [1 .. n] ]
   expr   = foldl fn (EConst tag n) params
   fn e a = EAp e (EVar a)
 
 -- data declaration has to be declared before using
-parse :: String -> Either ParseError Program
+parse :: String -> Either ParseError PProgram
 parse = runP pProgram peInfo "mhaskell"

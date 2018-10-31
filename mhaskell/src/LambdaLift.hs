@@ -20,10 +20,8 @@ type FVAlt = AAlter String (S.Set String)
 freeVars :: Program -> FVProgram
 freeVars program =
   [ (name, args, freeVarsExpr (S.fromList args) body)
-  | (name, args, body) <- supercombinators
+  | (name, args, body) <- program
   ]
- where
-  supercombinators = filter (\(name, _, _) -> not (all isDigit name)) program
 
 freeVarsExpr :: S.Set String -> Expr -> FVExpr
 freeVarsExpr _ (ENum n) = (S.empty, ANum n)
@@ -118,9 +116,10 @@ makeName :: String -> Int -> String
 makeName prefix ns = prefix ++ "_" ++ show ns
 
 renameE :: [(String, String)] -> Int -> Expr -> (Int, Expr)
-renameE env ns (EVar v   ) = (ns, EVar (aLookup env v v))
-renameE env ns (ENum n   ) = (ns, ENum n)
-renameE env ns (EAp e1 e2) = (ns2, EAp e11 e21)
+renameE env ns (  EVar v          ) = (ns, EVar (aLookup env v v))
+renameE env ns e@(ENum n          ) = (ns, e)
+renameE env ns e@(EConst tag arity) = (ns, e)
+renameE env ns (  EAp    e1  e2   ) = (ns2, EAp e11 e21)
  where
   (ns1, e11) = renameE env ns e1
   (ns2, e21) = renameE env ns1 e2
@@ -218,4 +217,8 @@ isAbstractLam _ = False
 llName = "$lambda"
 
 liftLambda :: Program -> Program
-liftLambda program = collectScs $ rename $ abstract $ freeVars program
+liftLambda program = dataDeclarations
+  ++ collectScs (rename $ abstract $ freeVars supercombinators)
+ where
+  dataDeclarations = filter (\(name, _, _) -> all isDigit name) program
+  supercombinators = filter (\(name, _, _) -> not (all isDigit name)) program
