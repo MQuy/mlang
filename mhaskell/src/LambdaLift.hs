@@ -1,5 +1,6 @@
 module LambdaLift
   ( liftLambda
+  , freeVarsExpr
   )
 where
 

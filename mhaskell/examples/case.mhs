@@ -1,0 +1,3 @@
+main = f True;
+
+f x = case x of True -> 1; False -> 2;

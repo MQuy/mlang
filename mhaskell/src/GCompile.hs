@@ -109,7 +109,7 @@ compileAlter compile names expr env =
   env1 = zip names [0 ..] ++ argOffset n env
 
 compileLet :: GMCompiler -> [EDef] -> GMCompiler
-compileLet compile defs e env = compiled defs env ++ compileC e env2
+compileLet compile defs e env = compiled defs env ++ compile e env2
  where
   env2 = compileArgs defs env
   compiled [] env1 = []
@@ -118,7 +118,7 @@ compileLet compile defs e env = compiled defs env ++ compileC e env2
 
 compileLetrec :: GMCompiler -> [EDef] -> GMCompiler
 compileLetrec compile defs e env =
-  [Alloc n] ++ compiled defs (n - 1) ++ compileC e env1
+  [Alloc n] ++ compiled defs (n - 1) ++ compile e env1
  where
   n    = length defs
   env1 = compileArgs defs env

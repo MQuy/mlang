@@ -1,0 +1,6 @@
+data Land = Utopia a | Lalaland a b;
+
+main = let x = stay (Utopia 3) in x - 5;
+
+stay (Lalaland x y) = x + y;
+stay (Utopia x) = x * x;

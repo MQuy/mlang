@@ -1,0 +1,5 @@
+compose f g x y = f (g x);
+double x = 2 * x;
+square x = x * x;
+
+main = compose square double 10 (5 / 0);
