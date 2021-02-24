@@ -2,13 +2,19 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+var fs = require('fs');
+var child_process = require('child_process');
+var path = require('path');
+var os = require('os');
+var crypto = require('crypto');
 
-var fs = _interopDefault(require('fs'));
-var child_process = _interopDefault(require('child_process'));
-var path = _interopDefault(require('path'));
-var os = _interopDefault(require('os'));
-var crypto = _interopDefault(require('crypto'));
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var fs__default = /*#__PURE__*/_interopDefaultLegacy(fs);
+var child_process__default = /*#__PURE__*/_interopDefaultLegacy(child_process);
+var path__default = /*#__PURE__*/_interopDefaultLegacy(path);
+var os__default = /*#__PURE__*/_interopDefaultLegacy(os);
+var crypto__default = /*#__PURE__*/_interopDefaultLegacy(crypto);
 
 function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
@@ -89,12 +95,12 @@ function _execFileSync(options, execOptions) {
 
   function getTempfile(name) {
     var filepath, suffix = '', fd;
-    tempdir = tempdir || os.tmpdir();
+    tempdir = tempdir || os__default['default'].tmpdir();
 
     while (true) {
-      filepath = path.join(tempdir, name + suffix);
+      filepath = path__default['default'].join(tempdir, name + suffix);
       try {
-        fd = fs.openSync(filepath, 'wx');
+        fd = fs__default['default'].openSync(filepath, 'wx');
       } catch (e) {
         if (e.code === 'EEXIST') {
           suffix++;
@@ -103,7 +109,7 @@ function _execFileSync(options, execOptions) {
           throw e;
         }
       }
-      fs.closeSync(fd);
+      fs__default['default'].closeSync(fd);
       break;
     }
     return filepath;
@@ -114,12 +120,12 @@ function _execFileSync(options, execOptions) {
     pathStderr = getTempfile('readline-sync.stderr'),
     pathExit = getTempfile('readline-sync.exit'),
     pathDone = getTempfile('readline-sync.done'),
-    crypto$$1 = crypto, shasum, decipher, password;
+    crypto = crypto__default['default'], shasum, decipher, password;
 
-  shasum = crypto$$1.createHash(ALGORITHM_HASH);
+  shasum = crypto.createHash(ALGORITHM_HASH);
   shasum.update('' + process.pid + (salt++) + Math.random());
   password = shasum.digest('hex');
-  decipher = crypto$$1.createDecipher(ALGORITHM_CIPHER, password);
+  decipher = crypto.createDecipher(ALGORITHM_CIPHER, password);
 
   hostArgs = getHostArgs(options);
   if (IS_WIN) {
@@ -149,7 +155,7 @@ function _execFileSync(options, execOptions) {
   }
   if (_DBG_checkMethod) { _DBG_checkMethod('_execFileSync', hostArgs); }
   try {
-    child_process.spawn(shellPath, shellArgs, execOptions);
+    child_process__default['default'].spawn(shellPath, shellArgs, execOptions);
   } catch (e) {
     res.error = new Error(e.message);
     res.error.method = '_execFileSync - spawn';
@@ -157,15 +163,15 @@ function _execFileSync(options, execOptions) {
     res.error.args = shellArgs;
   }
 
-  while (fs.readFileSync(pathDone, {encoding: options.encoding}).trim() !== '1') {} // eslint-disable-line no-empty
+  while (fs__default['default'].readFileSync(pathDone, {encoding: options.encoding}).trim() !== '1') {} // eslint-disable-line no-empty
   if ((exitCode =
-      fs.readFileSync(pathExit, {encoding: options.encoding}).trim()) === '0') {
+      fs__default['default'].readFileSync(pathExit, {encoding: options.encoding}).trim()) === '0') {
     res.input =
-      decipher.update(fs.readFileSync(pathStdout, {encoding: 'binary'}),
+      decipher.update(fs__default['default'].readFileSync(pathStdout, {encoding: 'binary'}),
         'hex', options.encoding) +
       decipher.final(options.encoding);
   } else {
-    extMessage = fs.readFileSync(pathStderr, {encoding: options.encoding}).trim();
+    extMessage = fs__default['default'].readFileSync(pathStderr, {encoding: options.encoding}).trim();
     res.error = new Error(DEFAULT_ERR_MSG + (extMessage ? '\n' + extMessage : ''));
     res.error.method = '_execFileSync';
     res.error.program = shellPath;
@@ -174,10 +180,10 @@ function _execFileSync(options, execOptions) {
     res.error.exitCode = +exitCode;
   }
 
-  fs.unlinkSync(pathStdout);
-  fs.unlinkSync(pathStderr);
-  fs.unlinkSync(pathExit);
-  fs.unlinkSync(pathDone);
+  fs__default['default'].unlinkSync(pathStdout);
+  fs__default['default'].unlinkSync(pathStderr);
+  fs__default['default'].unlinkSync(pathExit);
+  fs__default['default'].unlinkSync(pathDone);
 
   return res;
 }
@@ -206,11 +212,11 @@ function readlineExt(options) {
     execOptions.stdio = [process.stdin];
   }
 
-  if (child_process.execFileSync) {
+  if (child_process__default['default'].execFileSync) {
     hostArgs = getHostArgs(options);
     if (_DBG_checkMethod) { _DBG_checkMethod('execFileSync', hostArgs); }
     try {
-      res.input = child_process.execFileSync(extHostPath, hostArgs, execOptions);
+      res.input = child_process__default['default'].execFileSync(extHostPath, hostArgs, execOptions);
     } catch (e) { // non-zero exit code
       extMessage = e.stderr ? (e.stderr + '').trim() : '';
       res.error = new Error(DEFAULT_ERR_MSG + (extMessage ? '\n' + extMessage : ''));
@@ -303,7 +309,7 @@ function _readlineSync(options) {
         fdW = process.stdout.fd;
       } else {
         try {
-          fdW = fs.openSync('\\\\.\\CON', 'w');
+          fdW = fs__default['default'].openSync('\\\\.\\CON', 'w');
         } catch (e) { /* ignore */ }
         if (typeof fdW !== 'number') { // Retry
           try {
@@ -316,13 +322,13 @@ function _readlineSync(options) {
       if (process.stdin.isTTY) {
         process.stdin.pause();
         try {
-          fdR = fs.openSync('/dev/tty', 'r'); // device file, not process.stdin
+          fdR = fs__default['default'].openSync('/dev/tty', 'r'); // device file, not process.stdin
           ttyR = process.stdin._handle;
         } catch (e) { /* ignore */ }
       } else {
         // Node.js v0.12 read() fails.
         try {
-          fdR = fs.openSync('/dev/tty', 'r');
+          fdR = fs__default['default'].openSync('/dev/tty', 'r');
           ttyR = new TTY(fdR, false);
         } catch (e) { /* ignore */ }
       }
@@ -331,7 +337,7 @@ function _readlineSync(options) {
         fdW = process.stdout.fd;
       } else {
         try {
-          fdW = fs.openSync('/dev/tty', 'w');
+          fdW = fs__default['default'].openSync('/dev/tty', 'w');
         } catch (e) { /* ignore */ }
       }
     }
@@ -358,7 +364,7 @@ function _readlineSync(options) {
     }
 
     if (options.display) {
-      fs.writeSync(fdW, options.display);
+      fs__default['default'].writeSync(fdW, options.display);
       options.display = '';
     }
     if (options.displayOnly) { return; }
@@ -380,7 +386,7 @@ function _readlineSync(options) {
     while (true) {
       readSize = 0;
       try {
-        readSize = fs.readSync(fdR, buffer, 0, reqSize);
+        readSize = fs__default['default'].readSync(fdR, buffer, 0, reqSize);
       } catch (e) {
         if (e.code !== 'EOF') {
           setRawMode(false);
@@ -409,9 +415,9 @@ function _readlineSync(options) {
       if (chunk) {
         if (!isCooked) {
           if (!options.hideEchoBack) {
-            fs.writeSync(fdW, chunk);
+            fs__default['default'].writeSync(fdW, chunk);
           } else if (options.mask) {
-            fs.writeSync(fdW, (new Array(chunk.length + 1)).join(options.mask));
+            fs__default['default'].writeSync(fdW, (new Array(chunk.length + 1)).join(options.mask));
           }
         }
         input += chunk;
@@ -421,7 +427,7 @@ function _readlineSync(options) {
         options.keyIn && input.length >= reqSize) { break; }
     }
 
-    if (!isCooked && !silent) { fs.writeSync(fdW, '\n'); }
+    if (!isCooked && !silent) { fs__default['default'].writeSync(fdW, '\n'); }
     setRawMode(false);
   })();
 
@@ -560,13 +566,13 @@ function isMatched(res, comps, caseSensitive) {
   });
 }
 
-function replaceHomePath(path$$1, expand) {
-  var homePath = path.normalize(
+function replaceHomePath(path, expand) {
+  var homePath = path__default['default'].normalize(
     IS_WIN ? (process.env.HOMEDRIVE || '') + (process.env.HOMEPATH || '') :
     process.env.HOME || '').replace(/[\/\\]+$/, '');
-  path$$1 = path.normalize(path$$1);
-  return expand ? path$$1.replace(/^~(?=\/|\\|$)/, homePath) :
-    path$$1.replace(new RegExp('^' + escapePattern(homePath) +
+  path = path__default['default'].normalize(path);
+  return expand ? path.replace(/^~(?=\/|\\|$)/, homePath) :
+    path.replace(new RegExp('^' + escapePattern(homePath) +
       '(?=\\/|\\\\|$)', IS_WIN ? 'i' : ''), '~');
 }
 
@@ -683,7 +689,7 @@ function getPhContent(param, options) {
       case 'cwdHome':
         text = process.cwd();
         if (param === 'CWD') {
-          text = path.basename(text);
+          text = path__default['default'].basename(text);
         } else if (param === 'cwdHome') {
           text = replaceHomePath(text);
         }
@@ -1007,19 +1013,19 @@ exports.questionPath = function(query, options) {
         // mkdir -p
         function mkdirParents(dirPath) {
           dirPath.split(/\/|\\/).reduce(function(parents, dir) {
-            var path$$1 = path.resolve((parents += dir + path.sep));
-            if (!fs.existsSync(path$$1)) {
-              fs.mkdirSync(path$$1);
-            } else if (!fs.statSync(path$$1).isDirectory()) {
-              throw new Error('Non directory already exists: ' + path$$1);
+            var path = path__default['default'].resolve((parents += dir + path__default['default'].sep));
+            if (!fs__default['default'].existsSync(path)) {
+              fs__default['default'].mkdirSync(path);
+            } else if (!fs__default['default'].statSync(path).isDirectory()) {
+              throw new Error('Non directory already exists: ' + path);
             }
             return parents;
           }, '');
         }
 
         try {
-          exists = fs.existsSync(value);
-          validPath = exists ? fs.realpathSync(value) : path.resolve(value);
+          exists = fs__default['default'].existsSync(value);
+          validPath = exists ? fs__default['default'].realpathSync(value) : path__default['default'].resolve(value);
           // options.exists default: true, not-bool: no-check
           if (!options.hasOwnProperty('exists') && !exists ||
               typeof options.exists === 'boolean' && options.exists !== exists) {
@@ -1031,14 +1037,14 @@ exports.questionPath = function(query, options) {
             if (options.isDirectory) {
               mkdirParents(validPath);
             } else {
-              mkdirParents(path.dirname(validPath));
-              fs.closeSync(fs.openSync(validPath, 'w')); // touch
+              mkdirParents(path__default['default'].dirname(validPath));
+              fs__default['default'].closeSync(fs__default['default'].openSync(validPath, 'w')); // touch
             }
-            validPath = fs.realpathSync(validPath);
+            validPath = fs__default['default'].realpathSync(validPath);
           }
           if (exists && (options.min || options.max ||
               options.isFile || options.isDirectory)) {
-            stat = fs.statSync(validPath);
+            stat = fs__default['default'].statSync(validPath);
             // type check first (directory has zero size)
             if (options.isFile && !stat.isFile()) {
               error = 'Not file: ' + validPath;
@@ -1305,33 +1311,33 @@ exports.setEncoding = function() { return _setOption('encoding', arguments); };
 exports.setMask = function() { return _setOption('mask', arguments); };
 exports.setBufferSize = function() { return _setOption('bufferSize', arguments); };
 });
-var readlineSync_1 = readlineSync._DBG_set_useExt;
-var readlineSync_2 = readlineSync._DBG_set_checkOptions;
-var readlineSync_3 = readlineSync._DBG_set_checkMethod;
-var readlineSync_4 = readlineSync._DBG_clearHistory;
-var readlineSync_5 = readlineSync.setDefaultOptions;
+readlineSync._DBG_set_useExt;
+readlineSync._DBG_set_checkOptions;
+readlineSync._DBG_set_checkMethod;
+readlineSync._DBG_clearHistory;
+readlineSync.setDefaultOptions;
 var readlineSync_6 = readlineSync.question;
-var readlineSync_7 = readlineSync.prompt;
-var readlineSync_8 = readlineSync.keyIn;
-var readlineSync_9 = readlineSync.questionEMail;
-var readlineSync_10 = readlineSync.questionNewPassword;
-var readlineSync_11 = readlineSync.questionInt;
-var readlineSync_12 = readlineSync.questionFloat;
-var readlineSync_13 = readlineSync.questionPath;
-var readlineSync_14 = readlineSync.promptCL;
-var readlineSync_15 = readlineSync.promptLoop;
-var readlineSync_16 = readlineSync.promptCLLoop;
-var readlineSync_17 = readlineSync.promptSimShell;
-var readlineSync_18 = readlineSync.keyInYN;
-var readlineSync_19 = readlineSync.keyInYNStrict;
-var readlineSync_20 = readlineSync.keyInPause;
-var readlineSync_21 = readlineSync.keyInSelect;
-var readlineSync_22 = readlineSync.getRawInput;
-var readlineSync_23 = readlineSync.setPrint;
-var readlineSync_24 = readlineSync.setPrompt;
-var readlineSync_25 = readlineSync.setEncoding;
-var readlineSync_26 = readlineSync.setMask;
-var readlineSync_27 = readlineSync.setBufferSize;
+readlineSync.prompt;
+readlineSync.keyIn;
+readlineSync.questionEMail;
+readlineSync.questionNewPassword;
+readlineSync.questionInt;
+readlineSync.questionFloat;
+readlineSync.questionPath;
+readlineSync.promptCL;
+readlineSync.promptLoop;
+readlineSync.promptCLLoop;
+readlineSync.promptSimShell;
+readlineSync.keyInYN;
+readlineSync.keyInYNStrict;
+readlineSync.keyInPause;
+readlineSync.keyInSelect;
+readlineSync.getRawInput;
+readlineSync.setPrint;
+readlineSync.setPrompt;
+readlineSync.setEncoding;
+readlineSync.setMask;
+readlineSync.setBufferSize;
 
 var TokenType;
 (function (TokenType) {
