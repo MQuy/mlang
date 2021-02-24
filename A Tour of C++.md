@@ -72,3 +72,23 @@
   Color c4 = Color {1};         // explicit, undefined behaviour if value is out of enum ranges
   Color c5 {1};                 // same above
   ```
+
+### Modularity
+
+- similar to C (a `.c` file), a `.cpp` file is called a _translation unit_
+- from c++20 (not ready yet), prefer using `module` over `#include` (old-fashioned preprocessor text replacement). Benefits of modules
+  - a module is compile only once
+  - two modules can be imported in any order without changing the meaning
+  - importing something into a module, users of that module doesn't implicitly gain access to what you imported
+- `noexcept` promises that function should never throw an exception (if not, program is terminted)
+- class invariant constraints the state stored in the object (established in construction and constantly maintain between calls via public methods)
+- avoid overuse of `try/catch` (usually design error-handing strategy beforehand) by using RAII technique
+- put a bit care when choosing an suitable approach either throwing an exception, returning a error code or terminating the program to indicate is wrong
+- `assert` for runtime error checking while `static_assert` for compile error checking
+- default behaviour for both argument passing and value return is "copy" (can be implicitly optimized to "moves" or "shared")
+- structured binding is mechanism for giving local names to members of a class/struct object
+  ```cpp
+  map<string, int> m;
+  for(auto & [key, value] : m)
+    ++value;
+  ```
