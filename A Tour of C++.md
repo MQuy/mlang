@@ -36,13 +36,15 @@
   | --- | ------------------------ | -------------- | ----------------------------- |
   | C   | external                 | optional       | restrict                      |
   | C++ | internal                 | mandatory      | same as preprocessor constant |
-- a _reference_ is similar to a _pointer_ except that you don't need to use a prefix `*` to access a refered value, cannot be modified after initialization and must refer to a valid object. A reference and a point both refer/point to an object and both are represented in memory as a machine address
+- a _reference_ (_lvalue reference_ which binds to [_lvalue_](https://ncona.com/2019/11/cpp-value-categories/)) is similar to a _pointer_ except that we don't need to use a prefix `*` to access a refered value, cannot be modified after initialization and must refer to a valid object. A reference and a point both refer/point to an object and both are represented in memory as a machine address
   ```cpp
-  void swap(int &x, int &y) { ... };
+  void swap(int &x, int &y) { };
+  void foo(const int&x) { };
   int main() {
     int a = 1;
     int b = 2;
-    swap(a, b);       // a and b are swapped after this point since reference makes sure we use that variable itself (not copy)
+    swap(a, b);   // a and b are swapped after this point since reference makes sure we use that variable itself (not copy)
+    foo(1);       // is allowed only if that parameter has const qualifier, compiler creates a temporary variable, assigns 7 to it and passes to that foo
   }
   ```
 - if-statement can introduce a variable
@@ -79,7 +81,7 @@
 - from c++20 (not ready yet), prefer using `module` over `#include` (old-fashioned preprocessor text replacement). Benefits of modules
   - a module is compile only once
   - two modules can be imported in any order without changing the meaning
-  - importing something into a module, users of that module doesn't implicitly gain access to what you imported
+  - importing something into a module, users of that module doesn't implicitly gain access to what we imported
 - `noexcept` promises that function should never throw an exception (if not, program is terminted)
 - class invariant constraints the state stored in the object (established in construction and constantly maintain between calls via public methods)
 - avoid overuse of `try/catch` (usually design error-handing strategy beforehand) by using RAII technique
@@ -116,3 +118,20 @@
   ```
 - [virtual method table](https://en.wikipedia.org/wiki/Virtual_method_table#Example) is used to support dynamic dispatch (override virtual method calls). In short, each derived object has a hidden pointer (object's member) which points to array of pointers (class's vpointer), each pointer points to a class function address
   ![virtual method table](https://i.imgur.com/v3RgnSL.jpg)
+
+### Essential Operations
+
+- Constructor, destructor, copy and move operators will be generated as needed (though we can specify `=default` or `=delete` to force)
+- To prevent implicit conversion, we add prefix to constructor like below
+  ```cpp
+  class Vector {
+  public:
+    explicit Vector(int s);    // no implicit conversion from int to Vector
+  };
+  ----
+  Vector v1(7);               // ok
+  Vector v2 = 7;              // error
+  ```
+- move is the concept of "transfer" content of an object which is rvalue to a target and "empty" that object
+- move operator is applied when an rvalue reference is used as an initializer or as the right-hand side of an assignment
+- user-defined literal is the way to construct user-defined object from literal
