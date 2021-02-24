@@ -92,3 +92,27 @@
   for(auto & [key, value] : m)
     ++value;
   ```
+
+### Classes
+
+- the idea of concrete classes is behaving like built-in types, its representation is part of its definition <- allows implementation to optitmize efficient in time and space
+- compiler converts operators into appropriate function calls (which can be inlined)
+  ```cpp
+  complex a {2.3};
+  complex b {1 / a}; // -> operator/(complex{1}, a)
+  a + b;              // -> operator+(a, b)
+  ```
+- prefer _Resource Acquisition Is Initialization (RAII)_ (acquiring resources in a constructor and releasing them in a destructor) over "naked `new/delete` operator" since releasing resources is automatic when execution is out of its scope
+  ```cpp
+  void foo(int n) {
+    Vector v(n);
+  } // v is destroyed here
+  ```
+- for classes in class hierarchies, we tend to allocate them via `new` and then deallocate via `delete`. There are few reasons to avoid them like forget or fail to `delete`, in that case, prefer using `unique_ptr`
+  ```cpp
+  void foo() {
+    vector<unique_ptr<Shape>> v;
+  } // all Shapes implicitly destroyed
+  ```
+- [virtual method table](https://en.wikipedia.org/wiki/Virtual_method_table#Example) is used to support dynamic dispatch (override virtual method calls). In short, each derived object has a hidden pointer (object's member) which points to array of pointers (class's vpointer), each pointer points to a class function address
+  ![virtual method table](https://i.imgur.com/v3RgnSL.jpg)
