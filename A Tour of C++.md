@@ -135,3 +135,22 @@
 - move is the concept of "transfer" content of an object which is rvalue to a target and "empty" that object
 - move operator is applied when an rvalue reference is used as an initializer or as the right-hand side of an assignment
 - user-defined literal is the way to construct user-defined object from literal
+
+### Templates
+
+- C++ `template` is similar with Typescript Generic, and is a compile-time mechanism (code generated for each usage type)
+- a template can take value arugments
+  ```cpp
+  template<typename T, int N>
+  struct Buffer {
+    using value_type = T;
+    constexpr int size() { return N; }
+  }
+  Buffer<char, 1024> glob;
+  ```
+- templates provide a powerful mechanism for compile-time computation and type-manipulation that can lead to very compact and efficient code (code is generated when needed)
+- template is usually placed in headers (make as much as visible as possible for both compiler and reader)
+
+### Concepts and Generic Programming
+
+- a concept is a compile-time predicate specifying how one or more types can be used
