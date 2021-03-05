@@ -20,7 +20,7 @@ type_specifier = "void" | "char" | "short" | "int" | "long" | "float" | "double"
                   | enum_specifier
                   | typedef_name;
 
-type_qualifier = "const" | "volatile";
+type_qualifier = "const" | "volatile" | "restrict";
 
 struct_or_union_specifier = struct_or_union, [ identifier ], "{", struct_declaration_list, "}"
                             | struct_or_union, identifier;
