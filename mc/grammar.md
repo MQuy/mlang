@@ -72,7 +72,7 @@ parameter_declaration = declaration_specifiers, declarator
 
 identifier_list = identifier, { ",", identifier };
 
-identifier = assignment_expression
+initializer = assignment_expression
             | "{", initializer_list, [","], "}";
 
 initializer_list = initializer, { ",", initializer };
