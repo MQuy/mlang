@@ -3,7 +3,7 @@ translation_unit = { external_declaration };
 external_declaration = function_definition
                       | declaration;
 
-function_definition = [ declaration_specifiers ], declarator, [ declarator_list ], compound_statement;
+function_definition = [ declaration_specifiers ], declarator, [ declaration_list ], compound_statement;
 
 declaration = declaration_specifiers, [ init_declarator_list ], ";";
 

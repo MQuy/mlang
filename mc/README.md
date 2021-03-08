@@ -9,6 +9,10 @@
 - [ ] Tokenization
 - [ ] AST Construction
 
+### AST
+
+![diagram](https://i.imgur.com/vOM62OP.png)
+
 ### LLVM
 
 ```cpp
