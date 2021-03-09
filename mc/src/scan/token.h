@@ -107,6 +107,17 @@ struct SourcePosition
 {
 	int line;
 	int column;
+
+	SourcePosition()
+		: line(0)
+		, column(0)
+	{
+	}
+	SourcePosition(off_t line_, off_t column_)
+		: line(line_)
+		, column(column_)
+	{
+	}
 };
 
 class Token
@@ -122,11 +133,13 @@ public:
 		, end(end)
 	{
 	}
+	~Token() {}
+	void set_position(SourcePosition start, SourcePosition end);
 
 protected:
-	enum TokenType type;
-	struct SourcePosition start;
-	struct SourcePosition end;
+	TokenType type;
+	SourcePosition start;
+	SourcePosition end;
 };
 
 class TokenSymbol : public Token
@@ -137,6 +150,7 @@ public:
 		, Token(TokenType::tk_symbol)
 	{
 	}
+	~TokenSymbol() {}
 
 private:
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
@@ -150,6 +164,7 @@ public:
 		, Token(TokenType::tk_identifier)
 	{
 	}
+	~TokenIdentifier() {}
 
 private:
 	std::string name;  // Identifier
@@ -164,36 +179,8 @@ public:
 		, Token(TokenType::tk_constant)
 	{
 	}
-	TokenLiteral<int>(std::string text, unsigned base)
-		: value(strtol(text, nullptr, base))
-		, Token(TokenType::tk_constant)
-	{
-	}
-	TokenLiteral<long>(std::string text, unsigned base)
-		: value(strtol(text, nullptr, base))
-		, Token(TokenType::tk_constant)
-	{
-	}
-	TokenLiteral<long long>(std::string text, unsigned base)
-		: value(strtoll(text, nullptr, base))
-		, Token(TokenType::tk_constant)
-	{
-	}
-	TokenLiteral<unsigned int>(std::string text, unsigned base)
-		: value(strtoul(text, nullptr, base))
-		, Token(TokenType::tk_constant)
-	{
-	}
-	TokenLiteral<unsigned long>(std::string text, unsigned base)
-		: value(strtoul(text, nullptr, base))
-		, Token(TokenType::tk_constant)
-	{
-	}
-	TokenLiteral<unsigned long long>(std::string text, unsigned base)
-		: value(strtoull(text, nullptr, base))
-		, Token(TokenType::tk_constant)
-	{
-	}
+	TokenLiteral(std::string text, unsigned base);
+	~TokenLiteral() {}
 
 private:
 	T value;  // constant, string

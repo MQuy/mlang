@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "expr.h"
-#include "token.h"
+#include "scan/token.h"
 #include "type.h"
 
 class FragmentAST : public ASTNode

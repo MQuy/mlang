@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "token.h"
+#include "scan/token.h"
 
 enum class BuiltinTypeName
 {

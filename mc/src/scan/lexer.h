@@ -1,6 +1,10 @@
 #ifndef SCAN_LEXER_H
 #define SCAN_LEXER_H 1
 
+#include <functional>
+#include <memory>
+#include <stdexcept>
+
 #include "token.h"
 
 class Lexer
@@ -16,27 +20,28 @@ public:
 		, row(0)
 	{
 	}
+	~Lexer() {}
 
 	void scan();
 
 private:
-	Token scan_token();
-	Token scan_character();
-	Token scan_string();
-	Token scan_number();
-	Token Lexer::scan_decimal();
-	Token Lexer::scan_hexadecimal();
-	Token Lexer::scan_octal();
-	Token Lexer::scan_binary();
-	Token Lexer::scan_whole_number(std::function<bool(char)> comparator, unsigned base);
+	std::shared_ptr<Token> scan_token();
+	std::shared_ptr<Token> scan_character();
+	std::shared_ptr<Token> scan_string();
+	std::shared_ptr<Token> scan_number();
+	std::shared_ptr<Token> scan_decimal();
+	std::shared_ptr<Token> scan_hexadecimal();
+	std::shared_ptr<Token> scan_octal();
+	std::shared_ptr<Token> scan_binary();
+	std::shared_ptr<Token> scan_whole_number(std::function<bool(char)> comparator, unsigned base);
+	std::shared_ptr<Token> scan_word();
 
-	Token scan_word();
 	char advance();
 	void move_cursor(int distance);
 	void new_line();
 	void skip_spaces();
 	bool look_ahead_for_match(char ch);
-	bool Lexer::look_ahead_for_match(std::function<bool(char)> comparator);
+	bool look_ahead_for_match(std::function<bool(char)> comparator);
 
 	size_t current;
 	size_t runner;
@@ -44,7 +49,7 @@ private:
 	unsigned row;
 	std::string source;
 	size_t source_length;
-	std::vector<Token> tokens;
+	std::vector<std::shared_ptr<Token>> tokens;
 };
 
 class UnexpectedToken : public std::runtime_error
@@ -56,4 +61,5 @@ public:
 	}
 };
 
+void init_keywords();
 #endif
