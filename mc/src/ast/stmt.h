@@ -72,8 +72,8 @@ class DoWhileStmtAST : StmtAST
 private:
 	enum DoWhileKind
 	{
-		__identifier(do),
-		__identifier(while),
+		do_,
+		while_,
 	} kind;
 	ExprAST condition;
 	StmtAST body;

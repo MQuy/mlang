@@ -6,3 +6,5 @@
 .vscode/
 samples/core/dist/
 mhaskell/dist/
+.vs
+mc/packages

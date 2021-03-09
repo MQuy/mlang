@@ -33,14 +33,14 @@ class BinaryExprAST : ExprAST
 private:
 	ExprAST left;
 	ExprAST right;
-	BinaryOperator __identifier(opeartor);
+	BinaryOperator op;
 };
 
 class UnaryExprAST : ExprAST
 {
 private:
 	ExprAST expr;
-	UnaryOperator __identifier(operator);
+	UnaryOperator op;
 };
 
 class TenaryExprAST : ExprAST

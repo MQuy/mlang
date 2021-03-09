@@ -10,38 +10,38 @@
 
 enum class BuiltinTypeName
 {
-	__identifier(void),
-	__identifier(char),
+	void_,
+	char_,
 	signed_char,
-	__identifier(short),
-	__identifier(int),
-	__identifier(long),
-	long_long,	// signed integer types
-	_Bool,
 	unsigned_char,
+	short_,
 	unsigned_short,
+	int_,
 	unsigned_int,
+	long_,
 	unsigned_long,
+	long_long,			 // signed integer types
 	unsigned_long_long,	 // unsigned integer types
-	__identifier(float),
-	__identifier(double),
+	_Bool,
+	float_,
+	double_,
 	long_double,
 };
 
 enum class TypeQualifier
 {
-	__identifier(const),
-	__identifier(volatile),
-	__identifier(restrict),
+	const_,
+	volatile_,
+	restrict,
 };
 
 enum class StorageSpecifier
 {
-	__identifier(auto),
-	__identifier(register),
-	__identifier(static),
-	__identifier(extern),
-	__identifier(typedef),
+	auto_,
+	register_,
+	static_,
+	extern_,
+	typedef_,
 };
 enum class BinaryOperator
 {
@@ -68,8 +68,8 @@ enum class BinaryOperator
 	shift_left,	  // >>
 	shift_right,  // <<
 
-	__identifier(and),	// &&
-	__identifier(or),	// ||
+	and_,  // &&
+	or_,   // ||
 
 	equal,			   // ==
 	not_equal,		   // !=
@@ -95,14 +95,14 @@ enum class UnaryOperator
 	plus,
 	complement,
 
-	__identifier(not ),
+	not_,
 
 	dereference,
 	address_of,
 
 	cast,
-	__identifier(sizeof),
-	__identifier(alignof),
+	sizeof_,
+	alignof_,
 };
 
 class TypeAST
@@ -132,8 +132,8 @@ private:
 
 enum class AggregateKind
 {
-	__identifier(struct),
-	__identifier(union),
+	struct_,
+	union_,
 };
 
 class AggregateTypeAST : TypeAST

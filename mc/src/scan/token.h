@@ -101,7 +101,6 @@ enum class TokenType
 	tk_constant,
 	tk_symbol,
 	tk_identifier,
-	tk_invalid,
 };
 
 struct SourcePosition
@@ -143,19 +142,6 @@ private:
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };
 
-class TokenInvalid : public Token
-{
-public:
-	TokenInvalid(char ch)
-		: value(ch)
-		, Token(TokenType::tk_invalid)
-	{
-	}
-
-private:
-	char value;
-};
-
 class TokenIdentifier : public Token
 {
 public:
@@ -175,6 +161,36 @@ class TokenLiteral : public Token
 public:
 	TokenLiteral(T value)
 		: value(value)
+		, Token(TokenType::tk_constant)
+	{
+	}
+	TokenLiteral<int>(std::string text, unsigned base)
+		: value(strtol(text, nullptr, base))
+		, Token(TokenType::tk_constant)
+	{
+	}
+	TokenLiteral<long>(std::string text, unsigned base)
+		: value(strtol(text, nullptr, base))
+		, Token(TokenType::tk_constant)
+	{
+	}
+	TokenLiteral<long long>(std::string text, unsigned base)
+		: value(strtoll(text, nullptr, base))
+		, Token(TokenType::tk_constant)
+	{
+	}
+	TokenLiteral<unsigned int>(std::string text, unsigned base)
+		: value(strtoul(text, nullptr, base))
+		, Token(TokenType::tk_constant)
+	{
+	}
+	TokenLiteral<unsigned long>(std::string text, unsigned base)
+		: value(strtoul(text, nullptr, base))
+		, Token(TokenType::tk_constant)
+	{
+	}
+	TokenLiteral<unsigned long long>(std::string text, unsigned base)
+		: value(strtoull(text, nullptr, base))
 		, Token(TokenType::tk_constant)
 	{
 	}
