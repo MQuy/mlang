@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ast">
+      <UniqueIdentifier>{417c4e7d-84a7-420f-9915-5623b0425207}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scan">
+      <UniqueIdentifier>{0fee1f5b-090d-4ee4-a620-6589399bf573}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="scan\lexer.h">
+      <Filter>scan</Filter>
+    </ClInclude>
+    <ClInclude Include="scan\token.h">
+      <Filter>scan</Filter>
+    </ClInclude>
+    <ClInclude Include="ast\ast.h">
+      <Filter>ast</Filter>
+    </ClInclude>
+    <ClInclude Include="ast\expr.h">
+      <Filter>ast</Filter>
+    </ClInclude>
+    <ClInclude Include="ast\stmt.h">
+      <Filter>ast</Filter>
+    </ClInclude>
+    <ClInclude Include="ast\type.h">
+      <Filter>ast</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="scan\lexer.cpp">
+      <Filter>scan</Filter>
+    </ClCompile>
+    <ClCompile Include="scan\token.cpp">
+      <Filter>scan</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+</Project>
