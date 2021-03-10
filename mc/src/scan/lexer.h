@@ -13,16 +13,15 @@ public:
 	Lexer(std::string source)
 		: source(source)
 		, source_length(source.length())
-		, tokens()
+		, tokens(std::make_shared<std::vector<std::shared_ptr<Token>>>())
 		, current(0)
 		, runner(0)
 		, column(0)
 		, row(0)
 	{
 	}
-	~Lexer() {}
 
-	void scan();
+	std::shared_ptr<std::vector<std::shared_ptr<Token>>> scan();
 
 private:
 	std::shared_ptr<Token> scan_token();
@@ -40,8 +39,8 @@ private:
 	std::shared_ptr<Token> scan_word();
 	char scan_escape_sequences();
 
-	char
-	advance();
+	void reset();
+	char advance();
 	void move_cursor(int distance);
 	void new_line();
 	void skip_spaces();
@@ -56,7 +55,7 @@ private:
 	unsigned row;
 	std::string source;
 	size_t source_length;
-	std::vector<std::shared_ptr<Token>> tokens;
+	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;
 };
 
 class UnexpectedToken : public std::runtime_error

@@ -91,6 +91,7 @@ enum class TokenName
 	tk_semicolon,	   // ;
 	tk_hash,		   // #
 	tk_tilde,		   // ~
+	tk_question_mark,  // ?
 
 	// eof
 	tk_eof,
@@ -120,9 +121,8 @@ struct SourcePosition
 	}
 };
 
-class Token
+struct Token
 {
-public:
 	Token(TokenType type)
 		: type(type)
 	{
@@ -133,16 +133,14 @@ public:
 		, end(end)
 	{
 	}
-	~Token() {}
 	void set_position(SourcePosition start, SourcePosition end);
 
-protected:
 	TokenType type;
 	SourcePosition start;
 	SourcePosition end;
 };
 
-class TokenSymbol : public Token
+struct TokenSymbol : public Token
 {
 public:
 	TokenSymbol(TokenName name)
@@ -150,39 +148,31 @@ public:
 		, Token(TokenType::tk_symbol)
 	{
 	}
-	~TokenSymbol() {}
 
-private:
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };
 
-class TokenIdentifier : public Token
+struct TokenIdentifier : Token
 {
-public:
 	TokenIdentifier(std::string name)
 		: name(name)
 		, Token(TokenType::tk_identifier)
 	{
 	}
-	~TokenIdentifier() {}
 
-private:
 	std::string name;  // Identifier
 };
 
 template <class T>
-class TokenLiteral : public Token
+struct TokenLiteral : Token
 {
-public:
 	TokenLiteral(T value)
 		: value(value)
 		, Token(TokenType::tk_constant)
 	{
 	}
 	TokenLiteral(std::string text, unsigned base);
-	~TokenLiteral() {}
 
-private:
 	T value;  // constant, string
 };
 

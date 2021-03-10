@@ -43,19 +43,30 @@ void init_keywords()
 	keywords["while"] = TokenName::tk_while;
 }
 
-void Lexer::scan()
+void Lexer::reset()
 {
+	column = 0;
+	row = 0;
+	current = 0;
+	runner = 0;
+	tokens->clear();
+}
+
+std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
+{
+	reset();
 	skip_spaces();
 	while (current < source_length)
 	{
 		std::shared_ptr<Token> token = scan_token();
 		token->set_position(SourcePosition(current, row), SourcePosition(runner, row));
-		tokens.push_back(token);
+		tokens->push_back(token);
 		move_cursor(1);
 		skip_spaces();
 	}
 
-	tokens.push_back(std::make_shared<TokenSymbol>(TokenName::tk_eof));
+	tokens->push_back(std::make_shared<TokenSymbol>(TokenName::tk_eof));
+	return tokens;
 }
 
 std::shared_ptr<Token> Lexer::scan_token()
@@ -85,6 +96,8 @@ std::shared_ptr<Token> Lexer::scan_token()
 		return std::make_shared<TokenSymbol>(TokenName::tk_hash);
 	case '~':
 		return std::make_shared<TokenSymbol>(TokenName::tk_tilde);
+	case '?':
+		return std::make_shared<TokenSymbol>(TokenName::tk_question_mark);
 
 	case '=':
 		if (look_ahead_and_match('='))
@@ -508,7 +521,7 @@ bool Lexer::look_ahead_and_match(char target)
 
 bool Lexer::look_ahead_and_match(std::function<bool(char)> comparator)
 {
-	if (runner == source_length || !comparator(source.at(runner + 1)))
+	if (runner + 1 == source_length || !comparator(source.at(runner + 1)))
 		return false;
 
 	move_cursor(1);
@@ -524,7 +537,7 @@ bool Lexer::look_ahead(char target)
 
 bool Lexer::look_ahead(std::function<bool(char)> comparator)
 {
-	return runner < source_length && comparator(source.at(runner + 1));
+	return runner + 1 < source_length && comparator(source.at(runner + 1));
 }
 
 char Lexer::advance()
