@@ -23,18 +23,39 @@ TokenLiteral<long long>::TokenLiteral(std::string text, unsigned base)
 	, Token(TokenType::tk_constant)
 {
 }
+
 TokenLiteral<unsigned int>::TokenLiteral(std::string text, unsigned base)
 	: value(strtoul(text.c_str(), nullptr, base))
 	, Token(TokenType::tk_constant)
 {
 }
+
 TokenLiteral<unsigned long>::TokenLiteral(std::string text, unsigned base)
 	: value(strtoul(text.c_str(), nullptr, base))
 	, Token(TokenType::tk_constant)
 {
 }
+
 TokenLiteral<unsigned long long>::TokenLiteral(std::string text, unsigned base)
 	: value(strtoull(text.c_str(), nullptr, base))
+	, Token(TokenType::tk_constant)
+{
+}
+
+TokenLiteral<float>::TokenLiteral(std::string text, unsigned base)
+	: value(strtof(text.c_str(), nullptr))
+	, Token(TokenType::tk_constant)
+{
+}
+
+TokenLiteral<double>::TokenLiteral(std::string text, unsigned base)
+	: value(strtod(text.c_str(), nullptr))
+	, Token(TokenType::tk_constant)
+{
+}
+
+TokenLiteral<long double>::TokenLiteral(std::string text, unsigned base)
+	: value(strtold(text.c_str(), nullptr))
 	, Token(TokenType::tk_constant)
 {
 }

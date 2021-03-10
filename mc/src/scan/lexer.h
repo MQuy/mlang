@@ -33,15 +33,20 @@ private:
 	std::shared_ptr<Token> scan_hexadecimal();
 	std::shared_ptr<Token> scan_octal();
 	std::shared_ptr<Token> scan_binary();
-	std::shared_ptr<Token> scan_whole_number(std::function<bool(char)> comparator, unsigned base);
+	std::shared_ptr<Token> scan_decimal_or_hexa(std::function<bool(char)> comparator, char exponent, unsigned base);
+	std::shared_ptr<Token> scan_binary_or_octal(std::function<bool(char)> comparator, unsigned base);
+	std::shared_ptr<Token> scan_whole_number_suffix(std::string number, unsigned base);
+	std::shared_ptr<Token> scan_fractional_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_word();
 
 	char advance();
 	void move_cursor(int distance);
 	void new_line();
 	void skip_spaces();
-	bool look_ahead_for_match(char ch);
-	bool look_ahead_for_match(std::function<bool(char)> comparator);
+	bool look_ahead(char target);
+	bool look_ahead(std::function<bool(char)> comparator);
+	bool look_ahead_and_match(char ch);
+	bool look_ahead_and_match(std::function<bool(char)> comparator);
 
 	size_t current;
 	size_t runner;
@@ -56,6 +61,15 @@ class UnexpectedToken : public std::runtime_error
 {
 public:
 	UnexpectedToken(std::string message)
+		: std::runtime_error(message)
+	{
+	}
+};
+
+class LexerError : public std::runtime_error
+{
+public:
+	LexerError(std::string message)
 		: std::runtime_error(message)
 	{
 	}

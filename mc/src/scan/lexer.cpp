@@ -74,8 +74,6 @@ std::shared_ptr<Token> Lexer::scan_token()
 		return std::make_shared<TokenSymbol>(TokenName::tk_left_paren);
 	case ')':
 		return std::make_shared<TokenSymbol>(TokenName::tk_right_paren);
-	case '.':
-		return std::make_shared<TokenSymbol>(TokenName::tk_dot);
 	case ',':
 		return std::make_shared<TokenSymbol>(TokenName::tk_comma);
 	case ':':
@@ -88,84 +86,94 @@ std::shared_ptr<Token> Lexer::scan_token()
 		return std::make_shared<TokenSymbol>(TokenName::tk_tilde);
 
 	case '=':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_equal_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_equal);
 
 	case '!':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_bang_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_bang);
 
 	case '+':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_plus_equal);
-		else if (look_ahead_for_match('+'))
+		else if (look_ahead_and_match('+'))
 			return std::make_shared<TokenSymbol>(TokenName::tk_plus_plus);
 		return std::make_shared<TokenSymbol>(TokenName::tk_plus);
 
 	case '-':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_minus_equal);
-		else if (look_ahead_for_match('-'))
+		else if (look_ahead_and_match('-'))
 			return std::make_shared<TokenSymbol>(TokenName::tk_minus_minus);
 		return std::make_shared<TokenSymbol>(TokenName::tk_minus);
 
 	case '*':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_asterisk_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_asterisk);
 
 	case '/':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_slash_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_slash);
 
 	case '%':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_percent_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_percent);
 
 	case '&':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_ampersand_equal);
-		else if (look_ahead_for_match('&'))
+		else if (look_ahead_and_match('&'))
 			return std::make_shared<TokenSymbol>(TokenName::tk_ampersand_ampersand);
 		return std::make_shared<TokenSymbol>(TokenName::tk_ampersand);
 
 	case '|':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_vertical_equal);
-		else if (look_ahead_for_match('|'))
+		else if (look_ahead_and_match('|'))
 			return std::make_shared<TokenSymbol>(TokenName::tk_vertical_vertical);
 		return std::make_shared<TokenSymbol>(TokenName::tk_vertical);
 
 	case '^':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_caret_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_caret);
 
 	case '<':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_less_equal);
-		else if (look_ahead_for_match('<'))
+		else if (look_ahead_and_match('<'))
 		{
-			if (look_ahead_for_match('='))
+			if (look_ahead_and_match('='))
 				return std::make_shared<TokenSymbol>(TokenName::tk_much_less_equal);
 			return std::make_shared<TokenSymbol>(TokenName::tk_much_less);
 		}
 		return std::make_shared<TokenSymbol>(TokenName::tk_less);
 
 	case '>':
-		if (look_ahead_for_match('='))
+		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_greater_equal);
-		else if (look_ahead_for_match('>'))
+		else if (look_ahead_and_match('>'))
 		{
-			if (look_ahead_for_match('='))
+			if (look_ahead_and_match('='))
 				return std::make_shared<TokenSymbol>(TokenName::tk_much_greater_equal);
 			return std::make_shared<TokenSymbol>(TokenName::tk_much_greater);
 		}
 		return std::make_shared<TokenSymbol>(TokenName::tk_greater);
+
+	case '.':
+		if (look_ahead([](char nxt_ch) {
+				return '0' <= nxt_ch && nxt_ch <= '9';
+			}))
+		{
+			move_cursor(-1);
+			return scan_decimal();
+		}
+		return std::make_shared<TokenSymbol>(TokenName::tk_dot);
 
 	case '\'':
 		return scan_character();
@@ -187,7 +195,7 @@ std::shared_ptr<Token> Lexer::scan_token()
 std::shared_ptr<Token> Lexer::scan_character()
 {
 	char ch = advance();
-	if (!look_ahead_for_match('\''))
+	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
 	return std::make_shared<TokenLiteral<char>>(ch);
 }
@@ -207,11 +215,13 @@ std::shared_ptr<Token> Lexer::scan_string()
 std::shared_ptr<Token> Lexer::scan_number()
 {
 	char ch = source.at(current);
-	if (ch == '0')
+	if (ch == '0' && !look_ahead('.'))
 	{
-		if (look_ahead_for_match('x'))
+		if (look_ahead_and_match([](char nxt_ch) {
+				return nxt_ch == 'x' || nxt_ch == 'X';
+			}))
 			return scan_hexadecimal();
-		else if (look_ahead_for_match('b'))
+		else if (look_ahead_and_match('b'))
 			return scan_binary();
 		return scan_octal();
 	}
@@ -221,7 +231,7 @@ std::shared_ptr<Token> Lexer::scan_number()
 
 std::shared_ptr<Token> Lexer::scan_binary()
 {
-	return scan_whole_number(
+	return scan_binary_or_octal(
 		[](char nxt_ch) {
 			return '0' <= nxt_ch && nxt_ch <= '1';
 		},
@@ -230,7 +240,7 @@ std::shared_ptr<Token> Lexer::scan_binary()
 
 std::shared_ptr<Token> Lexer::scan_octal()
 {
-	return scan_whole_number(
+	return scan_binary_or_octal(
 		[](char nxt_ch) {
 			return '0' <= nxt_ch && nxt_ch <= '7';
 		},
@@ -239,51 +249,96 @@ std::shared_ptr<Token> Lexer::scan_octal()
 
 std::shared_ptr<Token> Lexer::scan_hexadecimal()
 {
-	return scan_whole_number(
+	return scan_decimal_or_hexa(
 		[](char nxt_ch) {
 			return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
 		},
+		'p',
 		16);
 }
 
 std::shared_ptr<Token> Lexer::scan_decimal()
 {
-	return scan_whole_number(
+	return scan_decimal_or_hexa(
 		[](char nxt_ch) {
 			return '0' <= nxt_ch && nxt_ch <= '9';
 		},
+		'e',
 		10);
 }
 
-std::shared_ptr<Token> Lexer::scan_whole_number(std::function<bool(char)> comparator, unsigned base)
+std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> comparator, char exponent, unsigned base)
 {
+	unsigned dot_counter = 0;
+	unsigned e_counter = 0;
 	while (runner < source_length)
 	{
-		if (!look_ahead_for_match(comparator))
+		if (look_ahead_and_match(comparator))
+			continue;
+		else if (look_ahead_and_match('.'))
+		{
+			if (e_counter)
+				throw LexerError("exponent cannot appear before dot");
+			if (dot_counter)
+				throw LexerError("dot cannot appear twice");
+			dot_counter++;
+		}
+		else if (look_ahead_and_match(exponent))
+		{
+			if (e_counter)
+				throw LexerError("exponent cannot appear twice");
+			e_counter++;
+
+			look_ahead_and_match([](char nxt_ch) {
+				return nxt_ch == '+' || nxt_ch == '-';
+			});
+		}
+		else
 			break;
 	}
 	std::string number = source.substr(current, runner - current + 1);
+	if (dot_counter || e_counter)
+		return scan_fractional_number_suffix(number, base);
+	else
+		return scan_whole_number_suffix(number, base);
+}
 
+std::shared_ptr<Token> Lexer::scan_binary_or_octal(std::function<bool(char)> comparator, unsigned base)
+{
+	while (runner < source_length)
+	{
+		if (!look_ahead_and_match(comparator))
+			break;
+	}
+	std::string number = source.substr(current, runner - current + 1);
+	return scan_whole_number_suffix(number, base);
+}
+
+std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsigned base)
+{
 	unsigned u_counter = 0;
 	unsigned l_counter = 0;
 	while (runner < source_length)
 	{
-		if (look_ahead_for_match([](char nxt_ch) {
+		if (look_ahead_and_match([](char nxt_ch) {
 				return nxt_ch == 'u' || nxt_ch == 'U';
 			}))
+		{
+			if (u_counter)
+				throw UnexpectedToken("unsigned suffix U appears more than one time");
 			u_counter++;
-		else if (look_ahead_for_match([](char nxt_ch) {
+		}
+		else if (look_ahead_and_match([](char nxt_ch) {
 					 return nxt_ch == 'l' || nxt_ch == 'L';
 				 }))
+		{
+			if (l_counter > 1)
+				throw UnexpectedToken("long suffix L appears more than two times");
 			l_counter++;
+		}
 		else
 			break;
 	}
-
-	if (u_counter > 1)
-		throw UnexpectedToken("unsigned prefix U appears more than one time");
-	if (l_counter > 2)
-		throw UnexpectedToken("long prefix L appears more than two times");
 
 	if (u_counter)
 		switch (l_counter)
@@ -307,11 +362,49 @@ std::shared_ptr<Token> Lexer::scan_whole_number(std::function<bool(char)> compar
 		}
 }
 
+std::shared_ptr<Token> Lexer::scan_fractional_number_suffix(std::string number, unsigned base)
+{
+	unsigned f_counter = 0;
+	unsigned l_counter = 0;
+	while (runner < source_length)
+	{
+		if (look_ahead_and_match([](char nxt_ch) {
+				return nxt_ch == 'f' || nxt_ch == 'F';
+			}))
+		{
+			if (l_counter)
+				throw LexerError("both suffix f and l appear");
+			if (f_counter)
+				throw UnexpectedToken("float suffix f appears more than one time");
+			f_counter++;
+		}
+		else if (look_ahead_and_match([](char nxt_ch) {
+					 return nxt_ch == 'l' || nxt_ch == 'L';
+				 }))
+		{
+			if (f_counter)
+				throw LexerError("both suffix f and l appear");
+			if (l_counter)
+				throw UnexpectedToken("long suffix l appears more than one time");
+			l_counter++;
+		}
+		else
+			break;
+	}
+
+	if (f_counter)
+		return std::make_shared<TokenLiteral<float>>(number, base);
+	else if (l_counter)
+		return std::make_shared<TokenLiteral<long double>>(number, base);
+	else
+		return std::make_shared<TokenLiteral<double>>(number, base);
+}
+
 std::shared_ptr<Token> Lexer::scan_word()
 {
 	while (runner < source_length)
 	{
-		if (!look_ahead_for_match([](char nxt_ch) {
+		if (!look_ahead_and_match([](char nxt_ch) {
 				return ('0' <= nxt_ch && nxt_ch <= '9')
 					   || ('A' <= nxt_ch && nxt_ch <= 'Z')
 					   || ('a' <= nxt_ch && nxt_ch <= 'z')
@@ -346,20 +439,32 @@ void Lexer::skip_spaces()
 	current = runner;
 }
 
-bool Lexer::look_ahead_for_match(char target)
+bool Lexer::look_ahead_and_match(char target)
 {
-	return look_ahead_for_match([&target](char ch) {
-		return ch == target;
+	return look_ahead_and_match([&target](char nxt_ch) {
+		return nxt_ch == target;
 	});
 }
 
-bool Lexer::look_ahead_for_match(std::function<bool(char)> comparator)
+bool Lexer::look_ahead_and_match(std::function<bool(char)> comparator)
 {
 	if (runner == source_length || !comparator(source.at(runner + 1)))
 		return false;
 
 	move_cursor(1);
 	return true;
+}
+
+bool Lexer::look_ahead(char target)
+{
+	return look_ahead([&target](char nxt_ch) {
+		return nxt_ch == target;
+	});
+}
+
+bool Lexer::look_ahead(std::function<bool(char)> comparator)
+{
+	return runner < source_length && comparator(source.at(runner + 1));
 }
 
 char Lexer::advance()

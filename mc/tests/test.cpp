@@ -3,6 +3,6 @@
 
 TEST(TestCaseName, TestName) {
 	init_keywords();
-	Lexer lexer = Lexer("int x = 1;");
+	Lexer lexer = Lexer("double d = .1;");
 	lexer.scan();
 }
