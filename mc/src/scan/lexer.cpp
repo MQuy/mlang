@@ -1,5 +1,6 @@
 #include "lexer.h"
 
+#include <sstream>
 #include <unordered_map>
 
 std::unordered_map<std::string, TokenName> keywords;
@@ -191,24 +192,83 @@ std::shared_ptr<Token> Lexer::scan_token()
 	}
 }
 
-// TODO: MQ 2021-03-09 Support escape sequence
 std::shared_ptr<Token> Lexer::scan_character()
 {
-	char ch = advance();
+	char ch = scan_escape_sequences();
 	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
+
 	return std::make_shared<TokenLiteral<char>>(ch);
 }
 
-// TODO: MQ 2021-03-09 Support escape sequence
 std::shared_ptr<Token> Lexer::scan_string()
 {
+	std::stringstream ss;
 	while (runner < source_length)
 	{
-		if (advance() == '"')
-			return std::make_shared<TokenLiteral<std::string>>(source.substr(current + 1, runner - current - 1));
+		if (look_ahead_and_match('"'))
+			return std::make_shared<TokenLiteral<std::string>>(ss.str());
+		else
+			ss << scan_escape_sequences();
 	}
 	throw UnexpectedToken("\" is expected");
+}
+
+char Lexer::scan_escape_sequences()
+{
+	if (look_ahead_and_match('\\'))
+	{
+		if (look_ahead_and_match([](char nxt_ch) {
+				return nxt_ch == '\'' || nxt_ch == '"' || nxt_ch == '?' || nxt_ch == '\\';
+			}))
+			return source[runner];
+		else if (look_ahead_and_match('a'))
+			return '\a';
+		else if (look_ahead_and_match('b'))
+			return '\b';
+		else if (look_ahead_and_match('f'))
+			return '\f';
+		else if (look_ahead_and_match('n'))
+			return '\n';
+		else if (look_ahead_and_match('r'))
+			return '\r';
+		else if (look_ahead_and_match('t'))
+			return '\t';
+		else if (look_ahead_and_match('v'))
+			return '\v';
+		else if (look_ahead_and_match([](char nxt_ch) {
+					 return '0' <= nxt_ch && nxt_ch <= '9';
+				 }))
+		{
+			unsigned start = runner;
+			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch) {
+								return '0' <= nxt_ch && nxt_ch <= '7';
+							});
+				 ++i)
+				;
+			std::string octal = source.substr(runner, runner - start + 1);
+			return strtol(octal.c_str(), nullptr, 8);
+		}
+		else if (look_ahead_and_match('x'))
+		{
+			unsigned start = runner + 1;
+			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch) {
+								return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
+							});
+				 ++i)
+				;
+			std::string hex = source.substr(start, runner - start + 1);
+			return strtol(hex.c_str(), nullptr, 16);
+		}
+		else
+			throw LexerError("\\" + source.substr(runner, 1) + " is not supported");
+	}
+	else
+	{
+		move_cursor(1);
+		char ch = source[runner];
+		return ch;
+	}
 }
 
 // TODO: MQ 2021-03-09 Support floating

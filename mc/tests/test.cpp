@@ -3,6 +3,6 @@
 
 TEST(TestCaseName, TestName) {
 	init_keywords();
-	Lexer lexer = Lexer("double d = .1;");
+	Lexer lexer = Lexer("char *d = \"\\1802\"");
 	lexer.scan();
 }

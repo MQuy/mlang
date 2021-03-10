@@ -38,8 +38,10 @@ private:
 	std::shared_ptr<Token> scan_whole_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_fractional_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_word();
+	char scan_escape_sequences();
 
-	char advance();
+	char
+	advance();
 	void move_cursor(int distance);
 	void new_line();
 	void skip_spaces();
