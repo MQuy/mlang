@@ -207,11 +207,11 @@ std::shared_ptr<Token> Lexer::scan_token()
 
 std::shared_ptr<Token> Lexer::scan_character()
 {
-	char ch = scan_escape_sequences();
+	unsigned char ch = scan_escape_sequences();
 	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
 
-	return std::make_shared<TokenLiteral<char>>(ch);
+	return std::make_shared<TokenLiteral<unsigned char>>(ch);
 }
 
 std::shared_ptr<Token> Lexer::scan_string()
@@ -227,7 +227,7 @@ std::shared_ptr<Token> Lexer::scan_string()
 	throw UnexpectedToken("\" is expected");
 }
 
-char Lexer::scan_escape_sequences()
+unsigned char Lexer::scan_escape_sequences()
 {
 	if (look_ahead_and_match('\\'))
 	{
@@ -250,7 +250,7 @@ char Lexer::scan_escape_sequences()
 		else if (look_ahead_and_match('v'))
 			return '\v';
 		else if (look_ahead_and_match([](char nxt_ch) {
-					 return '0' <= nxt_ch && nxt_ch <= '9';
+					 return '0' <= nxt_ch && nxt_ch <= '7';
 				 }))
 		{
 			unsigned start = runner;
@@ -259,7 +259,7 @@ char Lexer::scan_escape_sequences()
 							});
 				 ++i)
 				;
-			std::string octal = source.substr(runner, runner - start + 1);
+			std::string octal = source.substr(start, runner - start + 1);
 			return strtol(octal.c_str(), nullptr, 8);
 		}
 		else if (look_ahead_and_match('x'))

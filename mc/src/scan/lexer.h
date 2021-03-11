@@ -37,7 +37,7 @@ private:
 	std::shared_ptr<Token> scan_whole_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_fractional_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_word();
-	char scan_escape_sequences();
+	unsigned char scan_escape_sequences();
 
 	void reset();
 	char advance();
@@ -49,12 +49,12 @@ private:
 	bool look_ahead_and_match(char ch);
 	bool look_ahead_and_match(std::function<bool(char)> comparator);
 
-	size_t current;
-	size_t runner;
+	long current;
+	long runner;
 	unsigned column;
 	unsigned row;
 	std::string source;
-	size_t source_length;
+	long source_length;
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;
 };
 

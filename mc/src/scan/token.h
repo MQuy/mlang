@@ -133,6 +133,7 @@ struct Token
 		, end(end)
 	{
 	}
+
 	void set_position(SourcePosition start, SourcePosition end);
 
 	TokenType type;
