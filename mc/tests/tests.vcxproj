@@ -33,7 +33,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
-    <ClCompile Include="test.cpp" />
+    <ClCompile Include="lexer_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\src.vcxproj">
