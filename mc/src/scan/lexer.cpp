@@ -1,11 +1,10 @@
 #include "lexer.h"
 
 #include <sstream>
-#include <unordered_map>
 
 std::unordered_map<std::string, TokenName> keywords;
 
-void init_keywords()
+std::shared_ptr<std::unordered_map<std::string, TokenName>> init_keywords()
 {
 	keywords["auto"] = TokenName::tk_auto;
 	keywords["break"] = TokenName::tk_break;
@@ -41,6 +40,8 @@ void init_keywords()
 	keywords["void"] = TokenName::tk_void;
 	keywords["volatile"] = TokenName::tk_volatile;
 	keywords["while"] = TokenName::tk_while;
+
+	return std::make_shared<std::unordered_map<std::string, TokenName>>(keywords);
 }
 
 void Lexer::reset()
@@ -308,6 +309,7 @@ std::shared_ptr<Token> Lexer::scan_binary()
 		[](char nxt_ch) {
 			return '0' <= nxt_ch && nxt_ch <= '1';
 		},
+		runner + 1,	 // NOTE: MQ  2021-03-11 we skip 0b since it is not recognized by strtol
 		2);
 }
 
@@ -317,6 +319,7 @@ std::shared_ptr<Token> Lexer::scan_octal()
 		[](char nxt_ch) {
 			return '0' <= nxt_ch && nxt_ch <= '7';
 		},
+		current,
 		8);
 }
 
@@ -344,7 +347,7 @@ std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> com
 {
 	unsigned dot_counter = 0;
 	unsigned e_counter = 0;
-	while (runner < source_length)
+	for (bool is_number_ended = false; runner < source_length && !is_number_ended;)
 	{
 		if (look_ahead_and_match(comparator))
 			continue;
@@ -365,6 +368,17 @@ std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> com
 			look_ahead_and_match([](char nxt_ch) {
 				return nxt_ch == '+' || nxt_ch == '-';
 			});
+
+			while (runner < source_length)
+			{
+				if (!look_ahead_and_match([](char nxt_ch) {
+						return '0' <= nxt_ch && nxt_ch <= '9';
+					}))
+				{
+					is_number_ended = true;
+					break;
+				}
+			}
 		}
 		else
 			break;
@@ -376,14 +390,14 @@ std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> com
 		return scan_whole_number_suffix(number, base);
 }
 
-std::shared_ptr<Token> Lexer::scan_binary_or_octal(std::function<bool(char)> comparator, unsigned base)
+std::shared_ptr<Token> Lexer::scan_binary_or_octal(std::function<bool(char)> comparator, long start, unsigned base)
 {
 	while (runner < source_length)
 	{
 		if (!look_ahead_and_match(comparator))
 			break;
 	}
-	std::string number = source.substr(current, runner - current + 1);
+	std::string number = source.substr(start, runner - current + 1);
 	return scan_whole_number_suffix(number, base);
 }
 
