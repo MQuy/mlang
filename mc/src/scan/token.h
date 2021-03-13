@@ -55,6 +55,7 @@ enum class TokenName
 	tk_minus,				 // -
 	tk_minus_equal,			 // -=
 	tk_minus_minus,			 // --
+	tk_arrow,				 // ->
 	tk_asterisk,			 // *
 	tk_asterisk_equal,		 // *=
 	tk_slash,				 // /

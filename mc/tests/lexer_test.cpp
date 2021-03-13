@@ -141,11 +141,21 @@ TEST(Operator, Minus_FollowedByMinus_Combine)
 	ASSERT_EQ(token->name, TokenName::tk_minus_minus);
 }
 
+TEST(Operator, Minus_FollowedByGreaterThan_Combine)
+{
+	init_keywords();
+
+	Lexer lexer = Lexer("->=");
+	auto tokens = lexer.scan();
+	auto token = std::reinterpret_pointer_cast<TokenSymbol>(tokens->front());
+	ASSERT_EQ(token->name, TokenName::tk_arrow);
+}
+
 TEST(Operator, Mius_FollowedByNonMinusOrEqual_Standalone)
 {
 	init_keywords();
 
-	for (auto c : std::regex_replace(characters_set_without_quote, std::regex("[-=]"), ""))
+	for (auto c : std::regex_replace(characters_set_without_quote, std::regex("[->=]"), ""))
 	{
 		std::string text("-");
 		Lexer lexer = Lexer(text + c);

@@ -120,6 +120,8 @@ std::shared_ptr<Token> Lexer::scan_token()
 	case '-':
 		if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_minus_equal);
+		else if (look_ahead_and_match('>'))
+			return std::make_shared<TokenSymbol>(TokenName::tk_arrow);
 		else if (look_ahead_and_match('-'))
 			return std::make_shared<TokenSymbol>(TokenName::tk_minus_minus);
 		return std::make_shared<TokenSymbol>(TokenName::tk_minus);
