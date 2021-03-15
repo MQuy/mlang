@@ -1,6 +1,7 @@
 #ifndef AST_STMT_H
 #define AST_STMT_H 1
 
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -101,12 +102,22 @@ private:
 
 class DclAST : FragmentAST
 {
+public:
+	DclAST(TypeAST type)
+		: type(type)
+	{
+	}
+	virtual void initialize(std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> &&declartor_list);
+
 protected:
 	TypeAST type;
 };
 
 class FunctionDefStmtAST : DclAST
 {
+public:
+	void initialize(CompoundStmtAST &&body);
+
 private:
 	std::optional<StorageSpecifier> storage;
 	TokenIdentifier name;
@@ -125,8 +136,15 @@ private:
 
 class BasicDclAST : DclAST
 {
+public:
+	BasicDclAST(TypeAST &&type, std::shared_ptr<StorageSpecifier> storage = nullptr, std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators = std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>>())
+		: DclAST(type)
+		, storage(storage)
+	{
+	}
+
 private:
-	std::optional<StorageSpecifier> storage;
+	std::shared_ptr<StorageSpecifier> storage;
 	std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators;  // null declarator's type means declaration's type
 };
 

@@ -107,23 +107,40 @@ enum class UnaryOperator
 
 class TypeAST
 {
+public:
+	TypeAST(int size, int align, TypeAST *pointer_to = nullptr, TypeAST *array_of = nullptr, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
+		: size(size)
+		, align(align)
+		, pointer_to(pointer_to)
+		, array_of(array_of)
+		, qualifiers(qualifiers)
+	{
+	}
+
 protected:
 	int size;
 	int align;
 
 	TypeAST *pointer_to;
-	TypeAST *array_of;	// TODO: MQ 2021-03-08 VLA?
+	TypeAST *array_of;	// TODO: MQ 2021-03-08 Support VLA
 
 	std::set<TypeQualifier> qualifiers;
 };
 
-class BuiltinTypeAST : TypeAST
+class BuiltinTypeAST : public TypeAST
 {
+public:
+	BuiltinTypeAST(BuiltinTypeName name, int size, int align, TypeAST *pointer_to = nullptr, TypeAST *array_of = nullptr, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
+		: name(name)
+		, TypeAST(size, align, nullptr, nullptr, qualifiers)
+	{
+	}
+
 private:
 	BuiltinTypeName name;
 };
 
-class AliasTypeAST : TypeAST
+class AliasTypeAST : public TypeAST
 {
 private:
 	TokenIdentifier name;
@@ -136,7 +153,7 @@ enum class AggregateKind
 	union_,
 };
 
-class AggregateTypeAST : TypeAST
+class AggregateTypeAST : public TypeAST
 {
 private:
 	TokenIdentifier name;
@@ -144,14 +161,14 @@ private:
 	std::vector<std::pair<std::optional<std::string>, TypeAST>> members;
 };
 
-class EnumTypeAST : TypeAST
+class EnumTypeAST : public TypeAST
 {
 private:
 	TokenIdentifier name;
 	std::vector<std::pair<std::string, int>> members;
 };
 
-class FunctionTypeAST : TypeAST
+class FunctionTypeAST : public TypeAST
 {
 private:
 	std::pair<std::optional<std::string>, TypeAST> parameters;
