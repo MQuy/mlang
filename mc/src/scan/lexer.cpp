@@ -40,6 +40,7 @@ std::shared_ptr<std::unordered_map<std::string, TokenName>> init_keywords()
 	keywords["void"] = TokenName::tk_void;
 	keywords["volatile"] = TokenName::tk_volatile;
 	keywords["while"] = TokenName::tk_while;
+	keywords["_Bool"] = TokenName::tk_bool;
 
 	return std::make_shared<std::unordered_map<std::string, TokenName>>(keywords);
 }

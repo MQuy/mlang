@@ -26,6 +26,7 @@ enum class TokenName
 	tk_goto,
 	tk_if,
 	tk_inline,
+	tk_bool,  // _Bool
 	tk_int,
 	tk_long,
 	tk_register,
@@ -103,6 +104,7 @@ enum class TokenType
 	tk_constant,
 	tk_symbol,
 	tk_identifier,
+	tk_eof,
 };
 
 struct SourcePosition
