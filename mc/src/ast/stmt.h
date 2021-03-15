@@ -19,56 +19,56 @@ class StmtAST : public FragmentAST
 {
 };
 
-class LabelStmtAST : StmtAST
+class LabelStmtAST : public StmtAST
 {
 private:
 	TokenIdentifier name;
-	StmtAST stmt;
+	std::shared_ptr<StmtAST> stmt;
 };
 
-class CaseStmtAST : StmtAST
+class CaseStmtAST : public StmtAST
 {
 private:
-	ExprAST constant;
-	StmtAST stmt;
+	std::shared_ptr<ExprAST> constant;
+	std::shared_ptr<StmtAST> stmt;
 };
 
-class DefaultStmtAST : StmtAST
+class DefaultStmtAST : public StmtAST
 {
 private:
-	StmtAST stmt;
+	std::shared_ptr<StmtAST> stmt;
 };
 
-class ExprStmtAST : StmtAST
+class ExprStmtAST : public StmtAST
 {
 private:
-	ExprAST expr;
+	std::shared_ptr<ExprAST> expr;
 };
 
-class CompoundStmtAST : StmtAST
+class CompoundStmtAST : public StmtAST
 {
 protected:
 	std::vector<FragmentAST> stmts;	 // have to statement or declaration
 };
 
-class IfStmtAST : StmtAST
+class IfStmtAST : public StmtAST
 {
 private:
-	ExprAST condition;
-	StmtAST if_body;
-	StmtAST else_body;
+	std::shared_ptr<ExprAST> condition;
+	std::shared_ptr<StmtAST> if_body;
+	std::shared_ptr<StmtAST> else_body;
 };
 
-class ForStmtAST : StmtAST	// use for while?
+class ForStmtAST : public StmtAST  // use for while?
 {
 private:
-	StmtAST initializer;
-	ExprAST condition;
-	StmtAST increment;
-	StmtAST body;
+	std::shared_ptr<StmtAST> initializer;
+	std::shared_ptr<ExprAST> condition;
+	std::shared_ptr<StmtAST> increment;
+	std::shared_ptr<StmtAST> body;
 };
 
-class DoWhileStmtAST : StmtAST
+class DoWhileStmtAST : public StmtAST
 {
 private:
 	enum DoWhileKind
@@ -76,107 +76,101 @@ private:
 		do_,
 		while_,
 	} kind;
-	ExprAST condition;
-	StmtAST body;
+	std::shared_ptr<ExprAST> condition;
+	std::shared_ptr<StmtAST> body;
 };
 
-class JumpStmtAST : StmtAST
+class JumpStmtAST : public StmtAST
 {
 private:
 	TokenIdentifier name;
 };
 
-class ContinueStmtAST : StmtAST
+class ContinueStmtAST : public StmtAST
 {
 };
 
-class BreakStmtAST : StmtAST
+class BreakStmtAST : public StmtAST
 {
 };
 
-class ReturnStmtAST : StmtAST
+class ReturnStmtAST : public StmtAST
 {
 private:
-	std::vector<ExprAST> expr;
+	std::vector<std::shared_ptr<ExprAST>> expr;
 };
 
-class DclAST : FragmentAST
+class DclAST : public FragmentAST
 {
 public:
-	DclAST(TypeAST type)
+	DclAST(std::shared_ptr<TypeAST> type)
 		: type(type)
 	{
 	}
-	virtual void initialize(std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> &&declartor_list);
 
 protected:
-	TypeAST type;
+	std::shared_ptr<TypeAST> type;
 };
 
-class FunctionDefStmtAST : DclAST
+class FunctionDefStmtAST : public DclAST
 {
 public:
-	void initialize(CompoundStmtAST &&body);
-
-private:
-	std::optional<StorageSpecifier> storage;
-	TokenIdentifier name;
-	std::vector<std::tuple<std::string, TypeAST>> declarators;
-	CompoundStmtAST body;
-};
-
-class ProtoDclAST : DclAST
-{
-private:
-	std::optional<StorageSpecifier> storage;
-	TokenIdentifier name;
-	std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators;  // null declarator's type means declaration's type
-	std::pair<std::optional<std::string>, TypeAST> parameters;
-};
-
-class BasicDclAST : DclAST
-{
-public:
-	BasicDclAST(TypeAST &&type, std::shared_ptr<StorageSpecifier> storage = nullptr, std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators = std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>>())
+	FunctionDefStmtAST(std::shared_ptr<FunctionTypeAST> type, std::shared_ptr< TokenIdentifier> name, std::shared_ptr<CompoundStmtAST> body)
 		: DclAST(type)
-		, storage(storage)
+		, name(name)
+		, body(body)
 	{
 	}
 
 private:
-	std::shared_ptr<StorageSpecifier> storage;
-	std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators;  // null declarator's type means declaration's type
+	std::shared_ptr<TokenIdentifier> name;
+	std::shared_ptr<CompoundStmtAST> body;
 };
 
-class AggregateDclAST : DclAST
+class ProtoDclAST : public DclAST
+{
+private:
+	std::shared_ptr<TokenIdentifier> name;
+	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;  // null declarator's type means declaration's type
+	std::pair<std::shared_ptr<std::string>, std::shared_ptr<TypeAST>> parameters;
+};
+
+class BasicDclAST : public DclAST
+{
+public:
+	BasicDclAST(std::shared_ptr<TypeAST> type, std::shared_ptr<StorageSpecifier> storage = nullptr, std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators = std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>>())
+		: DclAST(type)
+	{
+	}
+
+private:
+	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;  // null declarator's type means declaration's type
+};
+
+class AggregateDclAST : public DclAST
 {
 private:
 	AggregateKind kind;
-	std::optional<StorageSpecifier> storage;
-	std::optional<TokenIdentifier> name;
-	std::vector<std::pair<std::optional<std::string>, TypeAST>> members;
-	std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators;
+	std::shared_ptr<TokenIdentifier> name;
+	std::vector<std::pair<std::shared_ptr<std::string>, std::shared_ptr<TypeAST>>> members;
+	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };
 
-class EnumDclAST : DclAST
+class EnumDclAST : public DclAST
 {
 private:
-	std::optional<StorageSpecifier> storage;
-	std::optional<TokenIdentifier> name;
+	std::shared_ptr<TokenIdentifier> name;
 	std::vector<std::pair<std::string, int>> members;
-	std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> declarators;  // null declarator's type means declaration's type
-};
-
-class TypedefDclAST : DclAST
-{
-private:
-	TokenIdentifier name;
+	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;  // null declarator's type means declaration's type
 };
 
 class Program
 {
+public:
+	void add_declaration_stmt(std::shared_ptr<DclAST> dcl_stmt);
+
 private:
-	std::vector<DclAST> declarations;
+	std::vector<std::shared_ptr<DclAST>> declarations;
 };
 
 #endif

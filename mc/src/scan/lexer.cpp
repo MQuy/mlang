@@ -557,12 +557,6 @@ bool Lexer::look_ahead(std::function<bool(char)> comparator)
 	return runner + 1 < source_length && comparator(source.at(runner + 1));
 }
 
-char Lexer::advance()
-{
-	move_cursor(1);
-	return source.at(runner);
-}
-
 void Lexer::move_cursor(int distance)
 {
 	column += distance;

@@ -16,19 +16,19 @@ protected:
 };
 
 template <class T>
-class LiteralExprAST : ExprAST
+class LiteralExprAST : public ExprAST
 {
 private:
 	TokenLiteral<T> token;
 };
 
-class IdentifierExprAST : ExprAST  // function and variable
+class IdentifierExprAST : public ExprAST  // function and variable
 {
 private:
 	TokenIdentifier name;
 };
 
-class BinaryExprAST : ExprAST
+class BinaryExprAST : public ExprAST
 {
 private:
 	ExprAST left;
@@ -36,14 +36,14 @@ private:
 	BinaryOperator op;
 };
 
-class UnaryExprAST : ExprAST
+class UnaryExprAST : public ExprAST
 {
 private:
 	ExprAST expr;
 	UnaryOperator op;
 };
 
-class TenaryExprAST : ExprAST
+class TenaryExprAST : public ExprAST
 {
 private:
 	ExprAST condition;
@@ -51,21 +51,21 @@ private:
 	ExprAST expr2;
 };
 
-class MemberAccessExprAST : ExprAST
+class MemberAccessExprAST : public ExprAST
 {
 private:
 	IdentifierExprAST identifier;
 	TokenIdentifier member;
 };
 
-class FunctionCallExprAST : ExprAST
+class FunctionCallExprAST : public ExprAST
 {
 private:
 	IdentifierExprAST callee;
 	std::vector<ExprAST> arguments;
 };
 
-class TypeCastExprAST : ExprAST
+class TypeCastExprAST : public ExprAST
 {
 private:
 	ExprAST expr;

@@ -58,7 +58,7 @@ direct_declarator = identifier
                     | direct_declarator, "(", parameter_type_list, ")"
                     | direct_declarator, "(", [ identifier_list ], ")";
 
-pointer = "*" [ type_qualifier_list]
+pointer = "*" [ type_qualifier_list ]
           | "*", [ type_qualifier_list ], pointer;
 
 type_qualifier_list = { type_qualifier };

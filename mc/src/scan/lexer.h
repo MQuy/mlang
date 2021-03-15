@@ -41,7 +41,6 @@ private:
 	unsigned char scan_escape_sequences();
 
 	void reset();
-	char advance();
 	void move_cursor(int distance);
 	void new_line();
 	void skip_spaces();

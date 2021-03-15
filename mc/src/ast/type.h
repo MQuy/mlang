@@ -1,12 +1,15 @@
 #ifndef AST_TYPE_H
 #define AST_TYPE_H 1
 
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "scan/token.h"
+
+class ExprAST;
 
 enum class BuiltinTypeName
 {
@@ -105,46 +108,94 @@ enum class UnaryOperator
 	alignof_,
 };
 
+enum class TypeKind
+{
+	builtin,
+	alias,
+	aggregate,
+	enum_,
+	array,
+	function,
+};
+
 class TypeAST
 {
 public:
-	TypeAST(int size, int align, TypeAST *pointer_to = nullptr, TypeAST *array_of = nullptr, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
-		: size(size)
-		, align(align)
-		, pointer_to(pointer_to)
-		, array_of(array_of)
-		, qualifiers(qualifiers)
+	TypeAST(TypeKind kind)
+		: kind(kind)
 	{
 	}
+	std::shared_ptr<TypeAST> redirect(std::shared_ptr<TypeAST> type);
 
 protected:
-	int size;
-	int align;
-
-	TypeAST *pointer_to;
-	TypeAST *array_of;	// TODO: MQ 2021-03-08 Support VLA
-
-	std::set<TypeQualifier> qualifiers;
+	TypeKind kind;
 };
 
 class BuiltinTypeAST : public TypeAST
 {
 public:
-	BuiltinTypeAST(BuiltinTypeName name, int size, int align, TypeAST *pointer_to = nullptr, TypeAST *array_of = nullptr, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
-		: name(name)
-		, TypeAST(size, align, nullptr, nullptr, qualifiers)
+	BuiltinTypeAST(std::shared_ptr<BuiltinTypeName> name, int size, int align, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
+		: TypeAST(TypeKind::builtin)
+		, name(name)
+		, size(size)
+		, align(align)
+		, qualifiers(qualifiers)
 	{
 	}
 
 private:
-	BuiltinTypeName name;
+	int size;
+	int align;
+
+	std::shared_ptr<StorageSpecifier> storage;
+	std::set<TypeQualifier> qualifiers;
+
+	std::shared_ptr<BuiltinTypeName> name;
+};
+
+class PointerTypeAST : public TypeAST
+{
+public:
+	PointerTypeAST(std::shared_ptr<TypeAST> underlay, std::set<TypeQualifier> qualifiers)
+		: TypeAST(TypeKind::array)
+		, underlay(underlay)
+		, qualifiers(qualifiers)
+	{
+	}
+	std::shared_ptr<TypeAST> consume(std::shared_ptr<TypeAST> type)
+	{
+		underlay = type;
+	}
+
+private:
+	std::shared_ptr<TypeAST> underlay;
+	std::set<TypeQualifier> qualifiers;
+};
+
+class ArrayTypeAST : public TypeAST
+{
+public:
+	ArrayTypeAST(std::shared_ptr<TypeAST> underlay, std::shared_ptr<ExprAST> expr)
+		: TypeAST(TypeKind::array)
+		, underlay(underlay)
+		, expr(expr)
+	{
+	}
+	std::shared_ptr<TypeAST> consume(std::shared_ptr<TypeAST> type)
+	{
+		underlay = type;
+	}
+
+private:
+	std::shared_ptr<TypeAST> underlay;
+	std::shared_ptr<ExprAST> expr;
 };
 
 class AliasTypeAST : public TypeAST
 {
 private:
 	TokenIdentifier name;
-	TypeAST underlay;
+	std::shared_ptr<TypeAST> underlay;
 };
 
 enum class AggregateKind
@@ -158,21 +209,29 @@ class AggregateTypeAST : public TypeAST
 private:
 	TokenIdentifier name;
 	AggregateKind kind;
-	std::vector<std::pair<std::optional<std::string>, TypeAST>> members;
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, TypeAST>> members;
 };
 
 class EnumTypeAST : public TypeAST
 {
 private:
 	TokenIdentifier name;
-	std::vector<std::pair<std::string, int>> members;
+	std::vector<std::pair<TokenIdentifier, int>> members;
 };
 
 class FunctionTypeAST : public TypeAST
 {
+public:
+	FunctionTypeAST(std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters, std::shared_ptr<TypeAST> returning)
+		: TypeAST(TypeKind::function)
+		, parameters(parameters)
+		, returning(returning)
+	{
+	}
+
 private:
-	std::pair<std::optional<std::string>, TypeAST> parameters;
-	TypeAST returning;
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
+	std::shared_ptr<TypeAST> returning;
 };
 
 class ASTNode
