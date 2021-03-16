@@ -115,7 +115,7 @@ protected:
 class FunctionDefStmtAST : public DclAST
 {
 public:
-	FunctionDefStmtAST(std::shared_ptr<FunctionTypeAST> type, std::shared_ptr< TokenIdentifier> name, std::shared_ptr<CompoundStmtAST> body)
+	FunctionDefStmtAST(std::shared_ptr<FunctionTypeAST> type, std::shared_ptr<TokenIdentifier> name, std::shared_ptr<CompoundStmtAST> body)
 		: DclAST(type)
 		, name(name)
 		, body(body)
@@ -131,20 +131,20 @@ class ProtoDclAST : public DclAST
 {
 private:
 	std::shared_ptr<TokenIdentifier> name;
-	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;  // null declarator's type means declaration's type
-	std::pair<std::shared_ptr<std::string>, std::shared_ptr<TypeAST>> parameters;
+	std::vector<std::tuple<TokenIdentifier, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
+	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parameters;
 };
 
 class BasicDclAST : public DclAST
 {
 public:
-	BasicDclAST(std::shared_ptr<TypeAST> type, std::shared_ptr<StorageSpecifier> storage = nullptr, std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators = std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>>())
+	BasicDclAST(std::shared_ptr<TypeAST> type, std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators = std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>>())
 		: DclAST(type)
 	{
 	}
 
 private:
-	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;  // null declarator's type means declaration's type
+	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };
 
 class AggregateDclAST : public DclAST
@@ -152,16 +152,23 @@ class AggregateDclAST : public DclAST
 private:
 	AggregateKind kind;
 	std::shared_ptr<TokenIdentifier> name;
-	std::vector<std::pair<std::shared_ptr<std::string>, std::shared_ptr<TypeAST>>> members;
-	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members;
+	std::vector<std::tuple<TokenIdentifier, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };
 
 class EnumDclAST : public DclAST
 {
+public:
+	EnumDclAST(std::shared_ptr<TypeAST> type, std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators = std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>>())
+		: DclAST(type)
+		, name(name)
+		, declarators(declarators)
+	{
+	}
+
 private:
 	std::shared_ptr<TokenIdentifier> name;
-	std::vector<std::pair<std::string, int>> members;
-	std::vector<std::tuple<std::string, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;  // null declarator's type means declaration's type
+	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };
 
 class Program

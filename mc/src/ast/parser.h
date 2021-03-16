@@ -34,20 +34,22 @@ private:
 	std::shared_ptr<ExprAST> parse_expr();
 
 	std::pair<std::shared_ptr<DclAST>, std::shared_ptr<TypeAST>> Parser::parse_function_definition();
-	std::shared_ptr<TypeAST> parse_declaration_specifiers();
-	void parse_storage_or_qualifier(StorageSpecifier &storage_specifier, std::set<TypeQualifier> &type_qualifiers);
-	void parse_qualifier(std::set<TypeQualifier> &type_qualifiers);
-
-	std::shared_ptr<ArrayTypeAST> parse_array_type(std::shared_ptr<TypeAST> type);
-	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parser_parameters();
-	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(std::shared_ptr<TypeAST> type);
-
 	std::shared_ptr<DclAST> parse_declaration(std::shared_ptr<TypeAST> type);
-	std::vector<std::tuple<std::string, std::optional<TypeAST>, std::optional<ExprAST>>> parser_init_declarator_list();
+	std::shared_ptr<TypeAST> parse_declaration_specifiers(bool include_storage = true, bool include_qualifier = true);
+	void parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier);
+	void parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers);
+	void parse_qualifier(std::set<TypeQualifier> &type_qualifiers);
+	std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> parser_init_declarator(std::shared_ptr<TypeAST> type);
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parse_struct_declaration();
+	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> parse_enumerator();
+	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parser_declarator_parameters();
 
 	std::shared_ptr<Token> advance();
-	bool match(TokenName name, bool strict = false);
-	bool match(std::string name, bool strict = false);
+	bool match(TokenName name, bool strict = false, bool advance = true);
+	bool match(std::string name, bool strict = false, bool advance = true);
+	bool match(TokenType type, bool strict = false, bool advance = true);
 
 	long current;
 	long runner;

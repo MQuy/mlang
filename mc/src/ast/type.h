@@ -134,12 +134,13 @@ protected:
 class BuiltinTypeAST : public TypeAST
 {
 public:
-	BuiltinTypeAST(std::shared_ptr<BuiltinTypeName> name, int size, int align, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
+	BuiltinTypeAST(std::shared_ptr<BuiltinTypeName> name, int size, int align, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), std::shared_ptr<StorageSpecifier> storage = std::make_shared<StorageSpecifier>(StorageSpecifier::auto_))
 		: TypeAST(TypeKind::builtin)
 		, name(name)
 		, size(size)
 		, align(align)
 		, qualifiers(qualifiers)
+		, storage(storage)
 	{
 	}
 
@@ -206,17 +207,34 @@ enum class AggregateKind
 
 class AggregateTypeAST : public TypeAST
 {
+public:
+	AggregateTypeAST(AggregateKind kind, std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members)
+		: TypeAST(TypeKind::aggregate)
+		, kind(kind)
+		, name(name)
+		, members(members)
+	{
+	}
+
 private:
-	TokenIdentifier name;
+	std::shared_ptr<TokenIdentifier> name;
 	AggregateKind kind;
-	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, TypeAST>> members;
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members;	 // not support bit fields
 };
 
 class EnumTypeAST : public TypeAST
 {
+public:
+	EnumTypeAST(std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members)
+		: TypeAST(TypeKind::enum_)
+		, name(name)
+		, members(members)
+	{
+	}
+
 private:
-	TokenIdentifier name;
-	std::vector<std::pair<TokenIdentifier, int>> members;
+	std::shared_ptr<TokenIdentifier> name;
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members;
 };
 
 class FunctionTypeAST : public TypeAST

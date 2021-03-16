@@ -29,7 +29,7 @@ struct_or_union = "struct" | "union";
 
 struct_declaration_list = { struct_declaration };
 
-init_declarator_list = init_declarator, { ",", initializer };
+init_declarator_list = init_declarator, { ",", init_declarator };
 
 init_declarator = declarator, [ "=", initializer ];
 
