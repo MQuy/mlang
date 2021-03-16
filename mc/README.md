@@ -11,7 +11,7 @@
 
 ### AST
 
-![diagram](https://i.imgur.com/vOM62OP.png)
+![diagram](https://i.imgur.com/tqpvDdb.png)
 
 ### LLVM
 

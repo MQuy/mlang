@@ -33,8 +33,8 @@ private:
 
 	std::shared_ptr<ExprAST> parse_expr();
 
-	std::pair<std::shared_ptr<DclAST>, std::shared_ptr<TypeAST>> Parser::parse_function_definition();
-	std::shared_ptr<DclAST> parse_declaration(std::shared_ptr<TypeAST> type);
+	std::pair<std::shared_ptr<ExternAST>, std::shared_ptr<TypeAST>> Parser::parse_function_definition();
+	std::shared_ptr<ExternAST> parse_declaration(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> parse_declaration_specifiers(bool include_storage = true, bool include_qualifier = true);
 	void parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier);
 	void parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers);

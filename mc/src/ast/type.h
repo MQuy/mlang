@@ -194,8 +194,16 @@ private:
 
 class AliasTypeAST : public TypeAST
 {
+public:
+	AliasTypeAST(std::shared_ptr<TokenIdentifier> name, std::shared_ptr<TypeAST> underlay = nullptr)
+		: TypeAST(TypeKind::alias)
+		, name(name)
+		, underlay(underlay)
+	{
+	}
+
 private:
-	TokenIdentifier name;
+	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<TypeAST> underlay;
 };
 
