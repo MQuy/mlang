@@ -5,19 +5,26 @@
 
 /*
 top level only supports declaration or function definition
-1. try parsing function definition
-2. if exist -> add to list
-   | otherwise -> parse declaration (there is the common specifier so we reuse it)
+1. mark current position
+2. try parsing function definition
+3. if exist -> add to list
+   | otherwise -> revert back to that position and parse declaration
 */
 std::shared_ptr<Program> Parser::parse()
 {
 	auto token = tokens->at(current);
 
-	while (current < tokens_length)
+	while (runner < tokens_length)
 	{
-		auto [declaration, type] = parse_function_definition();
+		current = runner;
+
+		auto declaration = parse_function_definition();
 		if (!declaration)
-			declaration = parse_declaration(type);
+		{
+			runner = current;
+			declaration = parse_declaration();
+		}
+
 		program->add_declaration_stmt(declaration);
 	}
 }
@@ -25,15 +32,16 @@ std::shared_ptr<Program> Parser::parse()
 /*
 1. parse type and mark current
 2. parse declarator
-3. if next token == '=' | ',' | ';' -> runner = current and return (null, type)
+3. if next token == '=' | ',' | ';' -> return null
 4. next token != '{' -> raise exception (don't support old style)
 5. parse component statement
 6. return function def
 */
-std::pair<std::shared_ptr<ExternAST>, std::shared_ptr<TypeAST>> Parser::parse_function_definition()
+std::shared_ptr<ExternAST> Parser::parse_function_definition()
 {
 	std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
-	long anchor = current;
+	if (!type)
+		return nullptr;
 
 	auto [declarator_name, declarator_type] = parse_declarator(type);
 
@@ -44,20 +52,20 @@ std::pair<std::shared_ptr<ExternAST>, std::shared_ptr<TypeAST>> Parser::parse_fu
 	if (token_symbol->name == TokenName::tk_equal
 		|| token_symbol->name == TokenName::tk_comma
 		|| token_symbol->name == TokenName::tk_semicolon)
-	{
-		runner = current;
-		return std::make_pair(nullptr, type);
-	}
+		return nullptr;
 	match(TokenName::tk_left_brace, true, false);
 
 	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
 	std::shared_ptr<CompoundStmtAST> body = parse_compound_stmt();
-	std::shared_ptr<ExternAST> def = std::make_shared<ExternAST>(FunctionDefinitionAST(func_type, declarator_name, body));
-	return std::make_pair(def, nullptr);
+	return std::make_shared<ExternAST>(FunctionDefinitionAST(func_type, declarator_name, body));
 }
 
-std::shared_ptr<ExternAST> Parser::parse_declaration(std::shared_ptr<TypeAST> type)
+std::shared_ptr<ExternAST> Parser::parse_declaration()
 {
+	std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
+	if (!type)
+		return nullptr;
+
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 
 	if (!match(TokenName::tk_semicolon))
@@ -218,7 +226,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 		return std::make_shared<TypeAST>(AliasTypeAST(token_identifier));
 	}
 	else
-		throw ParserError("Only support typedef and struct/union/enum/builtin types");
+		return nullptr;
 }
 
 void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier)
@@ -379,6 +387,213 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 		parameters->push_back(parameter);
 	}
 	return parameters;
+}
+
+std::shared_ptr<StmtAST> Parser::parse_stmt()
+{
+	auto token = advance();
+
+	if (token->type == TokenType::tk_symbol)
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		switch (token_symbol->name)
+		{
+		case TokenName::tk_case:
+			return parse_case_stmt();
+
+		case TokenName::tk_default:
+			return parse_default_stmt();
+
+		case TokenName::tk_left_brace:
+			return parse_compound_stmt();
+
+		case TokenName::tk_if:
+			return parse_if_stmt();
+
+		case TokenName::tk_switch:
+			return parse_switch_stmt();
+
+		case TokenName::tk_while:
+			return parse_while_stmt();
+
+		case TokenName::tk_do:
+			return parse_do_while_stmt();
+
+		case TokenName::tk_for:
+			return parse_for_stmt();
+
+		case TokenName::tk_goto:
+			return parse_goto_stmt();
+
+		case TokenName::tk_continue:
+			return parse_continue_stmt();
+
+		case TokenName::tk_break:
+			return parse_break_stmt();
+
+		case TokenName::tk_return:
+			return parse_return_stmt();
+
+		default:
+			break;
+		}
+	}
+	else if (token->type == TokenType::tk_identifier)
+	{
+		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		if (match(TokenName::tk_colon))
+			return parse_label_stmt(token_identifier);
+	}
+	return parse_expr_stmt();
+}
+
+std::shared_ptr<LabelStmtAST> Parser::parse_label_stmt(std::shared_ptr<TokenIdentifier> identifier)
+{
+	auto stmt = parse_stmt();
+	return std::make_shared<LabelStmtAST>(LabelStmtAST(identifier, stmt));
+}
+
+std::shared_ptr<CaseStmtAST> Parser::parse_case_stmt()
+{
+	auto constant = parse_expr();
+	match(TokenName::tk_colon, true);
+	auto stmt = parse_stmt();
+	return std::make_shared<CaseStmtAST>(CaseStmtAST(constant, stmt));
+}
+
+std::shared_ptr<DefaultStmtAST> Parser::parse_default_stmt()
+{
+	match(TokenName::tk_colon, true);
+	auto stmt = parse_stmt();
+	return std::make_shared<DefaultStmtAST>(DefaultStmtAST(stmt));
+}
+
+std::shared_ptr<ExprStmtAST> Parser::parse_expr_stmt()
+{
+	std::shared_ptr<ExprAST> expr;
+	if (!match(TokenName::tk_semicolon, true))
+		expr = parse_expr();
+
+	return std::make_shared<ExprStmtAST>(ExprStmtAST(expr));
+}
+
+std::shared_ptr<CompoundStmtAST> Parser::parse_compound_stmt()
+{
+	std::vector<std::shared_ptr<FragmentAST>> stmts;
+
+	while (!match(TokenName::tk_right_brace))
+	{
+		if (auto declaration = parse_declaration())
+			stmts.push_back(declaration);
+		else if (auto stmt = parse_stmt())
+			stmts.push_back(stmt);
+		else
+			assert_not_reached();
+	}
+
+	return std::make_shared<CompoundStmtAST>(CompoundStmtAST(stmts));
+}
+
+std::shared_ptr<IfStmtAST> Parser::parse_if_stmt()
+{
+	match(TokenName::tk_left_paren, true);
+	auto cond = parse_expr();
+	match(TokenName::tk_right_paren, true);
+
+	auto if_stmt = parse_stmt();
+
+	std::shared_ptr<StmtAST> else_stmt;
+	if (match(TokenName::tk_else))
+		else_stmt = parse_stmt();
+
+	return std::make_shared<IfStmtAST>(IfStmtAST(cond, if_stmt, else_stmt));
+}
+
+std::shared_ptr<SwitchStmtAST> Parser::parse_switch_stmt()
+{
+	match(TokenName::tk_left_paren, true);
+	auto expr = parse_expr();
+	match(TokenName::tk_right_paren, true);
+
+	auto stmt = parse_stmt();
+
+	return std::make_shared<SwitchStmtAST>(SwitchStmtAST(expr, stmt));
+}
+
+std::shared_ptr<WhileStmtAST> Parser::parse_while_stmt()
+{
+	match(TokenName::tk_left_paren, true);
+	auto expr = parse_expr();
+	match(TokenName::tk_right_paren, true);
+
+	auto stmt = parse_stmt();
+
+	return std::make_shared<WhileStmtAST>(WhileStmtAST(expr, stmt));
+}
+
+std::shared_ptr<DoWhileStmtAST> Parser::parse_do_while_stmt()
+{
+	auto stmt = parse_stmt();
+
+	match(TokenName::tk_while, true);
+	match(TokenName::tk_left_paren, true);
+	auto expr = parse_expr();
+	match(TokenName::tk_right_paren, true);
+	match(TokenName::tk_semicolon, true);
+
+	return std::make_shared<DoWhileStmtAST>(DoWhileStmtAST(expr, stmt));
+}
+
+std::shared_ptr<ForStmtAST> Parser::parse_for_stmt()
+{
+	match(TokenName::tk_left_paren, true);
+
+	std::shared_ptr<ExprAST> init;
+	if (!match(TokenName::tk_semicolon))
+		init = parse_expr();
+
+	std::shared_ptr<ExprAST> cond;
+	if (!match(TokenName::tk_semicolon))
+		cond = parse_expr();
+
+	std::shared_ptr<ExprAST> inc;
+	if (!match(TokenName::tk_right_paren))
+		inc = parse_expr();
+
+	auto stmt = parse_stmt();
+	return std::make_shared<ForStmtAST>(ForStmtAST(init, cond, inc, stmt));
+}
+
+std::shared_ptr<JumpStmtAST> Parser::parse_goto_stmt()
+{
+	auto identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+	assert(identifier);
+
+	match(TokenName::tk_semicolon, true);
+
+	return std::make_shared<JumpStmtAST>(JumpStmtAST(identifier));
+}
+
+std::shared_ptr<ContinueStmtAST> Parser::parse_continue_stmt()
+{
+	match(TokenName::tk_semicolon, true);
+	return std::make_shared<ContinueStmtAST>(ContinueStmtAST());
+}
+
+std::shared_ptr<BreakStmtAST> Parser::parse_break_stmt()
+{
+	match(TokenName::tk_semicolon, true);
+	return std::make_shared<BreakStmtAST>(BreakStmtAST());
+}
+
+std::shared_ptr<ReturnStmtAST> Parser::parse_return_stmt()
+{
+	std::shared_ptr<ExprAST> expr;
+	if (!match(TokenName::tk_semicolon))
+		expr = parse_expr();
+
+	match(TokenName::tk_semicolon, true);
+	return std::make_shared<ReturnStmtAST>(ReturnStmtAST(expr));
 }
 
 bool Parser::match(TokenName name, bool strict = false, bool advance = true)

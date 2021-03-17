@@ -22,19 +22,26 @@ public:
 	std::shared_ptr<Program> parse();
 
 private:
+	std::shared_ptr<StmtAST> parse_stmt();
+	std::shared_ptr<LabelStmtAST> parse_label_stmt(std::shared_ptr<TokenIdentifier> identifier);
+	std::shared_ptr<CaseStmtAST> parse_case_stmt();
+	std::shared_ptr<DefaultStmtAST> parse_default_stmt();
+	std::shared_ptr<ExprStmtAST> parse_expr_stmt();
+	std::shared_ptr<CompoundStmtAST> parse_compound_stmt();
 	std::shared_ptr<IfStmtAST> parse_if_stmt();
+	std::shared_ptr<SwitchStmtAST> parse_switch_stmt();
 	std::shared_ptr<ForStmtAST> parse_for_stmt();
+	std::shared_ptr<WhileStmtAST> parse_while_stmt();
 	std::shared_ptr<DoWhileStmtAST> parse_do_while_stmt();
-	std::shared_ptr<JumpStmtAST> parse_jump_stmt();
+	std::shared_ptr<JumpStmtAST> parse_goto_stmt();
 	std::shared_ptr<ContinueStmtAST> parse_continue_stmt();
 	std::shared_ptr<BreakStmtAST> parse_break_stmt();
 	std::shared_ptr<ReturnStmtAST> parse_return_stmt();
-	std::shared_ptr<CompoundStmtAST> parse_compound_stmt();
 
 	std::shared_ptr<ExprAST> parse_expr();
 
-	std::pair<std::shared_ptr<ExternAST>, std::shared_ptr<TypeAST>> Parser::parse_function_definition();
-	std::shared_ptr<ExternAST> parse_declaration(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<ExternAST> Parser::parse_function_definition();
+	std::shared_ptr<ExternAST> parse_declaration();
 	std::shared_ptr<TypeAST> parse_declaration_specifiers(bool include_storage = true, bool include_qualifier = true);
 	void parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier);
 	void parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers);

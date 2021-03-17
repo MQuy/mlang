@@ -21,13 +21,27 @@ class StmtAST : public FragmentAST
 
 class LabelStmtAST : public StmtAST
 {
+public:
+	LabelStmtAST(std::shared_ptr<TokenIdentifier> name, std::shared_ptr<StmtAST> stmt)
+		: name(name)
+		, stmt(stmt)
+	{
+	}
+
 private:
-	TokenIdentifier name;
+	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<StmtAST> stmt;
 };
 
 class CaseStmtAST : public StmtAST
 {
+public:
+	CaseStmtAST(std::shared_ptr<ExprAST> constant, std::shared_ptr<StmtAST> stmt)
+		: constant(constant)
+		, stmt(stmt)
+	{
+	}
+
 private:
 	std::shared_ptr<ExprAST> constant;
 	std::shared_ptr<StmtAST> stmt;
@@ -35,55 +49,126 @@ private:
 
 class DefaultStmtAST : public StmtAST
 {
+public:
+	DefaultStmtAST(std::shared_ptr<StmtAST> stmt)
+		: stmt(stmt)
+	{
+	}
+
 private:
 	std::shared_ptr<StmtAST> stmt;
 };
 
 class ExprStmtAST : public StmtAST
 {
+public:
+	ExprStmtAST(std::shared_ptr<ExprAST> expr)
+		: expr(expr)
+	{
+	}
+
 private:
 	std::shared_ptr<ExprAST> expr;
 };
 
 class CompoundStmtAST : public StmtAST
 {
+public:
+	CompoundStmtAST(std::vector<std::shared_ptr<FragmentAST>> stmts)
+		: stmts(stmts)
+	{
+	}
+
 protected:
-	std::vector<FragmentAST> stmts;	 // have to statement or declaration
+	std::vector<std::shared_ptr<FragmentAST>> stmts;  // have to statement or declaration
 };
 
 class IfStmtAST : public StmtAST
 {
+public:
+	IfStmtAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<StmtAST> if_stmt, std::shared_ptr<StmtAST> else_stmt)
+		: cond(cond)
+		, if_stmt(if_stmt)
+		, else_stmt(else_stmt)
+	{
+	}
+
 private:
-	std::shared_ptr<ExprAST> condition;
-	std::shared_ptr<StmtAST> if_body;
-	std::shared_ptr<StmtAST> else_body;
+	std::shared_ptr<ExprAST> cond;
+	std::shared_ptr<StmtAST> if_stmt;
+	std::shared_ptr<StmtAST> else_stmt;
 };
 
-class ForStmtAST : public StmtAST  // use for while?
+class SwitchStmtAST : public StmtAST
 {
+public:
+	SwitchStmtAST(std::shared_ptr<ExprAST> expr, std::shared_ptr<StmtAST> stmt)
+		: expr(expr)
+		, stmt(stmt)
+	{
+	}
+
 private:
-	std::shared_ptr<StmtAST> initializer;
-	std::shared_ptr<ExprAST> condition;
-	std::shared_ptr<StmtAST> increment;
-	std::shared_ptr<StmtAST> body;
+	std::shared_ptr<ExprAST> expr;
+	std::shared_ptr<StmtAST> stmt;
+};
+
+class ForStmtAST : public StmtAST
+{
+public:
+	ForStmtAST(std::shared_ptr<ExprAST> init, std::shared_ptr<ExprAST> cond, std::shared_ptr<ExprAST> inc, std::shared_ptr<StmtAST> stmt)
+		: init(init)
+		, cond(cond)
+		, inc(inc)
+		, stmt(stmt)
+	{
+	}
+
+private:
+	std::shared_ptr<ExprAST> init;
+	std::shared_ptr<ExprAST> cond;
+	std::shared_ptr<ExprAST> inc;
+	std::shared_ptr<StmtAST> stmt;
+};
+
+class WhileStmtAST : public StmtAST
+{
+public:
+	WhileStmtAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<StmtAST> stmt)
+		: cond(cond)
+		, stmt(stmt)
+	{
+	}
+
+private:
+	std::shared_ptr<ExprAST> cond;
+	std::shared_ptr<StmtAST> stmt;
 };
 
 class DoWhileStmtAST : public StmtAST
 {
-private:
-	enum DoWhileKind
+public:
+	DoWhileStmtAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<StmtAST> stmt)
+		: cond(cond)
+		, stmt(stmt)
 	{
-		do_,
-		while_,
-	} kind;
-	std::shared_ptr<ExprAST> condition;
-	std::shared_ptr<StmtAST> body;
+	}
+
+private:
+	std::shared_ptr<ExprAST> cond;
+	std::shared_ptr<StmtAST> stmt;
 };
 
 class JumpStmtAST : public StmtAST
 {
+public:
+	JumpStmtAST(std::shared_ptr<TokenIdentifier> name)
+		: name(name)
+	{
+	}
+
 private:
-	TokenIdentifier name;
+	std::shared_ptr<TokenIdentifier> name;
 };
 
 class ContinueStmtAST : public StmtAST
@@ -96,8 +181,14 @@ class BreakStmtAST : public StmtAST
 
 class ReturnStmtAST : public StmtAST
 {
+public:
+	ReturnStmtAST(std::shared_ptr<ExprAST> expr)
+		: expr(expr)
+	{
+	}
+
 private:
-	std::vector<std::shared_ptr<ExprAST>> expr;
+	std::shared_ptr<ExprAST> expr;
 };
 
 class ExternAST : public FragmentAST
