@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "scan/token.h"
+#include "utils.h"
 
 class ExprAST;
 
@@ -125,7 +126,7 @@ public:
 		: kind(kind)
 	{
 	}
-	std::shared_ptr<TypeAST> redirect(std::shared_ptr<TypeAST> type);
+	virtual void relate(std::shared_ptr<TypeAST> type) { assert_not_reached(); }
 
 protected:
 	TypeKind kind;
@@ -163,10 +164,7 @@ public:
 		, qualifiers(qualifiers)
 	{
 	}
-	std::shared_ptr<TypeAST> consume(std::shared_ptr<TypeAST> type)
-	{
-		underlay = type;
-	}
+	void relate(std::shared_ptr<TypeAST> type) override { underlay = type; }
 
 private:
 	std::shared_ptr<TypeAST> underlay;
@@ -182,10 +180,7 @@ public:
 		, expr(expr)
 	{
 	}
-	std::shared_ptr<TypeAST> consume(std::shared_ptr<TypeAST> type)
-	{
-		underlay = type;
-	}
+	void relate(std::shared_ptr<TypeAST> type) override { underlay = type; }
 
 private:
 	std::shared_ptr<TypeAST> underlay;

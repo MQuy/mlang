@@ -326,30 +326,32 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	}
 
 	std::shared_ptr<TokenIdentifier> identifier;
+	std::shared_ptr<TypeAST> outer_type;
 	std::shared_ptr<TypeAST> inner_type;
 	if (match(TokenName::tk_left_paren))
 	{
-		auto declarator = parse_declarator(type);
+		auto declarator = parse_declarator(nullptr);
 		identifier = declarator.first;
 		inner_type = declarator.second;
 		match(TokenName::tk_right_paren, true);
 	}
-	else
+	else if (match(TokenType::tk_identifier))
 	{
 		std::shared_ptr<Token> token = advance();
 		identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
-		assert(identifier);
 	}
 
 	if (auto parameters_type = parser_declarator_parameters())
-	{
-		std::shared_ptr<FunctionTypeAST> func_type = std::make_shared<FunctionTypeAST>(FunctionTypeAST(*parameters_type, type));
-		return std::make_pair(identifier, inner_type ? inner_type->redirect(func_type) : func_type);
-	}
+		outer_type = std::make_shared<FunctionTypeAST>(FunctionTypeAST(*parameters_type, type));
 	else if (auto array_type = parse_declarator_array(type))
-		return std::make_pair(identifier, inner_type ? inner_type->redirect(array_type) : array_type);
+		outer_type = array_type;
 	else
-		return std::make_pair(identifier, inner_type ? inner_type->redirect(type) : type);
+		outer_type = type;
+
+	if (inner_type)
+		inner_type->relate(outer_type);
+
+	return std::make_pair(identifier, inner_type ?: outer_type);
 }
 
 std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<TypeAST> type)
