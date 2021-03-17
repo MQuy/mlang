@@ -20,10 +20,7 @@ std::shared_ptr<Program> Parser::parse()
 
 		auto declaration = parse_function_definition();
 		if (!declaration)
-		{
-			runner = current;
 			declaration = parse_declaration();
-		}
 
 		program->add_declaration_stmt(declaration);
 	}
@@ -41,9 +38,11 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 {
 	std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
 	if (!type)
-		return nullptr;
+		return parse_not_match();
 
 	auto [declarator_name, declarator_type] = parse_declarator(type);
+	if (!declarator_name)
+		return parse_not_match();
 
 	std::shared_ptr<Token> token = tokens->at(runner);
 	assert(token && token->type == TokenType::tk_symbol);
@@ -52,7 +51,7 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 	if (token_symbol->name == TokenName::tk_equal
 		|| token_symbol->name == TokenName::tk_comma
 		|| token_symbol->name == TokenName::tk_semicolon)
-		return nullptr;
+		return parse_not_match();
 	match(TokenName::tk_left_brace, true, false);
 
 	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
@@ -64,7 +63,7 @@ std::shared_ptr<ExternAST> Parser::parse_declaration()
 {
 	std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
 	if (!type)
-		return nullptr;
+		return parse_not_match();
 
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 
@@ -72,6 +71,9 @@ std::shared_ptr<ExternAST> Parser::parse_declaration()
 		while (true)
 		{
 			auto init_declarator = parser_init_declarator(type);
+			if (!std::get<0>(init_declarator))
+				return nullptr;
+
 			declarators.push_back(init_declarator);
 
 			if (match(TokenName::tk_semicolon))
@@ -291,9 +293,11 @@ void Parser::parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers)
 std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> Parser::parser_init_declarator(std::shared_ptr<TypeAST> type)
 {
 	auto [identifier, inner_type] = parse_declarator(type);
+
 	std::shared_ptr<ExprAST> expr;
 	if (match(TokenName::tk_equal))
 		expr = parse_expr();
+
 	return std::make_tuple(identifier, inner_type, expr);
 }
 
@@ -650,4 +654,10 @@ bool Parser::match(TokenType type, bool strict = false, bool advance = true)
 std::shared_ptr<Token> Parser::advance()
 {
 	return tokens->at(runner++);
+}
+
+std::nullptr_t Parser::parse_not_match()
+{
+	runner = current;
+	return nullptr;
 }

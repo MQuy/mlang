@@ -54,6 +54,7 @@ private:
 	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parser_declarator_parameters();
 
 	std::shared_ptr<Token> advance();
+	std::nullptr_t parse_not_match();
 	bool match(TokenName name, bool strict = false, bool advance = true);
 	bool match(std::string name, bool strict = false, bool advance = true);
 	bool match(TokenType type, bool strict = false, bool advance = true);
