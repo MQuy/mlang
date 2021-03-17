@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include "utils.h"
+
 std::unordered_map<std::string, TokenName> keywords;
 
 std::shared_ptr<std::unordered_map<std::string, TokenName>> init_keywords()
@@ -58,11 +60,13 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
 {
 	reset();
 	skip_spaces();
+
 	while (current < source_length)
 	{
-		std::shared_ptr<Token> token = scan_token();
+		auto token = scan_token();
 		token->set_position(SourcePosition(current, row), SourcePosition(runner, row));
 		tokens->push_back(token);
+
 		move_cursor(1);
 		skip_spaces();
 	}
@@ -274,7 +278,7 @@ unsigned char Lexer::scan_escape_sequences()
 							});
 				 ++i)
 				;
-			std::string hex = source.substr(start, runner - start + 1);
+			auto hex = source.substr(start, runner - start + 1);
 			return strtol(hex.c_str(), nullptr, 16);
 		}
 		else
@@ -288,7 +292,6 @@ unsigned char Lexer::scan_escape_sequences()
 	}
 }
 
-// TODO: MQ 2021-03-09 Support floating
 std::shared_ptr<Token> Lexer::scan_number()
 {
 	char ch = source.at(current);
@@ -386,7 +389,8 @@ std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> com
 		else
 			break;
 	}
-	std::string number = source.substr(current, runner - current + 1);
+
+	auto number = source.substr(current, runner - current + 1);
 	if (dot_counter || e_counter)
 		return scan_fractional_number_suffix(number, base);
 	else
@@ -400,7 +404,8 @@ std::shared_ptr<Token> Lexer::scan_binary_or_octal(std::function<bool(char)> com
 		if (!look_ahead_and_match(comparator))
 			break;
 	}
-	std::string number = source.substr(start, runner - current + 1);
+
+	auto number = source.substr(start, runner - current + 1);
 	return scan_whole_number_suffix(number, base);
 }
 
@@ -439,6 +444,8 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 			return std::make_shared<TokenLiteral<unsigned long>>(number, base);
 		case 2:
 			return std::make_shared<TokenLiteral<unsigned long long>>(number, base);
+		default:
+			assert_not_reached();
 		}
 	else
 		switch (l_counter)
@@ -449,6 +456,8 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 			return std::make_shared<TokenLiteral<long>>(number, base);
 		case 2:
 			return std::make_shared<TokenLiteral<long long>>(number, base);
+		default:
+			assert_not_reached();
 		}
 }
 
@@ -503,7 +512,7 @@ std::shared_ptr<Token> Lexer::scan_word()
 			break;
 	};
 
-	std::string word = source.substr(current, runner - current + 1);
+	auto word = source.substr(current, runner - current + 1);
 	auto name = keywords.find(word);
 	if (name != keywords.end())
 		return std::make_shared<TokenSymbol>(name->second);

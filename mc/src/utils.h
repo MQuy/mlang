@@ -13,6 +13,11 @@ struct EnumClassHash
 	}
 };
 
-#define assert_not_reached() ({ std::cout << __FILE__ << __LINE__ << __func__; asm volatile("ud2"); })
+#define assert_not_reached()                           \
+	do                                                 \
+	{                                                  \
+		std::cout << __FILE__ << __LINE__ << __func__; \
+		assert(false);                                 \
+	} while (0);
 
 #endif

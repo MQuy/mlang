@@ -36,7 +36,7 @@ std::shared_ptr<Program> Parser::parse()
 */
 std::shared_ptr<ExternAST> Parser::parse_function_definition()
 {
-	std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
+	auto type = parse_declaration_specifiers();
 	if (!type)
 		return parse_not_match();
 
@@ -44,10 +44,10 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 	if (!declarator_name)
 		return parse_not_match();
 
-	std::shared_ptr<Token> token = tokens->at(runner);
+	auto token = tokens->at(runner);
 	assert(token && token->type == TokenType::tk_symbol);
 
-	std::shared_ptr<TokenSymbol> token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+	auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 	if (token_symbol->name == TokenName::tk_equal
 		|| token_symbol->name == TokenName::tk_comma
 		|| token_symbol->name == TokenName::tk_semicolon)
@@ -55,13 +55,13 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 	match(TokenName::tk_left_brace, true, false);
 
 	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
-	std::shared_ptr<CompoundStmtAST> body = parse_compound_stmt();
+	auto body = parse_compound_stmt();
 	return std::make_shared<ExternAST>(FunctionDefinitionAST(func_type, declarator_name, body));
 }
 
 std::shared_ptr<ExternAST> Parser::parse_declaration()
 {
-	std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
+	auto type = parse_declaration_specifiers();
 	if (!type)
 		return parse_not_match();
 
@@ -103,7 +103,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 
 	parse_storage_or_qualifier();
 
-	std ::shared_ptr<Token> token = advance();
+	auto token = advance();
 	assert(token);
 
 	if (token->type == TokenType::tk_symbol)
@@ -172,7 +172,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 		{
 			std::shared_ptr<TokenIdentifier> token_identifier;
 			std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members;
-			AggregateKind kind = token_symbol->name == TokenName::tk_struct ? AggregateKind::struct_ : AggregateKind::union_;
+			auto kind = token_symbol->name == TokenName::tk_struct ? AggregateKind::struct_ : AggregateKind::union_;
 
 			if (match(TokenType::tk_identifier, false, false))
 				token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
@@ -222,7 +222,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 	}
 	else if (match(TokenType::tk_identifier))
 	{
-		std::shared_ptr<TokenIdentifier> token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 
 		parse_storage_or_qualifier();
 		return std::make_shared<TypeAST>(AliasTypeAST(token_identifier));
@@ -233,10 +233,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 
 void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier)
 {
-	for (std::shared_ptr<Token> token = tokens->at(runner);
-		 runner < tokens_length
-		 && token && token->type == TokenType::tk_symbol;
-		 runner++)
+	for (auto token = tokens->at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		assert(token_symbol);
@@ -264,10 +261,7 @@ void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_s
 
 void Parser::parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers)
 {
-	for (std::shared_ptr<Token> token = tokens->at(runner);
-		 runner < tokens_length
-		 && token && token->type == TokenType::tk_symbol;
-		 runner++)
+	for (auto token = tokens->at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		assert(token_symbol);
@@ -305,20 +299,23 @@ std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>
 {
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> declarators;
 	auto type = parse_declaration_specifiers(false, true);
+
 	while (true)
 	{
 		auto declarator = parse_declarator(type);
 		declarators.push_back(declarator);
+
 		if (match(TokenName::tk_semicolon))
 			break;
 		match(TokenName::tk_comma, true);
 	}
+
 	return declarators;
 }
 
 std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> Parser::parse_enumerator()
 {
-	std::shared_ptr<TokenIdentifier> identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+	auto identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
 	std::shared_ptr<ExprAST> expr;
 
 	if (match(TokenName::tk_equal))
@@ -333,13 +330,15 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	{
 		std::set<TypeQualifier> qualifiers;
 		parse_type_qualifier(qualifiers);
-		std::shared_ptr<TypeAST> pointer = std::make_shared<TypeAST>(PointerTypeAST(type, qualifiers));
+
+		auto pointer = std::make_shared<TypeAST>(PointerTypeAST(type, qualifiers));
 		return parse_declarator(pointer);
 	}
 
 	std::shared_ptr<TokenIdentifier> identifier;
 	std::shared_ptr<TypeAST> outer_type;
 	std::shared_ptr<TypeAST> inner_type;
+
 	if (match(TokenName::tk_left_paren))
 	{
 		auto declarator = parse_declarator(nullptr);
@@ -349,7 +348,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	}
 	else if (match(TokenType::tk_identifier))
 	{
-		std::shared_ptr<Token> token = advance();
+		auto token = advance();
 		identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 	}
 
@@ -371,9 +370,10 @@ std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<Typ
 	if (!match(TokenName::tk_left_bracket))
 		return nullptr;
 
-	std::shared_ptr<ExprAST> expr = parse_expr();
+	auto expr = parse_expr();
 	auto array_type = std::make_shared<ArrayTypeAST>(ArrayTypeAST(type, expr));
 	match(TokenName::tk_right_bracket, true);
+
 	return array_type;
 }
 
@@ -385,7 +385,7 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parameters;
 	while (match(TokenName::tk_right_paren))
 	{
-		std::shared_ptr<TypeAST> type = parse_declaration_specifiers();
+		auto type = parse_declaration_specifiers();
 		auto [identifier, inner_type] = parse_declarator(type);
 		auto parameter = std::make_pair(identifier, inner_type);
 		parameters->push_back(parameter);
@@ -461,7 +461,9 @@ std::shared_ptr<CaseStmtAST> Parser::parse_case_stmt()
 {
 	auto constant = parse_expr();
 	match(TokenName::tk_colon, true);
+
 	auto stmt = parse_stmt();
+
 	return std::make_shared<CaseStmtAST>(CaseStmtAST(constant, stmt));
 }
 
@@ -469,6 +471,7 @@ std::shared_ptr<DefaultStmtAST> Parser::parse_default_stmt()
 {
 	match(TokenName::tk_colon, true);
 	auto stmt = parse_stmt();
+
 	return std::make_shared<DefaultStmtAST>(DefaultStmtAST(stmt));
 }
 
@@ -602,7 +605,7 @@ std::shared_ptr<ReturnStmtAST> Parser::parse_return_stmt()
 
 bool Parser::match(TokenName name, bool strict = false, bool advance = true)
 {
-	std::shared_ptr<TokenSymbol> token = std::dynamic_pointer_cast<TokenSymbol>(tokens->at(runner));
+	auto token = std::dynamic_pointer_cast<TokenSymbol>(tokens->at(runner));
 	assert(token);
 
 	if (token->name == name)
@@ -619,7 +622,7 @@ bool Parser::match(TokenName name, bool strict = false, bool advance = true)
 
 bool Parser::match(std::string name, bool strict = false, bool advance = true)
 {
-	std::shared_ptr<TokenIdentifier> token = std::dynamic_pointer_cast<TokenIdentifier>(tokens->at(runner));
+	auto token = std::dynamic_pointer_cast<TokenIdentifier>(tokens->at(runner));
 	assert(token);
 
 	if (token->name == name)
@@ -636,7 +639,7 @@ bool Parser::match(std::string name, bool strict = false, bool advance = true)
 
 bool Parser::match(TokenType type, bool strict = false, bool advance = true)
 {
-	std::shared_ptr<Token> token = tokens->at(runner);
+	auto token = tokens->at(runner);
 	assert(token);
 
 	if (token->type == type)
