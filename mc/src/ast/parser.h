@@ -39,6 +39,23 @@ private:
 	std::shared_ptr<ReturnStmtAST> parse_return_stmt();
 
 	std::shared_ptr<ExprAST> parse_expr();
+	std::shared_ptr<ExprAST> parse_assignment_expr();
+	std::shared_ptr<ExprAST> parse_tenary_expr();
+	std::shared_ptr<ExprAST> parse_constant_expr();
+	std::shared_ptr<ExprAST> parse_logical_or_expr();
+	std::shared_ptr<ExprAST> parse_logical_and_expr();
+	std::shared_ptr<ExprAST> parse_bitwise_or_expr();
+	std::shared_ptr<ExprAST> parse_bitwise_xor_expr();
+	std::shared_ptr<ExprAST> parse_bitwise_and_expr();
+	std::shared_ptr<ExprAST> parse_equality_expr();
+	std::shared_ptr<ExprAST> parse_relational_expr();
+	std::shared_ptr<ExprAST> parse_shift_expr();
+	std::shared_ptr<ExprAST> parse_additive_expr();
+	std::shared_ptr<ExprAST> parse_multiplice_expr();
+	std::shared_ptr<ExprAST> parse_cast_expr();
+	std::shared_ptr<ExprAST> parse_unary_expr();
+	std::shared_ptr<ExprAST> parse_postfix_expr();
+	std::shared_ptr<ExprAST> parse_primary_expr();
 
 	std::shared_ptr<ExternAST> Parser::parse_function_definition();
 	std::shared_ptr<ExternAST> parse_declaration();
@@ -55,6 +72,7 @@ private:
 
 	std::shared_ptr<Token> advance();
 	std::nullptr_t parse_not_match();
+	bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true);
 	bool match(TokenName name, bool strict = false, bool advance = true);
 	bool match(std::string name, bool strict = false, bool advance = true);
 	bool match(TokenType type, bool strict = false, bool advance = true);

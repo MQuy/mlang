@@ -6,56 +6,68 @@ void Token::set_position(SourcePosition start_, SourcePosition end_)
 	end = end_;
 }
 
-TokenLiteral<int>::TokenLiteral(std::string text, unsigned base)
-	: value(strtol(text.c_str(), nullptr, base))
-	, Token(TokenType::tk_constant)
+TokenNumber<char>::TokenNumber(char ch)
+	: TokenLiteral(LiteralType::char_)
+	, value(ch)
 {
 }
 
-TokenLiteral<long>::TokenLiteral(std::string text, unsigned base)
-	: value(strtol(text.c_str(), nullptr, base))
-	, Token(TokenType::tk_constant)
+TokenNumber<unsigned char>::TokenNumber(unsigned char ch)
+	: TokenLiteral(LiteralType::unsigned_char)
+	, value(ch)
 {
 }
 
-TokenLiteral<long long>::TokenLiteral(std::string text, unsigned base)
-	: value(strtoll(text.c_str(), nullptr, base))
-	, Token(TokenType::tk_constant)
+TokenNumber<int>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::int_)
+	, value(strtol(text.c_str(), nullptr, base))
 {
 }
 
-TokenLiteral<unsigned int>::TokenLiteral(std::string text, unsigned base)
-	: value(strtoul(text.c_str(), nullptr, base))
-	, Token(TokenType::tk_constant)
+TokenNumber<long>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::long_)
+	, value(strtol(text.c_str(), nullptr, base))
 {
 }
 
-TokenLiteral<unsigned long>::TokenLiteral(std::string text, unsigned base)
-	: value(strtoul(text.c_str(), nullptr, base))
-	, Token(TokenType::tk_constant)
+TokenNumber<long long>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::long_long)
+	, value(strtoll(text.c_str(), nullptr, base))
 {
 }
 
-TokenLiteral<unsigned long long>::TokenLiteral(std::string text, unsigned base)
-	: value(strtoull(text.c_str(), nullptr, base))
-	, Token(TokenType::tk_constant)
+TokenNumber<unsigned int>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::unsigned_int)
+	, value(strtoul(text.c_str(), nullptr, base))
 {
 }
 
-TokenLiteral<float>::TokenLiteral(std::string text, unsigned base)
-	: value(strtof(text.c_str(), nullptr))
-	, Token(TokenType::tk_constant)
+TokenNumber<unsigned long>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::unsigned_long)
+	, value(strtoul(text.c_str(), nullptr, base))
 {
 }
 
-TokenLiteral<double>::TokenLiteral(std::string text, unsigned base)
-	: value(strtod(text.c_str(), nullptr))
-	, Token(TokenType::tk_constant)
+TokenNumber<unsigned long long>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::unsigned_long_long)
+	, value(strtoull(text.c_str(), nullptr, base))
 {
 }
 
-TokenLiteral<long double>::TokenLiteral(std::string text, unsigned base)
-	: value(strtold(text.c_str(), nullptr))
-	, Token(TokenType::tk_constant)
+TokenNumber<float>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::float_)
+	, value(strtof(text.c_str(), nullptr))
+{
+}
+
+TokenNumber<double>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::double_)
+	, value(strtod(text.c_str(), nullptr))
+{
+}
+
+TokenNumber<long double>::TokenNumber(std::string text, unsigned base)
+	: TokenLiteral(LiteralType::long_double)
+	, value(strtold(text.c_str(), nullptr))
 {
 }

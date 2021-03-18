@@ -69,8 +69,8 @@ enum class BinaryOperator
 	bitwise_and,  // &
 	bitwise_or,	  // |
 	bitwise_xor,  // ^
-	shift_left,	  // >>
-	shift_right,  // <<
+	shift_left,	  // <<
+	shift_right,  // >>
 
 	and_,  // &&
 	or_,   // ||
@@ -90,19 +90,19 @@ enum class BinaryOperator
 
 enum class UnaryOperator
 {
-	prefix_increment,
-	postfix_increment,
-	prefix_decrement,
-	postfix_decrement,
+	prefix_increment,	// ++
+	postfix_increment,	// ++
+	prefix_decrement,	// --
+	postfix_decrement,	// --
 
-	minus,
-	plus,
-	complement,
+	minus,		 // -
+	plus,		 // +
+	complement,	 // ~
 
-	not_,
+	not_,  // !
 
-	dereference,
-	address_of,
+	dereference,  // *
+	address_of,	  // &
 
 	cast,
 	sizeof_,

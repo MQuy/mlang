@@ -219,7 +219,7 @@ std::shared_ptr<Token> Lexer::scan_character()
 	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
 
-	return std::make_shared<TokenLiteral<unsigned char>>(ch);
+	return std::make_shared<TokenNumber<unsigned char>>(ch);
 }
 
 std::shared_ptr<Token> Lexer::scan_string()
@@ -228,7 +228,7 @@ std::shared_ptr<Token> Lexer::scan_string()
 	while (runner < source_length)
 	{
 		if (look_ahead_and_match('"'))
-			return std::make_shared<TokenLiteral<std::string>>(ss.str());
+			return std::make_shared<TokenString>(ss.str());
 		else
 			ss << scan_escape_sequences();
 	}
@@ -439,11 +439,11 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 		switch (l_counter)
 		{
 		case 0:
-			return std::make_shared<TokenLiteral<unsigned int>>(number, base);
+			return std::make_shared<TokenNumber<unsigned int>>(number, base);
 		case 1:
-			return std::make_shared<TokenLiteral<unsigned long>>(number, base);
+			return std::make_shared<TokenNumber<unsigned long>>(number, base);
 		case 2:
-			return std::make_shared<TokenLiteral<unsigned long long>>(number, base);
+			return std::make_shared<TokenNumber<unsigned long long>>(number, base);
 		default:
 			assert_not_reached();
 		}
@@ -451,11 +451,11 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 		switch (l_counter)
 		{
 		case 0:
-			return std::make_shared<TokenLiteral<int>>(number, base);
+			return std::make_shared<TokenNumber<int>>(number, base);
 		case 1:
-			return std::make_shared<TokenLiteral<long>>(number, base);
+			return std::make_shared<TokenNumber<long>>(number, base);
 		case 2:
-			return std::make_shared<TokenLiteral<long long>>(number, base);
+			return std::make_shared<TokenNumber<long long>>(number, base);
 		default:
 			assert_not_reached();
 		}
@@ -492,11 +492,11 @@ std::shared_ptr<Token> Lexer::scan_fractional_number_suffix(std::string number, 
 	}
 
 	if (f_counter)
-		return std::make_shared<TokenLiteral<float>>(number, base);
+		return std::make_shared<TokenNumber<float>>(number, base);
 	else if (l_counter)
-		return std::make_shared<TokenLiteral<long double>>(number, base);
+		return std::make_shared<TokenNumber<long double>>(number, base);
 	else
-		return std::make_shared<TokenLiteral<double>>(number, base);
+		return std::make_shared<TokenNumber<double>>(number, base);
 }
 
 std::shared_ptr<Token> Lexer::scan_word()

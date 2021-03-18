@@ -101,7 +101,7 @@ enum class TokenName
 
 enum class TokenType
 {
-	tk_constant,
+	tk_literal,
 	tk_symbol,
 	tk_identifier,
 	tk_eof,
@@ -146,7 +146,6 @@ struct Token
 
 struct TokenSymbol : public Token
 {
-public:
 	TokenSymbol(TokenName name)
 		: name(name)
 		, Token(TokenType::tk_symbol)
@@ -156,7 +155,7 @@ public:
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };
 
-struct TokenIdentifier : Token
+struct TokenIdentifier : public Token
 {
 	TokenIdentifier(std::string name)
 		: name(name)
@@ -167,17 +166,55 @@ struct TokenIdentifier : Token
 	std::string name;  // Identifier
 };
 
-template <class T>
-struct TokenLiteral : Token
+enum class LiteralType
 {
-	TokenLiteral(T value)
-		: value(value)
-		, Token(TokenType::tk_constant)
+	char_,
+	unsigned_char,
+	int_,
+	long_,
+	long_long,
+	unsigned_int,
+	unsigned_long,
+	unsigned_long_long,
+	float_,
+	double_,
+	long_double,
+	string,
+};
+
+struct TokenLiteral : public Token
+{
+	TokenLiteral()
+		: Token(TokenType::tk_literal)
 	{
 	}
-	TokenLiteral(std::string text, unsigned base);
+	TokenLiteral(LiteralType type)
+		: Token(TokenType::tk_literal)
+		, type(type)
+	{
+	}
+
+	LiteralType type;
+};
+
+template <class T>
+struct TokenNumber : public TokenLiteral
+{
+	TokenNumber(T value);
+	TokenNumber(std::string text, unsigned base);
 
 	T value;  // constant, string
+};
+
+struct TokenString : public TokenLiteral
+{
+	TokenString(std::string value, LiteralType type)
+		: TokenLiteral(LiteralType::string)
+		, value(value)
+	{
+	}
+
+	std::string value;
 };
 
 #endif

@@ -3,6 +3,51 @@
 #include "ast.h"
 #include "utils.h"
 
+std::unordered_map<TokenName, BinaryOperator> binop_token;
+std::unordered_map<TokenName, UnaryOperator> unaryop_token;
+
+void init_operators()
+{
+	binop_token[TokenName::tk_equal] = BinaryOperator::assignment;
+	binop_token[TokenName::tk_plus_equal] = BinaryOperator::addition_assigment;
+	binop_token[TokenName::tk_minus_equal] = BinaryOperator::subtraction_assignment;
+	binop_token[TokenName::tk_asterisk_equal] = BinaryOperator::multiplication_assigment;
+	binop_token[TokenName::tk_slash_equal] = BinaryOperator::division_assignment;
+	binop_token[TokenName::tk_percent_equal] = BinaryOperator::remainder_assignment;
+	binop_token[TokenName::tk_ampersand_equal] = BinaryOperator::bitwise_and_assigment;
+	binop_token[TokenName::tk_vertical_equal] = BinaryOperator::bitwise_or_assigment;
+	binop_token[TokenName::tk_caret_equal] = BinaryOperator::bitwise_xor_assigment;
+	binop_token[TokenName::tk_much_less_equal] = BinaryOperator::shift_left_assignment;
+	binop_token[TokenName::tk_much_greater_equal] = BinaryOperator::shift_right_assignment;
+	binop_token[TokenName::tk_plus] = BinaryOperator::addition;
+	binop_token[TokenName::tk_minus] = BinaryOperator::subtraction;
+	binop_token[TokenName::tk_asterisk] = BinaryOperator::multiplication;
+	binop_token[TokenName::tk_slash] = BinaryOperator::division;
+	binop_token[TokenName::tk_percent] = BinaryOperator::remainder;
+	binop_token[TokenName::tk_ampersand] = BinaryOperator::bitwise_and;
+	binop_token[TokenName::tk_vertical] = BinaryOperator::bitwise_or;
+	binop_token[TokenName::tk_caret] = BinaryOperator::bitwise_xor;
+	binop_token[TokenName::tk_much_less] = BinaryOperator::shift_left;
+	binop_token[TokenName::tk_much_greater] = BinaryOperator::shift_right;
+	binop_token[TokenName::tk_ampersand_ampersand] = BinaryOperator::and_;
+	binop_token[TokenName::tk_vertical_vertical] = BinaryOperator::or_;
+	binop_token[TokenName::tk_equal_equal] = BinaryOperator::equal;
+	binop_token[TokenName::tk_bang_equal] = BinaryOperator::not_equal;
+	binop_token[TokenName::tk_less] = BinaryOperator::less;
+	binop_token[TokenName::tk_greater] = BinaryOperator::greater_than;
+	binop_token[TokenName::tk_less_equal] = BinaryOperator::less_or_equal;
+	binop_token[TokenName::tk_greater_equal] = BinaryOperator::greater_or_equal;
+	binop_token[TokenName::tk_dot] = BinaryOperator::member_access;
+	binop_token[TokenName::tk_comma] = BinaryOperator::comma;
+
+	unaryop_token[TokenName::tk_ampersand] = UnaryOperator::address_of;
+	unaryop_token[TokenName::tk_asterisk] = UnaryOperator::dereference;
+	unaryop_token[TokenName::tk_plus] = UnaryOperator::plus;
+	unaryop_token[TokenName::tk_minus] = UnaryOperator::minus;
+	unaryop_token[TokenName::tk_tilde] = UnaryOperator::complement;
+	unaryop_token[TokenName::tk_bang] = UnaryOperator::not_;
+}
+
 /*
 top level only supports declaration or function definition
 1. mark current position
@@ -603,12 +648,370 @@ std::shared_ptr<ReturnStmtAST> Parser::parse_return_stmt()
 	return std::make_shared<ReturnStmtAST>(ReturnStmtAST(expr));
 }
 
+std::shared_ptr<ExprAST> Parser::parse_expr()
+{
+	auto expr = parse_assignment_expr();
+
+	if (!match(TokenName::tk_semicolon, true, false) && match(TokenName::tk_comma))
+	{
+		auto right_expr = parse_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, right_expr, BinaryOperator::comma));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_assignment_expr()
+{
+	auto expr = parse_tenary_expr();
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_name) {
+			return nxt_name == TokenName::tk_equal
+				   || nxt_name == TokenName::tk_asterisk_equal
+				   || nxt_name == TokenName::tk_slash_equal
+				   || nxt_name == TokenName::tk_percent_equal
+				   || nxt_name == TokenName::tk_plus_equal
+				   || nxt_name == TokenName::tk_minus_equal
+				   || nxt_name == TokenName::tk_much_less_equal
+				   || nxt_name == TokenName::tk_much_greater_equal
+				   || nxt_name == TokenName::tk_ampersand_equal
+				   || nxt_name == TokenName::tk_vertical_equal
+				   || nxt_name == TokenName::tk_caret_equal;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto right_expr = parse_assignment_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, right_expr, binop_token[token_symbol->name]));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_tenary_expr()
+{
+	auto expr = parse_logical_or_expr();
+
+	if (match(TokenName::tk_question_mark))
+	{
+		auto expr1 = parse_expr();
+		match(TokenName::tk_colon, true);
+		auto expr2 = parse_tenary_expr();
+
+		expr = std::make_shared<TenaryExprAST>(TenaryExprAST(expr, expr1, expr2));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_logical_or_expr()
+{
+	auto expr = parse_logical_and_expr();
+
+	if (match(TokenName::tk_vertical_vertical))
+	{
+		auto expr1 = parse_logical_and_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::or_));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_logical_and_expr()
+{
+	auto expr = parse_bitwise_or_expr();
+
+	if (match(TokenName::tk_ampersand_ampersand))
+	{
+		auto expr1 = parse_bitwise_or_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::and_));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_bitwise_or_expr()
+{
+	auto expr = parse_bitwise_xor_expr();
+
+	if (match(TokenName::tk_vertical))
+	{
+		auto expr1 = parse_bitwise_xor_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::bitwise_or));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_bitwise_xor_expr()
+{
+	auto expr = parse_bitwise_and_expr();
+
+	if (match(TokenName::tk_caret))
+	{
+		auto expr1 = parse_bitwise_and_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::bitwise_xor));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_bitwise_and_expr()
+{
+	auto expr = parse_equality_expr();
+
+	if (match(TokenName::tk_ampersand))
+	{
+		auto expr1 = parse_equality_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::bitwise_and));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_equality_expr()
+{
+	auto expr = parse_relational_expr();
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_tk) {
+			return nxt_tk == TokenName::tk_equal_equal || nxt_tk == TokenName::tk_bang_equal;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_relational_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_relational_expr()
+{
+	auto expr = parse_shift_expr();
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_tk) {
+			return nxt_tk == TokenName::tk_less
+				   || nxt_tk == TokenName::tk_less_equal
+				   || nxt_tk == TokenName::tk_greater
+				   || nxt_tk == TokenName::tk_greater_equal;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_shift_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_shift_expr()
+{
+	auto expr = parse_additive_expr();
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_tk) {
+			return nxt_tk == TokenName::tk_much_less
+				   || nxt_tk == TokenName::tk_much_greater;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_additive_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_additive_expr()
+{
+	auto expr = parse_multiplice_expr();
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_tk) {
+			return nxt_tk == TokenName::tk_plus
+				   || nxt_tk == TokenName::tk_minus;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_multiplice_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
+{
+	auto expr = parse_cast_expr();
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_tk) {
+			return nxt_tk == TokenName::tk_ampersand
+				   || nxt_tk == TokenName::tk_slash
+				   || nxt_tk == TokenName::tk_percent;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_cast_expr();
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_cast_expr()
+{
+	std::shared_ptr<ExprAST> expr;
+
+	if (match(TokenName::tk_left_paren))
+	{
+		std::shared_ptr<TypeAST> type = parse_declaration_specifiers(false);
+		match(TokenName::tk_right_paren);
+
+		auto expr1 = parse_unary_expr();
+		expr = std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
+	}
+	else
+		expr = parse_unary_expr();
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_unary_expr()
+{
+	std::shared_ptr<ExprAST> expr;
+
+	auto token = tokens->at(runner);
+	if (match([](TokenName nxt_tk) {
+			return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
+		}))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_unary_expr();
+		auto op = token_symbol->name == TokenName::tk_plus_plus ? UnaryOperator::prefix_increment : UnaryOperator::prefix_decrement;
+		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, op));
+	}
+	else if (match([](TokenName nxt_tk) {
+				 return nxt_tk == TokenName::tk_ampersand
+						|| nxt_tk == TokenName::tk_asterisk
+						|| nxt_tk == TokenName::tk_plus
+						|| nxt_tk == TokenName::tk_minus
+						|| nxt_tk == TokenName::tk_tilde
+						|| nxt_tk == TokenName::tk_bang;
+			 }))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto expr1 = parse_cast_expr();
+		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, unaryop_token[token_symbol->name]));
+	}
+	else if (match(TokenName::tk_sizeof))
+	{
+		if (match(TokenName::tk_left_paren))
+		{
+			auto type = parse_declaration_specifiers(false);
+		}
+		else
+		{
+			auto expr1 = parse_unary_expr();
+			expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, UnaryOperator::sizeof_));
+		}
+	}
+	else
+		expr = parse_postfix_expr();
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
+{
+	auto expr = parse_primary_expr();
+
+	if (match(TokenName::tk_left_bracket))
+	{
+		auto expr1 = parse_expr();
+		match(TokenName::tk_right_bracket, true);
+		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::array_subscript));
+	}
+	else if (match(TokenName::tk_left_paren))
+	{
+		std::vector<std::shared_ptr<ExprAST>> arguments;
+
+		while (!match(TokenName::tk_right_paren))
+		{
+			auto arg = parse_assignment_expr();
+			arguments.push_back(arg);
+
+			if (!match(TokenName::tk_comma))
+				break;
+		}
+
+		expr = std::make_shared<FunctionCallExprAST>(FunctionCallExprAST(expr, arguments));
+	}
+	else if (match([](TokenName nxt_tk) {
+				 return nxt_tk == TokenName::tk_dot || nxt_tk == TokenName::tk_arrow;
+			 }))
+	{
+		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+		assert(token_identifier);
+		expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier));
+	}
+	else if (match([](TokenName nxt_tk) {
+				 return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
+			 }))
+	{
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(advance());
+		assert(token_symbol);
+		auto op = token_symbol->name == TokenName::tk_plus_plus ? UnaryOperator::postfix_increment : UnaryOperator::postfix_decrement;
+		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr, op));
+	}
+
+	return expr;
+}
+
+std::shared_ptr<ExprAST> Parser::parse_primary_expr()
+{
+	std::shared_ptr<ExprAST> expr;
+
+	auto token = tokens->at(runner);
+	if (match(TokenName::tk_left_paren))
+	{
+		expr = parse_expr();
+		match(TokenName::tk_right_paren, true);
+	}
+	else if (match(TokenType::tk_identifier))
+	{
+		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		assert(token_identifier);
+		expr = std::make_shared<IdentifierExprAST>(IdentifierExprAST(token_identifier));
+	}
+	else if (match(TokenType::tk_literal))
+	{
+		auto token_literal = std::dynamic_pointer_cast<TokenLiteral>(token);
+		expr = std::make_shared<LiteralExprAST>(LiteralExprAST(token_constant));
+	}
+	else
+		assert_not_reached();
+
+	return expr;
+}
+
 bool Parser::match(TokenName name, bool strict = false, bool advance = true)
+{
+	return match([&name](TokenName nxt_name) {
+		return nxt_name == name;
+	},
+				 strict,
+				 advance);
+}
+
+bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true)
 {
 	auto token = std::dynamic_pointer_cast<TokenSymbol>(tokens->at(runner));
 	assert(token);
 
-	if (token->name == name)
+	if (comparator(token->name))
 	{
 		if (advance)
 			runner++;
