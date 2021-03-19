@@ -27,6 +27,7 @@
     <ClInclude Include="ast\type.h">
       <Filter>ast</Filter>
     </ClInclude>
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">

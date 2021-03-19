@@ -72,10 +72,11 @@ private:
 
 	std::shared_ptr<Token> advance();
 	std::nullptr_t parse_not_match();
-	bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true);
 	bool match(TokenName name, bool strict = false, bool advance = true);
+	bool match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true);
 	bool match(std::string name, bool strict = false, bool advance = true);
 	bool match(TokenType type, bool strict = false, bool advance = true);
+	bool match(std::function<bool(TokenType)> comparator, bool strict = false, bool advance = true);
 
 	long current;
 	long runner;

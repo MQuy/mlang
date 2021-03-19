@@ -151,6 +151,7 @@
     <ClInclude Include="ast\type.h" />
     <ClInclude Include="scan\lexer.h" />
     <ClInclude Include="scan\token.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

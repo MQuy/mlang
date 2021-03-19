@@ -1,8 +1,10 @@
 #ifndef SCAN_TOKEN_H
 #define SCAN_TOKEN_H 1
 
+#include <memory>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -124,6 +126,8 @@ struct SourcePosition
 	}
 };
 
+class ExprAST;
+
 struct Token
 {
 	Token(TokenType type)
@@ -138,6 +142,7 @@ struct Token
 	}
 
 	void set_position(SourcePosition start, SourcePosition end);
+	virtual std::shared_ptr<ExprAST> create_ast() = 0;
 
 	TokenType type;
 	SourcePosition start;
@@ -152,6 +157,8 @@ struct TokenSymbol : public Token
 	{
 	}
 
+	std::shared_ptr<ExprAST> create_ast() { throw std::runtime_error("cannot create ast from token symbol"); }
+
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };
 
@@ -163,58 +170,24 @@ struct TokenIdentifier : public Token
 	{
 	}
 
-	std::string name;  // Identifier
-};
+	std::shared_ptr<ExprAST> create_ast();
 
-enum class LiteralType
-{
-	char_,
-	unsigned_char,
-	int_,
-	long_,
-	long_long,
-	unsigned_int,
-	unsigned_long,
-	unsigned_long_long,
-	float_,
-	double_,
-	long_double,
-	string,
-};
-
-struct TokenLiteral : public Token
-{
-	TokenLiteral()
-		: Token(TokenType::tk_literal)
-	{
-	}
-	TokenLiteral(LiteralType type)
-		: Token(TokenType::tk_literal)
-		, type(type)
-	{
-	}
-
-	LiteralType type;
+	std::string name;  // identifier
 };
 
 template <class T>
-struct TokenNumber : public TokenLiteral
+struct TokenLiteral : public Token
 {
-	TokenNumber(T value);
-	TokenNumber(std::string text, unsigned base);
-
-	T value;  // constant, string
-};
-
-struct TokenString : public TokenLiteral
-{
-	TokenString(std::string value, LiteralType type)
-		: TokenLiteral(LiteralType::string)
+	TokenLiteral(T value)
+		: Token(TokenType::tk_literal)
 		, value(value)
 	{
 	}
+	TokenLiteral(std::string text, unsigned base);
 
-	std::string value;
+	std::shared_ptr<ExprAST> create_ast();
+
+	T value;
 };
 
 #endif

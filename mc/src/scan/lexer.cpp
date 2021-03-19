@@ -219,7 +219,7 @@ std::shared_ptr<Token> Lexer::scan_character()
 	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
 
-	return std::make_shared<TokenNumber<unsigned char>>(ch);
+	return std::make_shared<TokenLiteral<unsigned char>>(ch);
 }
 
 std::shared_ptr<Token> Lexer::scan_string()
@@ -228,7 +228,7 @@ std::shared_ptr<Token> Lexer::scan_string()
 	while (runner < source_length)
 	{
 		if (look_ahead_and_match('"'))
-			return std::make_shared<TokenString>(ss.str());
+			return std::make_shared<TokenLiteral<std::string>>(ss.str());
 		else
 			ss << scan_escape_sequences();
 	}
@@ -261,25 +261,25 @@ unsigned char Lexer::scan_escape_sequences()
 					 return '0' <= nxt_ch && nxt_ch <= '7';
 				 }))
 		{
-			unsigned start = runner;
+			long start = runner;
 			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch) {
 								return '0' <= nxt_ch && nxt_ch <= '7';
 							});
 				 ++i)
 				;
 			std::string octal = source.substr(start, runner - start + 1);
-			return strtol(octal.c_str(), nullptr, 8);
+			return (unsigned char)strtol(octal.c_str(), nullptr, 8);
 		}
 		else if (look_ahead_and_match('x'))
 		{
-			unsigned start = runner + 1;
+			long start = runner + 1;
 			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch) {
 								return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
 							});
 				 ++i)
 				;
 			auto hex = source.substr(start, runner - start + 1);
-			return strtol(hex.c_str(), nullptr, 16);
+			return (unsigned char)strtol(hex.c_str(), nullptr, 16);
 		}
 		else
 			throw LexerError("\\" + source.substr(runner, 1) + " is not supported");
@@ -439,11 +439,11 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 		switch (l_counter)
 		{
 		case 0:
-			return std::make_shared<TokenNumber<unsigned int>>(number, base);
+			return std::make_shared<TokenLiteral<unsigned int>>(number, base);
 		case 1:
-			return std::make_shared<TokenNumber<unsigned long>>(number, base);
+			return std::make_shared<TokenLiteral<unsigned long>>(number, base);
 		case 2:
-			return std::make_shared<TokenNumber<unsigned long long>>(number, base);
+			return std::make_shared<TokenLiteral<unsigned long long>>(number, base);
 		default:
 			assert_not_reached();
 		}
@@ -451,11 +451,11 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 		switch (l_counter)
 		{
 		case 0:
-			return std::make_shared<TokenNumber<int>>(number, base);
+			return std::make_shared<TokenLiteral<int>>(number, base);
 		case 1:
-			return std::make_shared<TokenNumber<long>>(number, base);
+			return std::make_shared<TokenLiteral<long>>(number, base);
 		case 2:
-			return std::make_shared<TokenNumber<long long>>(number, base);
+			return std::make_shared<TokenLiteral<long long>>(number, base);
 		default:
 			assert_not_reached();
 		}
@@ -492,11 +492,11 @@ std::shared_ptr<Token> Lexer::scan_fractional_number_suffix(std::string number, 
 	}
 
 	if (f_counter)
-		return std::make_shared<TokenNumber<float>>(number, base);
+		return std::make_shared<TokenLiteral<float>>(number, base);
 	else if (l_counter)
-		return std::make_shared<TokenNumber<long double>>(number, base);
+		return std::make_shared<TokenLiteral<long double>>(number, base);
 	else
-		return std::make_shared<TokenNumber<double>>(number, base);
+		return std::make_shared<TokenLiteral<double>>(number, base);
 }
 
 std::shared_ptr<Token> Lexer::scan_word()

@@ -980,17 +980,10 @@ std::shared_ptr<ExprAST> Parser::parse_primary_expr()
 		expr = parse_expr();
 		match(TokenName::tk_right_paren, true);
 	}
-	else if (match(TokenType::tk_identifier))
-	{
-		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
-		assert(token_identifier);
-		expr = std::make_shared<IdentifierExprAST>(IdentifierExprAST(token_identifier));
-	}
-	else if (match(TokenType::tk_literal))
-	{
-		auto token_literal = std::dynamic_pointer_cast<TokenLiteral>(token);
-		expr = std::make_shared<LiteralExprAST>(LiteralExprAST(token_constant));
-	}
+	else if (match([](TokenType nxt_type) {
+				 return nxt_type == TokenType::tk_identifier || nxt_type == TokenType::tk_literal;
+			 }))
+		expr = token->create_ast();
 	else
 		assert_not_reached();
 
@@ -1019,8 +1012,8 @@ bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = fals
 	}
 	else if (strict)
 		throw ParserError("Expect token symbol");
-
-	return false;
+	else
+		return false;
 }
 
 bool Parser::match(std::string name, bool strict = false, bool advance = true)
@@ -1036,16 +1029,25 @@ bool Parser::match(std::string name, bool strict = false, bool advance = true)
 	}
 	else if (strict)
 		throw ParserError("Expect token symbol");
-
-	return false;
+	else
+		return false;
 }
 
 bool Parser::match(TokenType type, bool strict = false, bool advance = true)
 {
+	return match([&type](TokenType nxt_type) {
+		return nxt_type == type;
+	},
+				 strict,
+				 advance);
+}
+
+bool Parser::match(std::function<bool(TokenType)> comparator, bool strict = false, bool advance = true)
+{
 	auto token = tokens->at(runner);
 	assert(token);
 
-	if (token->type == type)
+	if (comparator(token->type))
 	{
 		if (advance)
 			runner++;
@@ -1053,8 +1055,8 @@ bool Parser::match(TokenType type, bool strict = false, bool advance = true)
 	}
 	else if (strict)
 		throw ParserError("Expect token type");
-
-	return false;
+	else
+		return false;
 }
 
 std::shared_ptr<Token> Parser::advance()
