@@ -38,6 +38,8 @@ private:
 	std::shared_ptr<Token> scan_whole_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_fractional_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_word();
+	std::nullptr_t scan_comment();
+	std::nullptr_t scan_comments();
 	unsigned char scan_escape_sequences();
 
 	void reset();

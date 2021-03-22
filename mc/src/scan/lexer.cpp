@@ -64,8 +64,11 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
 	while (current < source_length)
 	{
 		auto token = scan_token();
-		token->set_position(SourcePosition(current, row), SourcePosition(runner, row));
-		tokens->push_back(token);
+		if (token)
+		{
+			token->set_position(SourcePosition(current, row), SourcePosition(runner, row));
+			tokens->push_back(token);
+		}
 
 		move_cursor(1);
 		skip_spaces();
@@ -137,7 +140,13 @@ std::shared_ptr<Token> Lexer::scan_token()
 		return std::make_shared<TokenSymbol>(TokenName::tk_asterisk);
 
 	case '/':
-		if (look_ahead_and_match('='))
+		if (look_ahead_and_match('\n'))
+			return nullptr;
+		else if (look_ahead_and_match('/'))
+			return scan_comment();
+		else if (look_ahead_and_match('*'))
+			return scan_comments();
+		else if (look_ahead_and_match('='))
 			return std::make_shared<TokenSymbol>(TokenName::tk_slash_equal);
 		return std::make_shared<TokenSymbol>(TokenName::tk_slash);
 
@@ -518,6 +527,29 @@ std::shared_ptr<Token> Lexer::scan_word()
 		return std::make_shared<TokenSymbol>(name->second);
 	else
 		return std::make_shared<TokenIdentifier>(word);
+}
+
+std::nullptr_t Lexer::scan_comment()
+{
+	while (look_ahead_and_match([](char nxt_ch) {
+			   return nxt_ch != '\n';
+		   })
+		   && runner < source_length)
+		;
+	return nullptr;
+}
+
+std::nullptr_t Lexer::scan_comments()
+{
+	while (runner < source_length)
+	{
+		if (look_ahead_and_match('*') && look_ahead_and_match('/'))
+			break;
+		else
+			move_cursor(1);
+	}
+
+	return nullptr;
 }
 
 void Lexer::skip_spaces()

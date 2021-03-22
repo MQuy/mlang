@@ -203,7 +203,7 @@ TEST(Operator, Slash_FollowedByNonEqual_Standalone)
 {
 	init_keywords();
 
-	for (auto c : std::regex_replace(characters_set_without_quote, std::regex("="), ""))
+	for (auto c : std::regex_replace(characters_set_without_quote, std::regex("[=\/\*]"), ""))
 	{
 		std::string text("/");
 		Lexer lexer = Lexer(text + c);
@@ -786,4 +786,34 @@ TEST(Identifier, Name_WithBodyHasNumber)
 	auto tokens = lexer.scan();
 	auto token = std::static_pointer_cast<TokenIdentifier>(tokens->front());
 	ASSERT_EQ(token->name, "_he1");
+}
+
+TEST(Ignored, Slash_AtTheEndOfLine)
+{
+	init_keywords();
+
+	Lexer lexer = Lexer("/\n1");
+	auto tokens = lexer.scan();
+	auto token = std::static_pointer_cast<TokenLiteral<int>>(tokens->front());
+	ASSERT_EQ(token->value, 1);
+}
+
+TEST(Ignored, Comment_SingleLine)
+{
+	init_keywords();
+
+	Lexer lexer = Lexer("// hello world\n1");
+	auto tokens = lexer.scan();
+	auto token = std::static_pointer_cast<TokenLiteral<int>>(tokens->front());
+	ASSERT_EQ(token->value, 1);
+}
+
+TEST(Ignored, Comment_MultiLines)
+{
+	init_keywords();
+
+	Lexer lexer = Lexer("/* hello world */1");
+	auto tokens = lexer.scan();
+	auto token = std::static_pointer_cast<TokenLiteral<int>>(tokens->front());
+	ASSERT_EQ(token->value, 1);
 }
