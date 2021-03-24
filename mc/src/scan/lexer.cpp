@@ -4,49 +4,6 @@
 
 #include "utils.h"
 
-std::unordered_map<std::string, TokenName> keywords;
-
-std::shared_ptr<std::unordered_map<std::string, TokenName>> init_keywords()
-{
-	keywords["auto"] = TokenName::tk_auto;
-	keywords["break"] = TokenName::tk_break;
-	keywords["case"] = TokenName::tk_case;
-	keywords["char"] = TokenName::tk_char;
-	keywords["const"] = TokenName::tk_const;
-	keywords["continue"] = TokenName::tk_continue;
-	keywords["default"] = TokenName::tk_default;
-	keywords["do"] = TokenName::tk_do;
-	keywords["double"] = TokenName::tk_double;
-	keywords["else"] = TokenName::tk_else;
-	keywords["enum"] = TokenName::tk_enum;
-	keywords["extern"] = TokenName::tk_extern;
-	keywords["float"] = TokenName::tk_float;
-	keywords["for"] = TokenName::tk_for;
-	keywords["goto"] = TokenName::tk_goto;
-	keywords["if"] = TokenName::tk_if;
-	keywords["inline"] = TokenName::tk_inline;
-	keywords["int"] = TokenName::tk_int;
-	keywords["long"] = TokenName::tk_long;
-	keywords["register"] = TokenName::tk_register;
-	keywords["restrict"] = TokenName::tk_restrict;
-	keywords["return"] = TokenName::tk_return;
-	keywords["short"] = TokenName::tk_short;
-	keywords["signed"] = TokenName::tk_signed;
-	keywords["sizeof"] = TokenName::tk_sizeof;
-	keywords["static"] = TokenName::tk_static;
-	keywords["struct"] = TokenName::tk_struct;
-	keywords["switch"] = TokenName::tk_switch;
-	keywords["typedef"] = TokenName::tk_typedef;
-	keywords["union"] = TokenName::tk_union;
-	keywords["unsigned"] = TokenName::tk_unsigned;
-	keywords["void"] = TokenName::tk_void;
-	keywords["volatile"] = TokenName::tk_volatile;
-	keywords["while"] = TokenName::tk_while;
-	keywords["_Bool"] = TokenName::tk_bool;
-
-	return std::make_shared<std::unordered_map<std::string, TokenName>>(keywords);
-}
-
 void Lexer::reset()
 {
 	column = 0;
@@ -233,7 +190,7 @@ std::shared_ptr<Token> Lexer::scan_character()
 	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
 
-	return std::make_shared<TokenLiteral<unsigned char>>(ch);
+	return std::make_shared<TokenLiteral<unsigned char>>(TokenLiteral<unsigned char>(ch, std::string(1, ch)));
 }
 
 std::shared_ptr<Token> Lexer::scan_string()
@@ -242,7 +199,7 @@ std::shared_ptr<Token> Lexer::scan_string()
 	while (runner < source_length)
 	{
 		if (look_ahead_and_match('"'))
-			return std::make_shared<TokenLiteral<std::string>>(ss.str());
+			return std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(ss.str(), ss.str()));
 		else
 			ss << scan_escape_sequences();
 	}

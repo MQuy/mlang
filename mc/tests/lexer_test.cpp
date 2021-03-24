@@ -1,4 +1,4 @@
-#include "src/scan/lexer.h"
+#include "scan/lexer.h"
 
 #include <regex>
 
@@ -755,9 +755,9 @@ TEST(Literal, FloatNumber_Hexadecimal_WithLongSuffixAndExponent)
 
 TEST(Symbol, ReserverdWords_WithSpaceAsSeparator)
 {
-	auto keywords = init_keywords();
+	init_keywords();
 
-	for (auto iter : *keywords.get())
+	for (auto iter : keywords)
 	{
 		Lexer lexer = Lexer(iter.first + " 123");
 		auto tokens = lexer.scan();
@@ -768,9 +768,9 @@ TEST(Symbol, ReserverdWords_WithSpaceAsSeparator)
 
 TEST(Symbol, ReserverdWords_WithSemicolonAsSeparator)
 {
-	auto keywords = init_keywords();
+	init_keywords();
 
-	for (auto iter : *keywords.get())
+	for (auto iter : keywords)
 	{
 		Lexer lexer = Lexer(iter.first + ";");
 		auto tokens = lexer.scan();
@@ -781,9 +781,9 @@ TEST(Symbol, ReserverdWords_WithSemicolonAsSeparator)
 
 TEST(Identifier, Name_WithKeywordNamePlusRandomString)
 {
-	auto keywords = init_keywords();
+	init_keywords();
 
-	for (auto iter : *keywords.get())
+	for (auto iter : keywords)
 	{
 		Lexer lexer = Lexer(iter.first + "123");
 		auto tokens = lexer.scan();

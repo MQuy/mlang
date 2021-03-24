@@ -78,6 +78,4 @@ public:
 	}
 };
 
-std::shared_ptr<std::unordered_map<std::string, TokenName>> init_keywords();
-
 #endif

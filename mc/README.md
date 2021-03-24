@@ -9,6 +9,8 @@
 - [ ] Tokenization
 - [ ] AST Construction
 
+✍🏼 mc is C99-compliant
+
 ### AST
 
 ![diagram](https://i.imgur.com/tqpvDdb.png)

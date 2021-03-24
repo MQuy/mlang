@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "utils.h"
+
 enum class TokenName
 {
 	// reversed words
@@ -131,14 +133,19 @@ struct SourcePosition
 
 class ExprAST;
 
+extern std::unordered_map<std::string, TokenName> keywords;
+extern std::unordered_map<TokenName, std::string, EnumClassHash> token_name_str;
+
 struct Token
 {
-	Token(TokenType type)
+	Token(TokenType type, std::string lexeme)
 		: type(type)
+		, lexeme(lexeme)
 	{
 	}
-	Token(TokenType type, SourcePosition start, SourcePosition end)
+	Token(TokenType type, std::string lexeme, SourcePosition start, SourcePosition end)
 		: type(type)
+		, lexeme(lexeme)
 		, start(start)
 		, end(end)
 	{
@@ -155,6 +162,7 @@ struct Token
 
 	std::vector<std::shared_ptr<Token>> hide_set;
 	TokenType type;
+	std::string lexeme;
 	SourcePosition start;
 	SourcePosition end;
 };
@@ -162,8 +170,8 @@ struct Token
 struct TokenSymbol : public Token
 {
 	TokenSymbol(TokenName name)
-		: name(name)
-		, Token(TokenType::tk_symbol)
+		: Token(TokenType::tk_symbol, token_name_str[name])
+		, name(name)
 	{
 	}
 
@@ -175,8 +183,8 @@ struct TokenSymbol : public Token
 struct TokenIdentifier : public Token
 {
 	TokenIdentifier(std::string name)
-		: name(name)
-		, Token(TokenType::tk_identifier)
+		: Token(TokenType::tk_identifier, name)
+		, name(name)
 	{
 	}
 
@@ -188,8 +196,8 @@ struct TokenIdentifier : public Token
 template <class T>
 struct TokenLiteral : public Token
 {
-	TokenLiteral(T value)
-		: Token(TokenType::tk_literal)
+	TokenLiteral(T value, std::string lexeme)
+		: Token(TokenType::tk_literal, lexeme)
 		, value(value)
 	{
 	}
@@ -199,5 +207,7 @@ struct TokenLiteral : public Token
 
 	T value;
 };
+
+void init_keywords();
 
 #endif
