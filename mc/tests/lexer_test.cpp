@@ -21,7 +21,6 @@ TEST(SpecialSymbol, Standalone_FollowingByAnyCharacter_NotCombine)
 		std::make_pair(',', TokenName::tk_comma),
 		std::make_pair(':', TokenName::tk_colon),
 		std::make_pair(';', TokenName::tk_semicolon),
-		std::make_pair('#', TokenName::tk_hash),
 		std::make_pair('~', TokenName::tk_tilde),
 		std::make_pair('?', TokenName::tk_question_mark),
 		std::make_pair('\n', TokenName::tk_newline),
@@ -37,6 +36,30 @@ TEST(SpecialSymbol, Standalone_FollowingByAnyCharacter_NotCombine)
 			auto token = std::reinterpret_pointer_cast<TokenSymbol>(tokens->front());
 			ASSERT_EQ(token->name, s.second);
 		}
+	}
+}
+
+TEST(SpecialOperator, Hash_FollowedByHash_Combine)
+{
+	init_keywords();
+
+	Lexer lexer = Lexer("##1");
+	auto tokens = lexer.scan();
+	auto token = std::reinterpret_pointer_cast<TokenSymbol>(tokens->front());
+	ASSERT_EQ(token->name, TokenName::tk_hash_hash);
+}
+
+TEST(SpecialOperator, Hash_FollowedByNonHash_Standalone)
+{
+	init_keywords();
+
+	for (auto c : std::regex_replace(characters_set_without_quote, std::regex("#"), ""))
+	{
+		std::string text("#");
+		Lexer lexer = Lexer(text + c);
+		auto tokens = lexer.scan();
+		auto token = std::reinterpret_pointer_cast<TokenSymbol>(tokens->front());
+		ASSERT_EQ(token->name, TokenName::tk_hash);
 	}
 }
 

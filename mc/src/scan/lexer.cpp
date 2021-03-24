@@ -103,12 +103,15 @@ std::shared_ptr<Token> Lexer::scan_token()
 		return std::make_shared<TokenSymbol>(TokenName::tk_colon);
 	case ';':
 		return std::make_shared<TokenSymbol>(TokenName::tk_semicolon);
-	case '#':
-		return std::make_shared<TokenSymbol>(TokenName::tk_hash);
 	case '~':
 		return std::make_shared<TokenSymbol>(TokenName::tk_tilde);
 	case '?':
 		return std::make_shared<TokenSymbol>(TokenName::tk_question_mark);
+
+	case '#':
+		if (look_ahead_and_match('#'))
+			return std::make_shared<TokenSymbol>(TokenName::tk_hash_hash);
+		return std::make_shared<TokenSymbol>(TokenName::tk_hash);
 
 	case '=':
 		if (look_ahead_and_match('='))

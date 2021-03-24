@@ -95,6 +95,7 @@ enum class TokenName
 	tk_colon,		   // :
 	tk_semicolon,	   // ;
 	tk_hash,		   // #
+	tk_hash_hash,	   // ##
 	tk_tilde,		   // ~
 	tk_question_mark,  // ?
 	tk_newline,		   // \n
