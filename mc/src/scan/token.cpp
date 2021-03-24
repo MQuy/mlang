@@ -1,11 +1,64 @@
 #include "token.h"
 
+#include <algorithm>
+
 #include "ast/expr.h"
 
 void Token::set_position(SourcePosition start_, SourcePosition end_)
 {
 	start = start_;
 	end = end_;
+}
+
+bool Token::in_hide_set(std::shared_ptr<Token> token)
+{
+	return std::find(hide_set.begin(), hide_set.end(), token) != hide_set.end();
+}
+
+bool Token::match(TokenName name, bool strict)
+{
+	return match([&name](TokenName nxt_name) {
+		return nxt_name == name;
+	},
+				 strict);
+}
+
+bool Token::match(std::function<bool(TokenName)> comparator, bool strict)
+{
+	if (!match(TokenType::tk_symbol))
+		return false;
+
+	auto token = (TokenSymbol *)this;
+	if (comparator(token->name))
+		return true;
+	else if (strict)
+		throw std::runtime_error("token symbol is not matched");
+	else
+		return false;
+}
+
+bool Token::match(TokenType type, bool strict)
+{
+	if (this->type == type)
+		return true;
+	else if (strict)
+		throw std::runtime_error("token's type is not matched");
+	else
+		return false;
+}
+
+bool Token::match(std::string name, bool strict)
+{
+	if (!match(TokenType::tk_identifier))
+		return false;
+
+	auto token = (TokenIdentifier *)this;
+	if (token->name == name)
+		return true;
+	else if (strict)
+		throw std::runtime_error("token identifier " + token->name + " is not matched with " + name);
+	else
+		return false;
 }
 
 std::shared_ptr<ExprAST> TokenIdentifier::create_ast()

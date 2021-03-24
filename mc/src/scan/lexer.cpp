@@ -83,6 +83,8 @@ std::shared_ptr<Token> Lexer::scan_token()
 	char ch = source.at(runner);
 	switch (ch)
 	{
+	case '\n':
+		return std::make_shared<TokenSymbol>(TokenName::tk_newline);
 	case '[':
 		return std::make_shared<TokenSymbol>(TokenName::tk_left_bracket);
 	case ']':
@@ -561,8 +563,8 @@ void Lexer::skip_spaces()
 			move_cursor(1);
 		else if (ch == '\n')
 		{
-			move_cursor(1);
 			new_line();
+			break;
 		}
 		else
 			break;

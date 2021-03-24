@@ -24,6 +24,7 @@ TEST(SpecialSymbol, Standalone_FollowingByAnyCharacter_NotCombine)
 		std::make_pair('#', TokenName::tk_hash),
 		std::make_pair('~', TokenName::tk_tilde),
 		std::make_pair('?', TokenName::tk_question_mark),
+		std::make_pair('\n', TokenName::tk_newline),
 	};
 	for (auto s : standalones)
 	{
@@ -804,7 +805,7 @@ TEST(Ignored, Comment_SingleLine)
 
 	Lexer lexer = Lexer("// hello world\n1");
 	auto tokens = lexer.scan();
-	auto token = std::static_pointer_cast<TokenLiteral<int>>(tokens->front());
+	auto token = std::static_pointer_cast<TokenLiteral<int>>(tokens->at(1));
 	ASSERT_EQ(token->value, 1);
 }
 

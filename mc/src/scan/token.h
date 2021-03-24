@@ -1,6 +1,7 @@
 #ifndef SCAN_TOKEN_H
 #define SCAN_TOKEN_H 1
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <set>
@@ -96,6 +97,7 @@ enum class TokenName
 	tk_hash,		   // #
 	tk_tilde,		   // ~
 	tk_question_mark,  // ?
+	tk_newline,		   // \n
 
 	// eof
 	tk_eof,
@@ -143,7 +145,14 @@ struct Token
 
 	void set_position(SourcePosition start, SourcePosition end);
 	virtual std::shared_ptr<ExprAST> create_ast() = 0;
+	bool in_hide_set(std::shared_ptr<Token> token);
 
+	bool match(TokenName name, bool strict = false);
+	bool match(std::function<bool(TokenName)> comparator, bool strict = false);
+	bool match(TokenType type, bool strict = false);
+	bool match(std::string name, bool strict = false);
+
+	std::vector<std::shared_ptr<Token>> hide_set;
 	TokenType type;
 	SourcePosition start;
 	SourcePosition end;
