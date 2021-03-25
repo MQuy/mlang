@@ -47,8 +47,9 @@ struct FunctionMacro : Macro
 class Preprocessor
 {
 public:
-	Preprocessor(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens)
-		: tokens(tokens)
+	Preprocessor(std::string source, std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens)
+		: source(source)
+		, tokens(tokens)
 		, macros()
 	{
 	}
@@ -74,9 +75,15 @@ private:
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> substitute_function_macro(std::shared_ptr<Macro> macro,
 																				   const std::vector<std::vector<std::shared_ptr<Token>>> &arguments,
 																				   const std::vector<std::shared_ptr<Token>> &hide_set);
+	std::shared_ptr<std::vector<std::shared_ptr<Token>>> parse_include(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
+	std::string get_text_from_two_carets(SourcePosition start, SourcePosition end);
 
+	std::string source;
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;
 	std::unordered_map<std::shared_ptr<Token>, std::shared_ptr<Macro>> macros;
+
+	std::vector<std::string> include_paths;
+	std::string dir_path;
 };
 
 #endif

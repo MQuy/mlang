@@ -1,5 +1,7 @@
 #include "preprocessor.h";
 
+#include <filesystem>
+#include <fstream>
 #include <regex>
 
 #include "utils.h"
@@ -86,7 +88,7 @@ void Preprocessor::expand(std::shared_ptr<std::vector<std::shared_ptr<Token>>> t
 				expanded_macro = substitute_object_macro(macro, hide_set);
 
 			int expanded_index = 0;
-			expand(expanded_macro, expanded_index, output, terminated_tokens);
+			expand(expanded_macro, expanded_index, output);
 		}
 		else
 			assert_not_reached();
@@ -116,6 +118,9 @@ void Preprocessor::expand_directives(std::shared_ptr<std::vector<std::shared_ptr
 		}
 		else if (token_identifier->name == "include")
 		{
+			auto expanded_include = parse_include(tokens, ++index);
+			int expanded_index = 0;
+			expand(expanded_include, expanded_index, output);
 		}
 		else if (token_identifier->name == "define")
 		{
@@ -293,7 +298,23 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 		auto token = fmacro->replacement.at(i);
 
 		if (token->match(TokenName::tk_hash))
-			throw std::runtime_error("# in #define is not supported");
+		{
+			assert(i + 1 < length);
+
+			auto after_token = macro->replacement.at(i + 1);
+
+			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk) {
+				return tk->lexeme == after_token->lexeme;
+			});
+			assert(iterator != fmacro->parameters.end());
+
+			auto parameter_index = std::distance(fmacro->parameters.begin(), iterator);
+			auto argument = arguments[parameter_index];
+			auto content = get_text_from_two_carets(argument.front()->start, argument.back()->end);
+
+			token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(content, content));
+			i++;
+		}
 		else if (token->match(TokenName::tk_hash_hash))
 		{
 			assert(0 < i && i + 1 < length);
@@ -343,4 +364,71 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 	}
 
 	return expanded_tokens;
+}
+
+std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::parse_include(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index)
+{
+	auto token = tokens->at(index++);
+	std::filesystem::path filepath;
+
+	if (token->type == TokenType::tk_literal)
+	{
+		auto token_string = std::dynamic_pointer_cast<TokenLiteral<std::string>>(token);
+		assert(token_string);
+
+		auto tmp_path = std::filesystem::path(dir_path) / token_string->value;
+		if (std::filesystem::exists(filepath))
+			filepath = tmp_path;
+		else
+		{
+			for (auto include_path : include_paths)
+			{
+				tmp_path = std::filesystem::path(include_path) / token_string->value;
+				if (std::filesystem::exists(tmp_path))
+				{
+					filepath = tmp_path;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		token->match(TokenName::tk_less);
+		index++;
+
+		std::string path;
+		for (int length = tokens->size(); index < length; ++index)
+		{
+			auto nxt_token = tokens->at(index);
+			if (nxt_token->match(TokenName::tk_greater))
+			{
+				index++;
+				break;
+			}
+			else
+				path += token->lexeme;
+		}
+
+		for (auto include_path : include_paths)
+		{
+			auto tmp_path = std::filesystem::path(include_path) / path;
+			if (std::filesystem::exists(tmp_path))
+			{
+				filepath = tmp_path;
+				break;
+			}
+		}
+	}
+
+	if (filepath.empty())
+		throw std::runtime_error(filepath.u8string() + " deson't exist");
+
+	std::ifstream fs(filepath);
+	const auto sz = std::filesystem::file_size(filepath);
+	std::string content(sz, '\0');
+	fs.read(content.data(), sz);
+
+	Lexer lexer(content);
+	return lexer.scan();
 }

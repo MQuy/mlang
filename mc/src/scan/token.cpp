@@ -235,7 +235,7 @@ std::shared_ptr<ExprAST> TokenLiteral<T>::create_ast()
 template <>
 std::shared_ptr<ExprAST> TokenLiteral<unsigned char>::create_ast()
 {
-	auto token = std::make_shared<TokenLiteral<unsigned char>>(TokenLiteral(value, std::string(1, value)));
+	auto token = std::make_shared<TokenLiteral<unsigned char>>(TokenLiteral(value, lexeme));
 	auto ast = LiteralExprAST(token);
 	return std::make_shared<LiteralExprAST<unsigned char>>(ast);
 }
@@ -244,7 +244,7 @@ std::shared_ptr<ExprAST> TokenLiteral<unsigned char>::create_ast()
 template <>
 std::shared_ptr<ExprAST> TokenLiteral<std::string>::create_ast()
 {
-	auto token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral(value, value));
+	auto token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral(value, lexeme));
 	auto ast = LiteralExprAST(token);
 	return std::make_shared<LiteralExprAST<std::string>>(ast);
 }
