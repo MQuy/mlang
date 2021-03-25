@@ -1,7 +1,5 @@
 #include "token.h"
 
-#include <algorithm>
-
 #include "ast/expr.h"
 
 std::unordered_map<std::string, TokenName> keywords;
@@ -101,11 +99,6 @@ void Token::set_position(SourcePosition start_, SourcePosition end_)
 {
 	start = start_;
 	end = end_;
-}
-
-bool Token::in_hide_set(std::shared_ptr<Token> token)
-{
-	return std::find(hide_set.begin(), hide_set.end(), token) != hide_set.end();
 }
 
 bool Token::match(TokenName name, bool strict)

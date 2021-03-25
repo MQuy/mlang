@@ -16,12 +16,11 @@ std::vector<std::shared_ptr<Token>> Preprocessor::process()
 
 /*
 1. for each token in tokens
-2. if token in terminated tokens -> return
-3. if token == #include
+2. if token == #include
     - get filename and read the content
     - included_tokens = tokenize its content
-    - expand(included_tokens, 0, output, terminated_tokens)
-4. if token == #define
+    - expand(included_tokens, 0, output)
+3. if token == #define
     - macro name = next token
     - if next == (
         - parameters = parse_define_parameters
@@ -34,20 +33,22 @@ std::vector<std::shared_ptr<Token>> Preprocessor::process()
     - macro name = next token
     - remove macro from macros
 6. if token == #if
-    - macro name = next token
-    - if condition is true
-        - expand(tokens, current, output, (#elif, #else, #endif))
-     | not -> skip_if_group(tokens, current)
+    - parse constant expression
+    - result = eval
+    - push (#if, result) to control_directives 
+    - if condition is false -> skip_control_group(tokens, current)
 7. if token == #elif
-    - macro name = next token
-    - if condition is true
-        - expand(tokens, current, output, (#else, #endif))
-     | not -> skip_if_group(tokens, current)
+    - get last control from control_directives
+    - if control's result is true -> skip_control_group(tokens, current)
+      | else
+        - parse constant expression
+        - result = eval
+        - if condition is true
+            - pop the last and push (#elif, result) to control_directives
+        | not -> skip_if_group(tokens, current)
 8. if token == #else
-    - macro name = next token
-    - if condition is true
-        - expand(tokens, current, output, (#endif))
-     | not -> skip_if_group(tokens, current)
+    - get last control from control_directives
+    - if control's result is true -> skip_control_group(tokens, current)
 9. if token->in_hide_set(token) -> push token to output and current++
 10. if token is object macro
     - token->add_to_hide_set(token)
@@ -60,32 +61,28 @@ std::vector<std::shared_ptr<Token>> Preprocessor::process()
 */
 void Preprocessor::expand(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens,
 						  int &index,
-						  std::vector<std::shared_ptr<Token>> &output,
-						  const std::vector<std::shared_ptr<Token>> &terminated_tokens = std::vector<std::shared_ptr<Token>>())
+						  std::vector<std::shared_ptr<Token>> &output)
 {
 	for (int length = tokens->size(); index < length; ++index)
 	{
 		auto token = tokens->at(index);
 
-		if (std::find(terminated_tokens.begin(), terminated_tokens.end(), token) != terminated_tokens.end())
-			return;
-		else if (token->match(TokenName::tk_hash))
-			expand_directives(tokens, ++index, output, terminated_tokens);
-		else if (token->in_hide_set(token) || !macros[token])
+		if (token->match(TokenName::tk_hash))
+			expand_directives(tokens, ++index, output);
+		else if (token->hide_set[token->lexeme] || !macros[token->lexeme])
 			output.push_back(token);
-		else if (auto macro = macros[token])
+		else if (auto macro = macros[token->lexeme])
 		{
-			std::vector<std::shared_ptr<Token>> hide_set = token->hide_set;
-			hide_set.push_back(token);
+			token->hide_set[token->lexeme] = true;
 
 			std::shared_ptr<std::vector<std::shared_ptr<Token>>> expanded_macro;
 			if (macro->type == MacroType::function)
 			{
-				auto arguments = parse_macro_arguments(tokens, index);
-				expanded_macro = substitute_function_macro(macro, arguments, hide_set);
+				auto arguments = parse_macro_arguments(tokens, ++index);
+				expanded_macro = substitute_function_macro(macro, arguments, token->hide_set);
 			}
 			else if (macro->type == MacroType::object)
-				expanded_macro = substitute_object_macro(macro, hide_set);
+				expanded_macro = substitute_object_macro(macro, token->hide_set);
 
 			int expanded_index = 0;
 			expand(expanded_macro, expanded_index, output);
@@ -104,17 +101,46 @@ void Preprocessor::expand_directives(std::shared_ptr<std::vector<std::shared_ptr
 	if (token->match(TokenType::tk_identifier))
 	{
 		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
-		if (token_identifier->name == "ifdef")
+		if (token_identifier->name == "ifdef" || token_identifier->name == "ifndef")
 		{
-		}
-		else if (token_identifier->name == "ifndef")
-		{
+			assert(index + 1 < tokens->size());
+			auto identifier = tokens->at(++index);
+			assert(std::regex_match(identifier->lexeme, std::regex("^[a-zA-Z_]\w+$")));
+
+			auto nxt_token = std::dynamic_pointer_cast<TokenSymbol>(tokens->at(++index));
+			assert(nxt_token && nxt_token->name == TokenName::tk_newline);
+
+			auto exist = macros[identifier->lexeme];
+			auto forward = token_identifier->name == "ifdef" ? exist != nullptr : exist == nullptr;
+			control_directives.push_back(std::make_pair(ControlDirective::ifdef, forward));
+			if (forward)
+				skip_control_block(tokens, index);
 		}
 		else if (token_identifier->name == "elif")
 		{
+			auto [control_name, control_cond] = control_directives.back();
+			assert(control_name == ControlDirective::if_ || control_name == ControlDirective::elif);
+
+			if (control_cond)
+				skip_control_block(tokens, index);
+			else
+			{
+				auto expr = parse_constant_expression(tokens, ++index);
+				auto result = eval_constant_expression(expr);
+
+				if (result)
+				{
+					control_directives.pop_back();
+					control_directives.push_back(std::make_pair(ControlDirective::elif, true));
+				}
+				else
+					skip_control_block(tokens, index);
+			}
 		}
 		else if (token_identifier->name == "endif")
 		{
+			assert(control_directives.size() > 0);
+			control_directives.pop_back();
 		}
 		else if (token_identifier->name == "include")
 		{
@@ -139,18 +165,28 @@ void Preprocessor::expand_directives(std::shared_ptr<std::vector<std::shared_ptr
 				auto body = parse_define_body(tokens, index);
 				macro = std::make_shared<ObjectMacro>(macro_token, body);
 			}
-			macros[macro_token] = macro;
+			macros[macro_token->lexeme] = macro;
 		}
 		else if (token_identifier->name == "undef")
-			macros.erase(token);
+			macros.erase(token->lexeme);
 		else
 			throw std::runtime_error("# " + token_identifier->name + " is not supported");
 	}
 	else if (token->match(TokenName::tk_if))
 	{
+		auto expr = parse_constant_expression(tokens, ++index);
+		auto result = eval_constant_expression(expr);
+
+		control_directives.push_back(std::make_pair(ControlDirective::if_, result));
+
+		if (!result)
+			skip_control_block(tokens, index);
 	}
 	else if (token->match(TokenName::tk_else))
 	{
+		auto [_, control_cond] = control_directives.back();
+		if (control_cond)
+			skip_control_block(tokens, index);
 	}
 	else
 		assert_not_reached();
@@ -217,8 +253,8 @@ std::vector<std::vector<std::shared_ptr<Token>>> &&Preprocessor::parse_macro_arg
 			auto arg = parse_macro_argument(tokens, index);
 			arguments.push_back(arg);
 
-			token = tokens->at(index);
-			if (token->match(TokenName::tk_comma))
+			auto nxt_token = tokens->at(index + 1);
+			if (nxt_token->match(TokenName::tk_comma))
 				index++;
 		}
 	}
@@ -257,7 +293,7 @@ std::vector<std::shared_ptr<Token>> &&Preprocessor::parse_macro_argument(std::sh
 }
 
 std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_object_macro(std::shared_ptr<Macro> macro,
-																						   const std::vector<std::shared_ptr<Token>> &hide_set)
+																						   const std::unordered_map<std::string, bool> &hide_set)
 {
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> expanded_tokens;
 
@@ -267,7 +303,6 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_ob
 		if (token->match(TokenName::tk_hash_hash))
 		{
 			assert(0 < i && i + 1 < length);
-
 			auto before_token = expanded_tokens->back();
 			auto after_token = macro->replacement.at(i + 1);
 
@@ -279,7 +314,9 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_ob
 			i++;
 		}
 
-		token->hide_set.insert(token->hide_set.end(), hide_set.begin(), hide_set.end());
+		for (auto [name, exist] : hide_set)
+			token->hide_set[name] = exist;
+
 		expanded_tokens->push_back(token);
 	}
 
@@ -288,7 +325,7 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_ob
 
 std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_function_macro(std::shared_ptr<Macro> macro,
 																							 const std::vector<std::vector<std::shared_ptr<Token>>> &arguments,
-																							 const std::vector<std::shared_ptr<Token>> &hide_set)
+																							 const std::unordered_map<std::string, bool> &hide_set)
 {
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> expanded_tokens;
 
@@ -300,17 +337,23 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 		if (token->match(TokenName::tk_hash))
 		{
 			assert(i + 1 < length);
-
 			auto after_token = macro->replacement.at(i + 1);
 
 			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk) {
 				return tk->lexeme == after_token->lexeme;
 			});
-			assert(iterator != fmacro->parameters.end());
+			if (iterator != fmacro->parameters.end())
+				throw std::runtime_error("doesn't support #xxx if xxx is not macro agrument");
 
 			auto parameter_index = std::distance(fmacro->parameters.begin(), iterator);
 			auto argument = arguments[parameter_index];
-			auto content = get_text_from_two_carets(argument.front()->start, argument.back()->end);
+
+			std::string content;
+			for (auto tk : argument)
+			{
+				// TODO: MQ 2021-03-25 we should keep the same spacing in macro argument when stringizing
+				content += tk->lexeme;
+			}
 
 			token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(content, content));
 			i++;
@@ -318,7 +361,6 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 		else if (token->match(TokenName::tk_hash_hash))
 		{
 			assert(0 < i && i + 1 < length);
-
 			auto before_token = expanded_tokens->back();
 			auto after_token = macro->replacement.at(i + 1);
 
@@ -341,9 +383,8 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 				auto argument = arguments[parameter_index];
 
 				for (auto tk : argument)
-				{
-					tk->hide_set.insert(tk->hide_set.end(), hide_set.begin(), hide_set.end());
-				}
+					for (auto [name, exist] : hide_set)
+						tk->hide_set[name] = exist;
 
 				auto farg = argument.front();
 				auto content = before_token->lexeme + after_token->lexeme;
@@ -359,7 +400,9 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 			}
 		}
 
-		token->hide_set.insert(token->hide_set.end(), hide_set.begin(), hide_set.end());
+		for (auto [name, exist] : hide_set)
+			token->hide_set[name] = exist;
+
 		expanded_tokens->push_back(token);
 	}
 
@@ -431,4 +474,43 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::parse_include
 
 	Lexer lexer(content);
 	return lexer.scan();
+}
+
+void Preprocessor::skip_control_block(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index)
+{
+	for (int length = tokens->size(), number_of_control = 0; index < length; ++index)
+	{
+		auto token = tokens->at(index);
+		if (token->match(TokenName::tk_hash))
+		{
+			assert(index + 1 < length);
+			auto nxt_token = tokens->at(++index);
+
+			if (nxt_token->lexeme == "ifdef" || nxt_token->lexeme == "ifndef" || nxt_token->lexeme == "if")
+				number_of_control++;
+			else if (nxt_token->lexeme == "elif" || nxt_token->lexeme == "else")
+				throw std::runtime_error("Standalone elif or else is not valid");
+			else if (nxt_token->lexeme == "endif")
+			{
+				if (number_of_control > 0)
+					number_of_control--;
+				else
+					break;
+			}
+			else
+				throw std::runtime_error("#" + nxt_token->lexeme + " is not supported");
+		}
+	}
+}
+
+std::vector<std::shared_ptr<Token>> &&Preprocessor::parse_constant_expression(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index)
+{
+	for (int length = tokens->size(); index < length; ++index)
+	{
+		auto token = tokens->at(index);
+	}
+}
+
+bool Preprocessor::eval_constant_expression(std::vector<std::shared_ptr<Token>> expr)
+{
 }

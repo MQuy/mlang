@@ -153,14 +153,13 @@ struct Token
 
 	void set_position(SourcePosition start, SourcePosition end);
 	virtual std::shared_ptr<ExprAST> create_ast() = 0;
-	bool in_hide_set(std::shared_ptr<Token> token);
 
 	bool match(TokenName name, bool strict = false);
 	bool match(std::function<bool(TokenName)> comparator, bool strict = false);
 	bool match(TokenType type, bool strict = false);
 	bool match(std::string name, bool strict = false);
 
-	std::vector<std::shared_ptr<Token>> hide_set;
+	std::unordered_map<std::string, bool> hide_set;
 	TokenType type;
 	std::string lexeme;
 	SourcePosition start;
