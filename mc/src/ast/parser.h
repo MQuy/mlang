@@ -19,6 +19,7 @@ public:
 		, current(0)
 	{
 	}
+
 	std::shared_ptr<Program> parse();
 
 private:

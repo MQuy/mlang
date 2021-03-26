@@ -4,6 +4,8 @@
 #include <fstream>
 #include <regex>
 
+#include "ast/parser.h"
+#include "const_expr.h"
 #include "utils.h"
 
 std::vector<std::shared_ptr<Token>> Preprocessor::process()
@@ -126,7 +128,7 @@ void Preprocessor::expand_directives(std::shared_ptr<std::vector<std::shared_ptr
 			else
 			{
 				auto expr = parse_constant_expression(tokens, ++index);
-				auto result = eval_constant_expression(expr);
+				auto result = PreprocessorConstExpr(std::move(expr)).eval();
 
 				if (result)
 				{
@@ -175,7 +177,7 @@ void Preprocessor::expand_directives(std::shared_ptr<std::vector<std::shared_ptr
 	else if (token->match(TokenName::tk_if))
 	{
 		auto expr = parse_constant_expression(tokens, ++index);
-		auto result = eval_constant_expression(expr);
+		auto result = PreprocessorConstExpr(std::move(expr)).eval();
 
 		control_directives.push_back(std::make_pair(ControlDirective::if_, result));
 
@@ -503,14 +505,47 @@ void Preprocessor::skip_control_block(std::shared_ptr<std::vector<std::shared_pt
 	}
 }
 
+/*
+- get tokens from current position till the end of line
+- replace macros with their definition
+- replace defined identifier with 1 and undefined identifier with 0
+*/
 std::vector<std::shared_ptr<Token>> &&Preprocessor::parse_constant_expression(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index)
 {
+	std::vector<std::shared_ptr<Token>> body;
 	for (int length = tokens->size(); index < length; ++index)
 	{
 		auto token = tokens->at(index);
+		if (token->match(TokenName::tk_newline))
+			break;
+		else
+			body.push_back(token);
 	}
-}
 
-bool Preprocessor::eval_constant_expression(std::vector<std::shared_ptr<Token>> expr)
-{
+	int index;
+	std::vector<std::shared_ptr<Token>> expanded_body;
+	expand(std::make_shared<std::vector<std::shared_ptr<Token>>>(body), index, expanded_body);
+
+	std::vector<std::shared_ptr<Token>> replaced_body;
+	for (int i = 0, length = expanded_body.size(); i < length; ++i)
+	{
+		auto token = expanded_body.at(i);
+		if (token->lexeme == "defined")
+		{
+			auto nxt_token = expanded_body.at(++i);
+			if (nxt_token->match(TokenName::tk_left_paren))
+			{
+				nxt_token = expanded_body.at(++i);
+				expanded_body.at(++i)->match(TokenName::tk_right_paren, true);
+			}
+			assert(std::regex_match(nxt_token->lexeme, std::regex("^[a-zA-Z_]\w+$")));
+
+			int result = macros[nxt_token->lexeme] != nullptr;
+			replaced_body.push_back(std::make_shared<TokenLiteral<int>>(TokenLiteral<int>(result, std::to_string(result))));
+		}
+		else
+			replaced_body.push_back(token);
+	}
+
+	return std::move(expanded_body);
 }

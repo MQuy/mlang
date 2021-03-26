@@ -1001,34 +1001,46 @@ bool Parser::match(TokenName name, bool strict = false, bool advance = true)
 
 bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true)
 {
-	auto token = std::dynamic_pointer_cast<TokenSymbol>(tokens->at(runner));
-	assert(token);
+	auto token = tokens->at(current);
+	if (token->type != TokenType::tk_symbol)
+		if (strict)
+			throw ParserError("expect token symbol");
+		else
+			return false;
 
-	if (comparator(token->name))
+	auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+	if (comparator(token_symbol->name))
 	{
 		if (advance)
-			runner++;
+			current++;
 		return true;
 	}
 	else if (strict)
-		throw ParserError("Expect token symbol");
+		throw ParserError("token symbol doesn't match");
 	else
 		return false;
 }
 
 bool Parser::match(std::string name, bool strict = false, bool advance = true)
 {
-	auto token = std::dynamic_pointer_cast<TokenIdentifier>(tokens->at(runner));
+	auto token = tokens->at(current);
+	if (token->type != TokenType::tk_identifier)
+		if (strict)
+			throw ParserError("expect token identifier");
+		else
+			return false;
+
+	auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(tokens->at(runner));
 	assert(token);
 
-	if (token->name == name)
+	if (token_identifier->name == name)
 	{
 		if (advance)
 			runner++;
 		return true;
 	}
 	else if (strict)
-		throw ParserError("Expect token symbol");
+		throw ParserError("token identifier " + token_identifier->name + " doesn't match " + name);
 	else
 		return false;
 }

@@ -1,48 +1,10 @@
-#ifndef SCAN_PREPROCESSOR
-#define SCAN_PREPROCESSOR 1
+#ifndef PREPROCESSOR_H
+#define PREPROCESSOR_H 1
 
 #include <unordered_map>
 
-#include "lexer.h"
-
-enum class MacroType
-{
-	object,
-	function,
-};
-
-struct Macro
-{
-	Macro(MacroType type, std::shared_ptr<Token> name, std::vector<std::shared_ptr<Token>> replacement)
-		: type(type)
-		, name(name)
-		, replacement(replacement)
-	{
-	}
-
-	MacroType type;
-	std::shared_ptr<Token> name;
-	std::vector<std::shared_ptr<Token>> replacement;
-};
-
-struct ObjectMacro : Macro
-{
-	ObjectMacro(std::shared_ptr<Token> name, std::vector<std::shared_ptr<Token>> replacement)
-		: Macro(MacroType::object, name, replacement)
-	{
-	}
-};
-
-struct FunctionMacro : Macro
-{
-	FunctionMacro(std::shared_ptr<Token> name, std::vector<std::shared_ptr<Token>> parameters, std::vector<std::shared_ptr<Token>> replacement)
-		: Macro(MacroType::function, name, replacement)
-		, parameters(parameters)
-	{
-	}
-
-	std::vector<std::shared_ptr<Token>> parameters;
-};
+#include "macro.h"
+#include "scan/lexer.h"
 
 enum class ControlDirective
 {
@@ -86,7 +48,6 @@ private:
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> parse_include(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
 	void skip_control_block(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
 	std::vector<std::shared_ptr<Token>> &&parse_constant_expression(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
-	bool eval_constant_expression(std::vector<std::shared_ptr<Token>> expr);
 
 	std::string source;
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;
