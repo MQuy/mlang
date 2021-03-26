@@ -13,9 +13,53 @@ void Lexer::reset()
 	tokens->clear();
 }
 
+inline void replace_trigraph(char &ch, char replaced_ch, int &index)
+{
+	ch = replaced_ch;
+	index += 2;
+}
+
+void Lexer::replace_trigraphs()
+{
+	std::string replaced_source;
+	for (int i = 0; i < source_length; ++i)
+	{
+		auto ch = source[i];
+		if (i + 2 < source_length && ch == '?' && source[i + 1] == '?')
+		{
+			auto nxt_ch = source[i + 2];
+			if (nxt_ch == '<')
+				replace_trigraph(ch, '{', i);
+			else if (nxt_ch == '>')
+				replace_trigraph(ch, '}', i);
+			else if (nxt_ch == '(')
+				replace_trigraph(ch, '[', i);
+			else if (nxt_ch == ')')
+				replace_trigraph(ch, ']', i);
+			else if (nxt_ch == '=')
+				replace_trigraph(ch, '#', i);
+			else if (nxt_ch == '/')
+				replace_trigraph(ch, '\\', i);
+			else if (nxt_ch == '\'')
+				replace_trigraph(ch, '^', i);
+			else if (nxt_ch == '!')
+				replace_trigraph(ch, '|', i);
+			else if (nxt_ch == '-')
+				replace_trigraph(ch, '~', i);
+		}
+
+		replaced_source += ch;
+	}
+
+	source = replaced_source;
+	source_length = source.length();
+}
+
 std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
 {
 	reset();
+
+	replace_trigraphs();
 	skip_spaces();
 
 	while (current < source_length)

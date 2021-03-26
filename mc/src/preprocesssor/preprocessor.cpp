@@ -8,12 +8,36 @@
 #include "const_expr.h"
 #include "utils.h"
 
-std::vector<std::shared_ptr<Token>> Preprocessor::process()
+std::vector<std::shared_ptr<Token>> &&Preprocessor::process()
 {
-	std::vector<std::shared_ptr<Token>> output;
+	std::vector<std::shared_ptr<Token>> expanded_tokens;
 	int index = 0;
-	expand(tokens, index, output);
-	return output;
+	expand(tokens, index, expanded_tokens);
+
+	std::vector<std::shared_ptr<Token>> output;
+	for (int i = 0, length = expanded_tokens.size(); i < length; ++i)
+	{
+		auto token = expanded_tokens.at(i);
+		if (token->match(TokenName::tk_newline))
+			continue;
+		else if (i + 1 < length)
+		{
+			auto nxt_token = expanded_tokens.at(i + 1);
+			if (std::regex_match(token->lexeme, std::regex("^\".*\"$"))
+				&& std::regex_match(nxt_token->lexeme, std::regex("^\".*\"$")))
+			{
+				auto token_literal = std::dynamic_pointer_cast<TokenLiteral<std::string>>(token);
+				auto nxt_token_literal = std::dynamic_pointer_cast<TokenLiteral<std::string>>(nxt_token);
+
+				token = std::make_shared<TokenLiteral<std::string>>(token_literal->value + nxt_token_literal->value);
+				token->set_position(token->start, nxt_token->end);
+			}
+		}
+
+		output.push_back(token);
+	}
+
+	return std::move(output);
 }
 
 /*

@@ -25,7 +25,7 @@ public:
 	{
 	}
 
-	std::vector<std::shared_ptr<Token>> process();
+	std::vector<std::shared_ptr<Token>> &&process();
 
 private:
 	void expand(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens,

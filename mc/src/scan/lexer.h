@@ -41,8 +41,10 @@ private:
 	std::nullptr_t scan_comment();
 	std::nullptr_t scan_comments();
 	unsigned char scan_escape_sequences();
+	void replace_trigraphs();
 
-	void reset();
+	void
+	reset();
 	void move_cursor(int distance);
 	void new_line();
 	void skip_spaces();
