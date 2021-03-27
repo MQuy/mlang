@@ -93,6 +93,8 @@ void init_keywords()
 	token_name_str[TokenName::tk_tilde] = "~";
 	token_name_str[TokenName::tk_question_mark] = "?";
 	token_name_str[TokenName::tk_newline] = "\n";
+	token_name_str[TokenName::tk_space] = " ";
+	token_name_str[TokenName::tk_tab] = "\t";
 }
 
 void Token::set_position(SourcePosition start_, SourcePosition end_)

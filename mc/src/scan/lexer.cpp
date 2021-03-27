@@ -60,7 +60,6 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
 	reset();
 
 	replace_trigraphs();
-	skip_spaces();
 
 	while (current < source_length)
 	{
@@ -72,7 +71,7 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
 		}
 
 		move_cursor(1);
-		skip_spaces();
+		current = runner;
 	}
 
 	tokens->push_back(std::make_shared<TokenSymbol>(TokenName::tk_eof));
@@ -85,7 +84,15 @@ std::shared_ptr<Token> Lexer::scan_token()
 	switch (ch)
 	{
 	case '\n':
+		new_line();
 		return std::make_shared<TokenSymbol>(TokenName::tk_newline);
+	case ' ':
+		move_cursor(1);
+		return std::make_shared<TokenSymbol>(TokenName::tk_space);
+	case '\t':
+		move_cursor(1);
+		return std::make_shared<TokenSymbol>(TokenName::tk_tab);
+
 	case '[':
 		return std::make_shared<TokenSymbol>(TokenName::tk_left_bracket);
 	case ']':
@@ -556,24 +563,6 @@ std::nullptr_t Lexer::scan_comments()
 	}
 
 	return nullptr;
-}
-
-void Lexer::skip_spaces()
-{
-	while (runner < source_length)
-	{
-		char ch = source.at(runner);
-		if (ch == ' ' || ch == '\t')
-			move_cursor(1);
-		else if (ch == '\n')
-		{
-			new_line();
-			break;
-		}
-		else
-			break;
-	}
-	current = runner;
 }
 
 bool Lexer::look_ahead_and_match(char target)

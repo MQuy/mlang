@@ -48,6 +48,7 @@ private:
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> parse_include(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
 	void skip_control_block(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
 	std::vector<std::shared_ptr<Token>> &&parse_constant_expression(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens, int &index);
+	std::vector<std::shared_ptr<Token>> &&standarize_function_macro_argument(std::vector<std::shared_ptr<Token>> &tokens);
 
 	std::string source;
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;

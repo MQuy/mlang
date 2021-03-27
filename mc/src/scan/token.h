@@ -100,7 +100,10 @@ enum class TokenName
 	tk_hash_hash,	   // ##
 	tk_tilde,		   // ~
 	tk_question_mark,  // ?
-	tk_newline,		   // \n
+
+	tk_newline,	 // \n
+	tk_space,	 //
+	tk_tab,		 // \t
 
 	// eof
 	tk_eof,

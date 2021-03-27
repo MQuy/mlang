@@ -43,11 +43,9 @@ private:
 	unsigned char scan_escape_sequences();
 	void replace_trigraphs();
 
-	void
-	reset();
+	void reset();
 	void move_cursor(int distance);
 	void new_line();
-	void skip_spaces();
 	bool look_ahead(char target);
 	bool look_ahead(std::function<bool(char)> comparator);
 	bool look_ahead_and_match(char ch);
