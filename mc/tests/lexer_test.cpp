@@ -7,6 +7,31 @@
 std::string characters_set_without_quote = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_[]{}(),:;#~=!+-*/%&|^<>.?";
 std::string supported_characters_set = characters_set_without_quote + "\'\"";
 
+TEST(SpecialSymbol, Trigraphs_ReplacedByCorrespondingSymbol)
+{
+	init_keywords();
+
+	std::vector<std::pair<std::string, std::string>> trigraphs = {
+		std::make_pair("??<", "{"),
+		std::make_pair("??>", "}"),
+		std::make_pair("??(", "["),
+		std::make_pair("??)", "]"),
+		std::make_pair("??=", "#"),
+		std::make_pair("??'", "^"),
+		std::make_pair("??!", "|"),
+		std::make_pair("??-", "~"),
+	};
+	for (auto [trigraph, str] : trigraphs)
+	{
+		Lexer lexer = Lexer(trigraph);
+		auto tokens = lexer.scan();
+		ASSERT_EQ(tokens->front()->lexeme, str);
+	}
+	Lexer lexer = Lexer("\"??/n\"");
+	auto tokens = lexer.scan();
+	ASSERT_EQ(tokens->front()->lexeme, "\"\\n\"");
+}
+
 TEST(SpecialSymbol, Standalone_FollowingByAnyCharacter_NotCombine)
 {
 	init_keywords();
@@ -547,8 +572,8 @@ TEST(Literal, StringConstant_HexaEscapeSequence_FullForm)
 	auto tokens = lexer.scan();
 	auto token = std::static_pointer_cast<TokenLiteral<std::string>>(tokens->front());
 	ASSERT_EQ(token->value,
-			  "a\xfa"
-			  "bb");
+		"a\xfa"
+		"bb");
 }
 
 TEST(Literal, StringConstant_HexaEscapeSequence_ShortForm)
@@ -559,8 +584,8 @@ TEST(Literal, StringConstant_HexaEscapeSequence_ShortForm)
 	auto tokens = lexer.scan();
 	auto token = std::static_pointer_cast<TokenLiteral<std::string>>(tokens->front());
 	ASSERT_EQ(token->value,
-			  "a\xa"
-			  "mf");
+		"a\xa"
+		"mf");
 }
 
 TEST(Literal, StringConstant_OctalEscapeSequence_FullForm)

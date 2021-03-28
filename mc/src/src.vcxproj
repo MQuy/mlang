@@ -149,12 +149,17 @@
     <ClInclude Include="ast\expr.h" />
     <ClInclude Include="ast\stmt.h" />
     <ClInclude Include="ast\type.h" />
+    <ClInclude Include="preprocesssor\const_expr.h" />
+    <ClInclude Include="preprocesssor\macro.h" />
+    <ClInclude Include="preprocesssor\preprocessor.h" />
     <ClInclude Include="scan\lexer.h" />
     <ClInclude Include="scan\token.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="preprocesssor\const_expr.cpp" />
+    <ClCompile Include="preprocesssor\preprocessor.cpp" />
     <ClCompile Include="scan\lexer.cpp" />
     <ClCompile Include="scan\token.cpp" />
   </ItemGroup>

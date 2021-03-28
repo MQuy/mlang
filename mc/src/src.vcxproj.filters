@@ -7,6 +7,9 @@
     <Filter Include="scan">
       <UniqueIdentifier>{0fee1f5b-090d-4ee4-a620-6589399bf573}</UniqueIdentifier>
     </Filter>
+    <Filter Include="preprocessor">
+      <UniqueIdentifier>{c8a1713b-d587-4147-bcd2-b534efc997f8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scan\lexer.h">
@@ -28,6 +31,15 @@
       <Filter>ast</Filter>
     </ClInclude>
     <ClInclude Include="utils.h" />
+    <ClInclude Include="preprocesssor\const_expr.h">
+      <Filter>preprocessor</Filter>
+    </ClInclude>
+    <ClInclude Include="preprocesssor\macro.h">
+      <Filter>preprocessor</Filter>
+    </ClInclude>
+    <ClInclude Include="preprocesssor\preprocessor.h">
+      <Filter>preprocessor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">
@@ -37,5 +49,11 @@
       <Filter>scan</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="preprocesssor\const_expr.cpp">
+      <Filter>preprocessor</Filter>
+    </ClCompile>
+    <ClCompile Include="preprocesssor\preprocessor.cpp">
+      <Filter>preprocessor</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
