@@ -58,7 +58,7 @@ private:
 	std::shared_ptr<ExprAST> parse_postfix_expr();
 	std::shared_ptr<ExprAST> parse_primary_expr();
 
-	std::shared_ptr<ExternAST> Parser::parse_function_definition();
+	std::shared_ptr<ExternAST> parse_function_definition();
 	std::shared_ptr<ExternAST> parse_declaration();
 	std::shared_ptr<TypeAST> parse_declaration_specifiers(bool include_storage = true, bool include_qualifier = true);
 	void parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier);

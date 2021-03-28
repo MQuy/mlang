@@ -169,7 +169,7 @@ struct Token
 	SourcePosition end;
 };
 
-struct TokenSymbol : public Token
+struct TokenSymbol : Token
 {
 	TokenSymbol(TokenName name)
 		: Token(TokenType::tk_symbol, token_name_str[name])
@@ -182,7 +182,7 @@ struct TokenSymbol : public Token
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };
 
-struct TokenIdentifier : public Token
+struct TokenIdentifier : Token
 {
 	TokenIdentifier(std::string name)
 		: Token(TokenType::tk_identifier, name)
@@ -196,7 +196,7 @@ struct TokenIdentifier : public Token
 };
 
 template <class T>
-struct TokenLiteral : public Token
+struct TokenLiteral : Token
 {
 	TokenLiteral(T value, std::string lexeme)
 		: Token(TokenType::tk_literal, lexeme)

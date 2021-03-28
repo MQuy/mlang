@@ -271,7 +271,7 @@ int PreprocessorConstExpr::eval_primary()
 		throw std::runtime_error("only support integer and char constants");
 }
 
-bool PreprocessorConstExpr::match(TokenName name, bool strict = false, bool advance = true)
+bool PreprocessorConstExpr::match(TokenName name, bool strict, bool advance)
 {
 	return match([&name](TokenName tk_name) {
 		return tk_name == name;
@@ -280,7 +280,7 @@ bool PreprocessorConstExpr::match(TokenName name, bool strict = false, bool adva
 				 advance);
 }
 
-bool PreprocessorConstExpr::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true)
+bool PreprocessorConstExpr::match(std::function<bool(TokenName)> comparator, bool strict, bool advance)
 {
 	auto token = tokens.at(current);
 	if (token->type != TokenType::tk_symbol)

@@ -23,6 +23,7 @@ public:
 	}
 
 	std::shared_ptr<std::vector<std::shared_ptr<Token>>> scan();
+	std::string get_source();
 
 private:
 	std::shared_ptr<Token> scan_token();
