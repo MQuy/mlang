@@ -380,25 +380,21 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_ob
 		auto token = macro->replacement.at(i);
 		if (token->match(TokenName::tk_hash_hash))
 		{
-			assert(0 < i && i + 1 < length);
-
-			while (expanded_tokens->size() > 0)
-			{
-				auto last_token = expanded_tokens->back();
-				if (!is_whitespace_token(last_token))
-					break;
-				expanded_tokens->pop_back();
-			}
-			std::shared_ptr<Token> before_token = expanded_tokens->back();
+			auto et_length = expanded_tokens->size();
+			assert(et_length > 0);
+			auto et_i = skip_whitespaces_tokens(expanded_tokens, et_length - 1, et_length, false, false);
+			std::shared_ptr<Token> before_token = expanded_tokens->at(et_i);
 
 			i = skip_whitespaces_tokens(macro->replacement, i + 1, length);
+			assert(i < length);
 			auto after_token = macro->replacement.at(i);
 
 			auto content = before_token->lexeme + after_token->lexeme;
 			Lexer lexer(content);
 			token = lexer.scan()->front();
 
-			expanded_tokens->pop_back();
+			for (int times = et_length - et_i; times > 0; --times)
+				expanded_tokens->pop_back();
 		}
 
 		for (auto [name, exist] : hide_set)
@@ -452,8 +448,9 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 
 		if (token->match(TokenName::tk_hash))
 		{
-			assert(i + 1 < length);
-			auto after_token = macro->replacement.at(++i);
+			i = skip_whitespaces_tokens(macro->replacement, i + 1, length);
+			assert(i < length);
+			auto after_token = macro->replacement.at(i);
 
 			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk) {
 				return tk->lexeme == after_token->lexeme;
@@ -469,22 +466,17 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 			for (auto tk : standard_argument)
 				content += tk->lexeme;
 
-			token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(content, content));
+			token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(content, "\"" + content + "\""));
 		}
 		else if (token->match(TokenName::tk_hash_hash))
 		{
-			assert(0 < i && i + 1 < length);
-
-			while (expanded_tokens->size() > 0)
-			{
-				auto last_token = expanded_tokens->back();
-				if (!is_whitespace_token(last_token))
-					break;
-				expanded_tokens->pop_back();
-			}
-			std::shared_ptr<Token> before_token = expanded_tokens->back();
+			auto et_length = expanded_tokens->size();
+			assert(et_length > 0);
+			auto et_i = skip_whitespaces_tokens(expanded_tokens, et_length - 1, et_length, false, false);
+			std::shared_ptr<Token> before_token = expanded_tokens->at(et_i);
 
 			i = skip_whitespaces_tokens(macro->replacement, i + 1, length);
+			assert(i < length);
 			auto after_token = macro->replacement.at(i);
 
 			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk) {
@@ -497,25 +489,65 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 				Lexer lexer(content);
 				token = lexer.scan()->front();
 
-				expanded_tokens->pop_back();
+				for (int times = et_length - et_i; times > 0; --times)
+					expanded_tokens->pop_back();
 			}
 			else
 			{
 				auto parameter_index = std::distance(fmacro->parameters.begin(), iterator);
 				auto argument = arguments[parameter_index];
+				std::vector<std::shared_ptr<Token>> standard_argument = standarize_function_macro_argument(argument);
 
-				for (auto tk : argument)
+				if (standard_argument.size() > 0)
+				{
+					for (auto tk : standard_argument)
+						for (auto [name, exist] : hide_set)
+							tk->hide_set[name] = exist;
+
+					auto farg = standard_argument.front();
+					auto content = before_token->lexeme + farg->lexeme;
+					Lexer lexer(content);
+					token = lexer.scan()->front();
+
+					for (int times = et_length - et_i; times > 0; --times)
+						expanded_tokens->pop_back();
+
+					for (auto [name, exist] : hide_set)
+						token->hide_set[name] = exist;
+					expanded_tokens->push_back(token);
+
+					for (int j = 1, length = standard_argument.size(); j < length; ++j)
+						expanded_tokens->push_back(standard_argument[j]);
+				}
+
+				continue;
+			}
+		}
+		else
+		{
+			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&token](std::shared_ptr<Token> tk) {
+				return tk->lexeme == token->lexeme;
+			});
+			if (iterator != fmacro->parameters.end())
+			{
+				auto parameter_index = std::distance(fmacro->parameters.begin(), iterator);
+				auto argument = arguments[parameter_index];
+				std::vector<std::shared_ptr<Token>> standard_argument = standarize_function_macro_argument(argument);
+
+				for (auto tk : standard_argument)
+				{
 					for (auto [name, exist] : hide_set)
 						tk->hide_set[name] = exist;
+					expanded_tokens->push_back(tk);
+				}
 
-				auto farg = argument.front();
-				auto content = before_token->lexeme + after_token->lexeme;
-				Lexer lexer(content);
-				token = lexer.scan()->front();
-				expanded_tokens->push_back(token);
-
-				for (int j = 1, length = argument.size(); j < length; ++j)
-					expanded_tokens->push_back(argument[j]);
+				if (standard_argument.size() == 0)
+					if (auto nxt_i = skip_whitespaces_tokens(macro->replacement, i + 1, length); nxt_i < length)
+					{
+						auto nxt_token = macro->replacement.at(nxt_i);
+						if (nxt_token->match(TokenName::tk_hash_hash))
+							i = nxt_i;
+					}
 
 				continue;
 			}
@@ -523,7 +555,6 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Preprocessor::substitute_fu
 
 		for (auto [name, exist] : hide_set)
 			token->hide_set[name] = exist;
-
 		expanded_tokens->push_back(token);
 	}
 
