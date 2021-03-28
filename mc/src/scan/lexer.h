@@ -14,7 +14,6 @@ public:
 	Lexer(std::string source)
 		: source(source)
 		, source_length(source.length())
-		, tokens(std::make_shared<std::vector<std::shared_ptr<Token>>>())
 		, current(0)
 		, runner(0)
 		, column(0)
@@ -22,7 +21,7 @@ public:
 	{
 	}
 
-	std::shared_ptr<std::vector<std::shared_ptr<Token>>> scan();
+	std::vector<std::shared_ptr<Token>> scan();
 	std::string get_source();
 
 private:
@@ -58,7 +57,7 @@ private:
 	unsigned row;
 	std::string source;
 	long source_length;
-	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;
+	std::vector<std::shared_ptr<Token>> tokens;
 };
 
 class UnexpectedToken : public std::runtime_error

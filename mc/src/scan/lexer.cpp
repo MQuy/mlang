@@ -10,7 +10,7 @@ void Lexer::reset()
 	row = 0;
 	current = 0;
 	runner = 0;
-	tokens->clear();
+	tokens.clear();
 }
 
 inline void replace_trigraph(char &ch, char replaced_ch, int &index)
@@ -60,7 +60,7 @@ std::string Lexer::get_source()
 	return source;
 }
 
-std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
+std::vector<std::shared_ptr<Token>> Lexer::scan()
 {
 	reset();
 
@@ -72,14 +72,14 @@ std::shared_ptr<std::vector<std::shared_ptr<Token>>> Lexer::scan()
 		if (token)
 		{
 			token->set_position(SourcePosition(current, row), SourcePosition(runner, row));
-			tokens->push_back(token);
+			tokens.push_back(token);
 		}
 
 		move_cursor(1);
 		current = runner;
 	}
 
-	tokens->push_back(std::make_shared<TokenSymbol>(TokenName::tk_eof));
+	tokens.push_back(std::make_shared<TokenSymbol>(TokenName::tk_eof));
 	return tokens;
 }
 

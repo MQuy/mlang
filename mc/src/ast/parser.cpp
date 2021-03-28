@@ -57,7 +57,7 @@ top level only supports declaration or function definition
 */
 std::shared_ptr<Program> Parser::parse()
 {
-	auto token = tokens->at(current);
+	auto token = tokens.at(current);
 
 	while (runner < tokens_length)
 	{
@@ -89,7 +89,7 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 	if (!declarator_name)
 		return parse_not_match();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	assert(token && token->type == TokenType::tk_symbol);
 
 	auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
@@ -278,7 +278,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 
 void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier)
 {
-	for (auto token = tokens->at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
+	for (auto token = tokens.at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		assert(token_symbol);
@@ -306,7 +306,7 @@ void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_s
 
 void Parser::parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers)
 {
-	for (auto token = tokens->at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
+	for (auto token = tokens.at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		assert(token_symbol);
@@ -397,8 +397,8 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 		identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 	}
 
-	if (auto parameters_type = parser_declarator_parameters())
-		outer_type = std::make_shared<FunctionTypeAST>(FunctionTypeAST(*parameters_type, type));
+	if (auto parameters_type = parser_declarator_parameters(); parameters_type.size() > 0)
+		outer_type = std::make_shared<FunctionTypeAST>(FunctionTypeAST(parameters_type, type));
 	else if (auto array_type = parse_declarator_array(type))
 		outer_type = array_type;
 	else
@@ -422,18 +422,18 @@ std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<Typ
 	return array_type;
 }
 
-std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> Parser::parser_declarator_parameters()
+std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> Parser::parser_declarator_parameters()
 {
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
 	if (!match(TokenName::tk_left_paren))
-		return nullptr;
+		return parameters;
 
-	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parameters;
 	while (match(TokenName::tk_right_paren))
 	{
 		auto type = parse_declaration_specifiers();
 		auto [identifier, inner_type] = parse_declarator(type);
 		auto parameter = std::make_pair(identifier, inner_type);
-		parameters->push_back(parameter);
+		parameters.push_back(parameter);
 	}
 	return parameters;
 }
@@ -665,7 +665,7 @@ std::shared_ptr<ExprAST> Parser::parse_assignment_expr()
 {
 	auto expr = parse_tenary_expr();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_name) {
 			return nxt_name == TokenName::tk_equal
 				   || nxt_name == TokenName::tk_asterisk_equal
@@ -773,7 +773,7 @@ std::shared_ptr<ExprAST> Parser::parse_equality_expr()
 {
 	auto expr = parse_relational_expr();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
 			return nxt_tk == TokenName::tk_equal_equal || nxt_tk == TokenName::tk_bang_equal;
 		}))
@@ -790,7 +790,7 @@ std::shared_ptr<ExprAST> Parser::parse_relational_expr()
 {
 	auto expr = parse_shift_expr();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
 			return nxt_tk == TokenName::tk_less
 				   || nxt_tk == TokenName::tk_less_equal
@@ -810,7 +810,7 @@ std::shared_ptr<ExprAST> Parser::parse_shift_expr()
 {
 	auto expr = parse_additive_expr();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
 			return nxt_tk == TokenName::tk_much_less
 				   || nxt_tk == TokenName::tk_much_greater;
@@ -828,7 +828,7 @@ std::shared_ptr<ExprAST> Parser::parse_additive_expr()
 {
 	auto expr = parse_multiplice_expr();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
 			return nxt_tk == TokenName::tk_plus
 				   || nxt_tk == TokenName::tk_minus;
@@ -846,7 +846,7 @@ std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
 {
 	auto expr = parse_cast_expr();
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
 			return nxt_tk == TokenName::tk_ampersand
 				   || nxt_tk == TokenName::tk_slash
@@ -883,7 +883,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 {
 	std::shared_ptr<ExprAST> expr;
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
 			return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
 		}))
@@ -974,7 +974,7 @@ std::shared_ptr<ExprAST> Parser::parse_primary_expr()
 {
 	std::shared_ptr<ExprAST> expr;
 
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	if (match(TokenName::tk_left_paren))
 	{
 		expr = parse_expr();
@@ -1001,7 +1001,7 @@ bool Parser::match(TokenName name, bool strict = false, bool advance = true)
 
 bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true)
 {
-	auto token = tokens->at(current);
+	auto token = tokens.at(current);
 	if (token->type != TokenType::tk_symbol)
 		if (strict)
 			throw ParserError("expect token symbol");
@@ -1023,14 +1023,14 @@ bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = fals
 
 bool Parser::match(std::string name, bool strict = false, bool advance = true)
 {
-	auto token = tokens->at(current);
+	auto token = tokens.at(current);
 	if (token->type != TokenType::tk_identifier)
 		if (strict)
 			throw ParserError("expect token identifier");
 		else
 			return false;
 
-	auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(tokens->at(runner));
+	auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(tokens.at(runner));
 	assert(token);
 
 	if (token_identifier->name == name)
@@ -1056,7 +1056,7 @@ bool Parser::match(TokenType type, bool strict = false, bool advance = true)
 
 bool Parser::match(std::function<bool(TokenType)> comparator, bool strict = false, bool advance = true)
 {
-	auto token = tokens->at(runner);
+	auto token = tokens.at(runner);
 	assert(token);
 
 	if (comparator(token->type))
@@ -1073,7 +1073,7 @@ bool Parser::match(std::function<bool(TokenType)> comparator, bool strict = fals
 
 std::shared_ptr<Token> Parser::advance()
 {
-	return tokens->at(runner++);
+	return tokens.at(runner++);
 }
 
 std::nullptr_t Parser::parse_not_match()

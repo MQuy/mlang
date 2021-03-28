@@ -12,9 +12,9 @@
 class Parser
 {
 public:
-	Parser(std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens)
+	Parser(std::vector<std::shared_ptr<Token>> tokens)
 		: tokens(tokens)
-		, tokens_length(tokens != nullptr ? tokens->size() : 0)
+		, tokens_length(tokens.size())
 		, program()
 		, current(0)
 	{
@@ -69,7 +69,7 @@ private:
 	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> parse_enumerator();
 	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
-	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parser_declarator_parameters();
+	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parser_declarator_parameters();
 
 	std::shared_ptr<Token> advance();
 	std::nullptr_t parse_not_match();
@@ -82,7 +82,7 @@ private:
 	long current;
 	long runner;
 	long tokens_length;
-	std::shared_ptr<std::vector<std::shared_ptr<Token>>> tokens;
+	std::vector<std::shared_ptr<Token>> tokens;
 	std::shared_ptr<Program> program;
 };
 
