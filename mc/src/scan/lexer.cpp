@@ -13,7 +13,7 @@ void Lexer::reset()
 	tokens.clear();
 }
 
-inline void replace_trigraph(char &ch, char replaced_ch, int &index)
+inline void replace_trigraph(char& ch, char replaced_ch, int& index)
 {
 	ch = replaced_ch;
 	index += 2;
@@ -66,7 +66,7 @@ std::vector<std::shared_ptr<Token>> Lexer::scan()
 
 	replace_trigraphs();
 
-	while (current < source_length)
+	while (current < source_length && source[current])
 	{
 		auto token = scan_token();
 		if (token)
