@@ -32,6 +32,13 @@ TEST(SpecialSymbol, Trigraphs_ReplacedByCorrespondingSymbol)
 	ASSERT_EQ(tokens.front()->lexeme, "\"\\n\"");
 }
 
+TEST(SpecialSymbol, Backslash_AtTheEndOfLine_CombineLines)
+{
+	Lexer lexer = Lexer("\\\n1");
+	auto tokens = lexer.scan();
+	ASSERT_EQ(tokens.front()->lexeme, "1");
+}
+
 TEST(SpecialSymbol, Standalone_FollowingByAnyCharacter_NotCombine)
 {
 	init_keywords();

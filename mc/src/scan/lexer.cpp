@@ -19,7 +19,8 @@ inline void replace_trigraph(char& ch, char replaced_ch, int& index)
 	index += 2;
 }
 
-void Lexer::replace_trigraphs()
+// replace trigraph and combine lines when backslash at the end of a line
+void Lexer::preprocess()
 {
 	std::string replaced_source;
 	for (int i = 0; i < source_length; ++i)
@@ -47,6 +48,11 @@ void Lexer::replace_trigraphs()
 			else if (nxt_ch == '-')
 				replace_trigraph(ch, '~', i);
 		}
+		else if (i + 1 < source_length && ch == '\\' && source[i + 1] == '\n')
+		{
+			i++;
+			continue;
+		}
 
 		replaced_source += ch;
 	}
@@ -63,8 +69,7 @@ std::string Lexer::get_source()
 std::vector<std::shared_ptr<Token>> Lexer::scan()
 {
 	reset();
-
-	replace_trigraphs();
+	preprocess();
 
 	while (current < source_length && source[current])
 	{
