@@ -61,6 +61,186 @@ std::vector<std::shared_ptr<Token>> postpreprocess_tokens(std::vector<std::share
 	return output;
 }
 
+// remove trailling and collapse sequence of whitespaces in the middle to a single space
+std::vector<std::shared_ptr<Token>> standarize_function_macro_argument(std::vector<std::shared_ptr<Token>>& tokens)
+{
+	std::vector<std::shared_ptr<Token>> argument;
+	auto length = tokens.size();
+
+	int start = skip_whitespaces_tokens(tokens, 0, length);
+	int end = skip_whitespaces_tokens(tokens, length - 1, length, false, false);
+
+	for (; start <= end; ++start)
+	{
+		auto token = tokens.at(start);
+
+		if (token->match(TokenName::tk_tab))
+			token = std::make_shared<TokenSymbol>(TokenSymbol(TokenName::tk_space));
+
+		if (is_whitespace_token(token) && start > 0)
+		{
+			auto prev_token = tokens.at(start - 1);
+			if (is_whitespace_token(prev_token))
+				continue;
+		}
+
+		argument.push_back(token);
+	}
+
+	return argument;
+}
+
+void skip_control_block(std::vector<std::shared_ptr<Token>>& tokens, int& index)
+{
+	for (int length = tokens.size(), number_of_control = 0; index < length; ++index)
+	{
+		auto token = tokens.at(index);
+		if (token->match(TokenName::tk_hash))
+		{
+			index = skip_whitespaces_tokens(tokens, index + 1, length);
+			assert(index < length);
+			auto nxt_token = tokens.at(index);
+
+			if (nxt_token->lexeme == "define" || nxt_token->lexeme == "undef" || nxt_token->lexeme == "include" || nxt_token->lexeme == "include_next")
+				continue;
+			if (nxt_token->lexeme == "ifdef" || nxt_token->lexeme == "ifndef" || nxt_token->lexeme == "if")
+				number_of_control++;
+			else if (nxt_token->lexeme == "elif" || nxt_token->lexeme == "else" || nxt_token->lexeme == "endif")
+			{
+				if (number_of_control == 0)
+				{
+					// back to before # position
+					index = skip_whitespaces_tokens(tokens, index - 1, length, false, false);
+					index--;
+					break;
+				}
+				if (nxt_token->lexeme == "endif")
+					number_of_control--;
+			}
+			else
+				throw std::runtime_error("#" + nxt_token->lexeme + " is not supported");
+		}
+	}
+}
+
+/* NOTE: MQ 2021-03-24
+comma is used as macro argument separation
+there are 2 cases comma belongs to argument when it appears between
+- [xxx,xxx]
+- (xxx,xxx)
+*/
+std::vector<std::shared_ptr<Token>> parse_macro_argument(std::vector<std::shared_ptr<Token>>& tokens, int& index)
+{
+	std::vector<std::shared_ptr<Token>> argument;
+
+	auto length = tokens.size();
+	for (int number_of_bracket = 0; index < length; ++index)
+	{
+		auto token = tokens.at(index);
+		if (token->match([](TokenName name) {
+				return name == TokenName::tk_comma || name == TokenName::tk_right_paren;
+			})
+			&& number_of_bracket == 0)
+		{
+			--index;
+			break;
+		}
+		else if (token->match([](TokenName name) {
+					 return name == TokenName::tk_left_paren || name == TokenName::tk_left_bracket;
+				 }))
+			number_of_bracket++;
+		else if (token->match([](TokenName name) {
+					 return name == TokenName::tk_right_paren || name == TokenName::tk_right_bracket;
+				 }))
+			number_of_bracket--;
+
+		argument.push_back(token);
+	}
+
+	return argument;
+}
+
+std::vector<std::vector<std::shared_ptr<Token>>> parse_macro_arguments(std::vector<std::shared_ptr<Token>>& tokens,
+																	   int& index)
+{
+	std::vector<std::vector<std::shared_ptr<Token>>> arguments;
+
+	auto length = tokens.size();
+	index = skip_whitespaces_tokens(tokens, index, length);
+
+	auto token = tokens.at(index);
+	token->match(TokenName::tk_left_paren, true);
+
+	token = tokens.at(++index);
+	if (token->match(TokenName::tk_right_paren))
+		return arguments;
+
+	for (; index < length; ++index)
+	{
+		token = tokens.at(index);
+		auto arg = parse_macro_argument(tokens, index);
+		arguments.push_back(arg);
+
+		auto nxt_token = tokens.at(++index);
+		if (nxt_token->match(TokenName::tk_right_paren))
+			break;
+		else
+			nxt_token->match(TokenName::tk_comma, true);
+	}
+
+	return arguments;
+}
+
+std::vector<std::shared_ptr<Token>> parse_define_body(std::vector<std::shared_ptr<Token>>& tokens, int& index)
+{
+	std::vector<std::shared_ptr<Token>> body;
+
+	auto length = tokens.size();
+	index = skip_whitespaces_tokens(tokens, index, length);
+	for (; index < length; ++index)
+	{
+		auto token = tokens.at(index);
+		if (token->match(TokenName::tk_newline))
+			break;
+
+		body.push_back(token);
+	}
+	return body;
+}
+
+std::vector<std::shared_ptr<Token>> parse_define_parameters(std::vector<std::shared_ptr<Token>>& tokens, int& index)
+{
+	std::vector<std::shared_ptr<Token>> parameters;
+
+	auto token = tokens.at(index);
+	token->match(TokenName::tk_left_paren, true);
+
+	auto length = tokens.size();
+	index = skip_whitespaces_tokens(tokens, index + 1, length);
+
+	for (; index < length; index = skip_whitespaces_tokens(tokens, index + 1, length))
+	{
+		token = tokens.at(index);
+		if (token->match(TokenName::tk_right_paren))
+			break;
+		else if (std::regex_match(token->lexeme, std::regex("^[a-zA-Z_]\\w*$")))
+		{
+			parameters.push_back(token);
+
+			index = skip_whitespaces_tokens(tokens, index + 1, length);
+			auto nxt_token = tokens.at(index);
+			if (nxt_token->match(TokenName::tk_right_paren))
+				break;
+			else
+				nxt_token->match(TokenName::tk_comma, true);
+		}
+		else
+			throw std::runtime_error("Only support #define's identifier with variable name rule");
+	}
+
+	return parameters;
+}
+
 std::vector<std::shared_ptr<Token>> Preprocessor::process()
 {
 	std::vector<std::shared_ptr<Token>> expanded_tokens;
@@ -279,124 +459,6 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens
 		throw std::runtime_error("# " + token->lexeme + " is not supported");
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_parameters(std::vector<std::shared_ptr<Token>>& tokens, int& index)
-{
-	std::vector<std::shared_ptr<Token>> parameters;
-
-	auto token = tokens.at(index);
-	token->match(TokenName::tk_left_paren, true);
-
-	auto length = tokens.size();
-	index = skip_whitespaces_tokens(tokens, index + 1, length);
-
-	for (; index < length; index = skip_whitespaces_tokens(tokens, index + 1, length))
-	{
-		token = tokens.at(index);
-		if (token->match(TokenName::tk_right_paren))
-			break;
-		else if (std::regex_match(token->lexeme, std::regex("^[a-zA-Z_]\\w*$")))
-		{
-			parameters.push_back(token);
-
-			index = skip_whitespaces_tokens(tokens, index + 1, length);
-			auto nxt_token = tokens.at(index);
-			if (nxt_token->match(TokenName::tk_right_paren))
-				break;
-			else
-				nxt_token->match(TokenName::tk_comma, true);
-		}
-		else
-			throw std::runtime_error("Only support #define's identifier with variable name rule");
-	}
-
-	return parameters;
-}
-
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_body(std::vector<std::shared_ptr<Token>>& tokens, int& index)
-{
-	std::vector<std::shared_ptr<Token>> body;
-
-	auto length = tokens.size();
-	index = skip_whitespaces_tokens(tokens, index, length);
-	for (; index < length; ++index)
-	{
-		auto token = tokens.at(index);
-		if (token->match(TokenName::tk_newline))
-			break;
-
-		body.push_back(token);
-	}
-	return body;
-}
-
-std::vector<std::vector<std::shared_ptr<Token>>> Preprocessor::parse_macro_arguments(std::vector<std::shared_ptr<Token>>& tokens,
-																					 int& index)
-{
-	std::vector<std::vector<std::shared_ptr<Token>>> arguments;
-
-	auto length = tokens.size();
-	index = skip_whitespaces_tokens(tokens, index, length);
-
-	auto token = tokens.at(index);
-	token->match(TokenName::tk_left_paren, true);
-
-	token = tokens.at(++index);
-	if (token->match(TokenName::tk_right_paren))
-		return arguments;
-
-	for (; index < length; ++index)
-	{
-		token = tokens.at(index);
-		auto arg = parse_macro_argument(tokens, index);
-		arguments.push_back(arg);
-
-		auto nxt_token = tokens.at(++index);
-		if (nxt_token->match(TokenName::tk_right_paren))
-			break;
-		else
-			nxt_token->match(TokenName::tk_comma, true);
-	}
-
-	return arguments;
-}
-
-/* NOTE: MQ 2021-03-24
-comma is used as macro argument separation
-there are 2 cases comma belongs to argument when it appears between
-- [xxx,xxx]
-- (xxx,xxx)
-*/
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_macro_argument(std::vector<std::shared_ptr<Token>>& tokens, int& index)
-{
-	std::vector<std::shared_ptr<Token>> argument;
-
-	auto length = tokens.size();
-	for (int number_of_bracket = 0; index < length; ++index)
-	{
-		auto token = tokens.at(index);
-		if (token->match([](TokenName name) {
-				return name == TokenName::tk_comma || name == TokenName::tk_right_paren;
-			})
-			&& number_of_bracket == 0)
-		{
-			--index;
-			break;
-		}
-		else if (token->match([](TokenName name) {
-					 return name == TokenName::tk_left_paren || name == TokenName::tk_left_bracket;
-				 }))
-			number_of_bracket++;
-		else if (token->match([](TokenName name) {
-					 return name == TokenName::tk_right_paren || name == TokenName::tk_right_bracket;
-				 }))
-			number_of_bracket--;
-
-		argument.push_back(token);
-	}
-
-	return argument;
-}
-
 std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(std::shared_ptr<Macro> macro,
 																		  const std::unordered_map<std::string, bool>& hide_set)
 {
@@ -431,35 +493,6 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(std::s
 	}
 
 	return expanded_tokens;
-}
-
-// remove trailling and collapse sequence of whitespaces in the middle to a single space
-std::vector<std::shared_ptr<Token>> Preprocessor::standarize_function_macro_argument(std::vector<std::shared_ptr<Token>>& tokens)
-{
-	std::vector<std::shared_ptr<Token>> argument;
-	auto length = tokens.size();
-
-	int start = skip_whitespaces_tokens(tokens, 0, length);
-	int end = skip_whitespaces_tokens(tokens, length - 1, length, false, false);
-
-	for (; start <= end; ++start)
-	{
-		auto token = tokens.at(start);
-
-		if (token->match(TokenName::tk_tab))
-			token = std::make_shared<TokenSymbol>(TokenSymbol(TokenName::tk_space));
-
-		if (is_whitespace_token(token) && start > 0)
-		{
-			auto prev_token = tokens.at(start - 1);
-			if (is_whitespace_token(prev_token))
-				continue;
-		}
-
-		argument.push_back(token);
-	}
-
-	return argument;
 }
 
 std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std::shared_ptr<Macro> macro,
@@ -654,39 +687,6 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std:
 
 	Lexer lexer(content);
 	return lexer.scan();
-}
-
-void Preprocessor::skip_control_block(std::vector<std::shared_ptr<Token>>& tokens, int& index)
-{
-	for (int length = tokens.size(), number_of_control = 0; index < length; ++index)
-	{
-		auto token = tokens.at(index);
-		if (token->match(TokenName::tk_hash))
-		{
-			index = skip_whitespaces_tokens(tokens, index + 1, length);
-			assert(index < length);
-			auto nxt_token = tokens.at(index);
-
-			if (nxt_token->lexeme == "define" || nxt_token->lexeme == "undef" || nxt_token->lexeme == "include" || nxt_token->lexeme == "include_next")
-				continue;
-			if (nxt_token->lexeme == "ifdef" || nxt_token->lexeme == "ifndef" || nxt_token->lexeme == "if")
-				number_of_control++;
-			else if (nxt_token->lexeme == "elif" || nxt_token->lexeme == "else" || nxt_token->lexeme == "endif")
-			{
-				if (number_of_control == 0)
-				{
-					// back to before # position
-					index = skip_whitespaces_tokens(tokens, index - 1, length, false, false);
-					index--;
-					break;
-				}
-				if (nxt_token->lexeme == "endif")
-					number_of_control--;
-			}
-			else
-				throw std::runtime_error("#" + nxt_token->lexeme + " is not supported");
-		}
-	}
 }
 
 /*

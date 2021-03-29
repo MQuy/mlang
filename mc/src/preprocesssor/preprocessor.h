@@ -37,20 +37,13 @@ private:
 						   int &index,
 						   std::vector<std::shared_ptr<Token>> &output,
 						   const std::vector<std::shared_ptr<Token>> &terminated_tokens = std::vector<std::shared_ptr<Token>>());
-	std::vector<std::shared_ptr<Token>> parse_define_parameters(std::vector<std::shared_ptr<Token>> &tokens, int &index);
-	std::vector<std::shared_ptr<Token>> parse_define_body(std::vector<std::shared_ptr<Token>> &tokens, int &index);
-	std::vector<std::vector<std::shared_ptr<Token>>> parse_macro_arguments(std::vector<std::shared_ptr<Token>> &tokens,
-																		   int &index);
-	std::vector<std::shared_ptr<Token>> parse_macro_argument(std::vector<std::shared_ptr<Token>> &tokens, int &index);
 	std::vector<std::shared_ptr<Token>> substitute_object_macro(std::shared_ptr<Macro> macro,
 																const std::unordered_map<std::string, bool> &hide_set);
 	std::vector<std::shared_ptr<Token>> substitute_function_macro(std::shared_ptr<Macro> macro,
 																  const std::vector<std::vector<std::shared_ptr<Token>>> &arguments,
 																  const std::unordered_map<std::string, bool> &hide_set);
 	std::vector<std::shared_ptr<Token>> parse_include(std::vector<std::shared_ptr<Token>> &tokens, int &index);
-	void skip_control_block(std::vector<std::shared_ptr<Token>> &tokens, int &index);
 	std::vector<std::shared_ptr<Token>> parse_constant_expression(std::vector<std::shared_ptr<Token>> &tokens, int &index);
-	std::vector<std::shared_ptr<Token>> standarize_function_macro_argument(std::vector<std::shared_ptr<Token>> &tokens);
 
 	std::string source;
 	std::vector<std::shared_ptr<Token>> tokens;
