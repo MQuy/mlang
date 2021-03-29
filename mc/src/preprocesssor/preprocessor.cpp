@@ -242,11 +242,17 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens
 		}
 		else if (token_identifier->name == "undef")
 		{
-			auto nxt_i = skip_whitespaces_tokens(tokens, index + 1, length);
-			auto nxt_token = tokens.at(nxt_i);
+			index = skip_whitespaces_tokens(tokens, index + 1, length);
+			auto nxt_token = tokens.at(index);
 			assert(std::regex_match(nxt_token->lexeme, std::regex("^[a-zA-Z_]\\w*$")));
 
 			macros.erase(nxt_token->lexeme);
+		}
+		else if (token_identifier->name == "include_next")
+		{
+			// TODO: MQ 2021-03-29 Support include next
+			while (!tokens.at(index)->match(TokenName::tk_newline))
+				index++;
 		}
 		else
 			throw std::runtime_error("# " + token_identifier->name + " is not supported");
@@ -264,7 +270,6 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens
 	else if (token->match(TokenName::tk_else))
 	{
 		auto nxt_token = tokens.at(++index);
-		nxt_token->match(TokenName::tk_newline, true);
 
 		auto [_, control_cond] = control_directives.back();
 		if (control_cond)
@@ -618,8 +623,8 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std:
 		std::string path;
 		for (int length = tokens.size(); index < length; ++index)
 		{
-			auto nxt_token = tokens.at(index);
-			if (nxt_token->match(TokenName::tk_greater))
+			token = tokens.at(index);
+			if (token->match(TokenName::tk_greater))
 			{
 				index++;
 				break;
@@ -640,7 +645,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std:
 	}
 
 	if (filepath.empty())
-		throw std::runtime_error(filepath.u8string() + " deson't exist");
+		throw std::runtime_error(filepath.u8string() + " doesn't exist");
 
 	std::ifstream fs(filepath);
 	const auto sz = std::filesystem::file_size(filepath);
@@ -662,26 +667,21 @@ void Preprocessor::skip_control_block(std::vector<std::shared_ptr<Token>>& token
 			assert(index < length);
 			auto nxt_token = tokens.at(index);
 
+			if (nxt_token->lexeme == "define" || nxt_token->lexeme == "undef" || nxt_token->lexeme == "include" || nxt_token->lexeme == "include_next")
+				continue;
 			if (nxt_token->lexeme == "ifdef" || nxt_token->lexeme == "ifndef" || nxt_token->lexeme == "if")
 				number_of_control++;
-			else if (nxt_token->lexeme == "elif" || nxt_token->lexeme == "else")
+			else if (nxt_token->lexeme == "elif" || nxt_token->lexeme == "else" || nxt_token->lexeme == "endif")
 			{
 				if (number_of_control == 0)
 				{
-					// back to # position
+					// back to before # position
 					index = skip_whitespaces_tokens(tokens, index - 1, length, false, false);
 					index--;
 					break;
 				}
-				else
-					throw std::runtime_error("Standalone elif or else is not valid");
-			}
-			else if (nxt_token->lexeme == "endif")
-			{
-				if (number_of_control > 0)
+				if (nxt_token->lexeme == "endif")
 					number_of_control--;
-				else
-					break;
 			}
 			else
 				throw std::runtime_error("#" + nxt_token->lexeme + " is not supported");
