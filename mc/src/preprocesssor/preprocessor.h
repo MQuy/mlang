@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 
+#include "config.h"
 #include "macro.h"
 #include "scan/lexer.h"
 
@@ -19,9 +20,10 @@ enum class ControlDirective
 class Preprocessor
 {
 public:
-	Preprocessor(std::string source, std::vector<std::shared_ptr<Token>> tokens)
+	Preprocessor(std::string source, std::vector<std::shared_ptr<Token>> tokens, std::shared_ptr<Config> config)
 		: source(source)
 		, tokens(tokens)
+		, config(config)
 	{
 	}
 
@@ -54,9 +56,7 @@ private:
 	std::vector<std::shared_ptr<Token>> tokens;
 	std::unordered_map<std::string, std::shared_ptr<Macro>> macros;
 	std::vector<std::pair<ControlDirective, bool>> control_directives;
-
-	std::vector<std::string> include_paths;
-	std::string dir_path;
+	std::shared_ptr<Config> config;
 };
 
 #endif

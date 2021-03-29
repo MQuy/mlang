@@ -261,7 +261,7 @@ int PreprocessorConstExpr::eval_primary()
 		return expr;
 	}
 
-	match(TokenType::tk_literal, true);
+	match(TokenType::tk_literal, true, false);
 	auto token = tokens.at(current);
 	if (auto literal_integer = std::dynamic_pointer_cast<TokenLiteral<int>>(token))
 		return literal_integer->value;

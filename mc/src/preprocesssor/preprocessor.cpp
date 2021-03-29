@@ -15,7 +15,7 @@ inline bool is_whitespace_token(std::shared_ptr<Token> token)
 	});
 }
 
-inline int skip_whitespaces_tokens(std::vector<std::shared_ptr<Token>> &tokens, int index, int length, bool include_newline = false, bool forward = true)
+inline int skip_whitespaces_tokens(std::vector<std::shared_ptr<Token>>& tokens, int index, int length, bool include_newline = false, bool forward = true)
 {
 	int i = index;
 	while (0 <= i && i < length)
@@ -28,23 +28,19 @@ inline int skip_whitespaces_tokens(std::vector<std::shared_ptr<Token>> &tokens, 
 	return i;
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::process()
+std::vector<std::shared_ptr<Token>> postpreprocess_tokens(std::vector<std::shared_ptr<Token>>& tokens)
 {
-	std::vector<std::shared_ptr<Token>> expanded_tokens;
-	int index = 0;
-	expand(tokens, index, expanded_tokens);
-
 	std::vector<std::shared_ptr<Token>> output;
-	for (int length = expanded_tokens.size(), i = skip_whitespaces_tokens(expanded_tokens, 0, length, true);
+	for (int length = tokens.size(), i = skip_whitespaces_tokens(tokens, 0, length, true);
 		 i < length;
-		 i = skip_whitespaces_tokens(expanded_tokens, i + 1, length, true))
+		 i = skip_whitespaces_tokens(tokens, i + 1, length, true))
 	{
-		auto token = expanded_tokens.at(i);
+		auto token = tokens.at(i);
 
-		auto nxt_i = skip_whitespaces_tokens(expanded_tokens, i + 1, length);
+		auto nxt_i = skip_whitespaces_tokens(tokens, i + 1, length);
 		if (nxt_i < length)
 		{
-			auto nxt_token = expanded_tokens.at(nxt_i);
+			auto nxt_token = tokens.at(nxt_i);
 			if (std::regex_match(token->lexeme, std::regex("^\".*\"$"))
 				&& std::regex_match(nxt_token->lexeme, std::regex("^\".*\"$")))
 			{
@@ -57,61 +53,72 @@ std::vector<std::shared_ptr<Token>> Preprocessor::process()
 				i = nxt_i;
 			}
 		}
+		else if (token->match(TokenName::tk_eof))
+			break;
 
 		output.push_back(token);
 	}
+	return output;
+}
 
+std::vector<std::shared_ptr<Token>> Preprocessor::process()
+{
+	std::vector<std::shared_ptr<Token>> expanded_tokens;
+	int index = 0;
+	expand(tokens, index, expanded_tokens);
+
+	std::vector<std::shared_ptr<Token>> output = postpreprocess_tokens(expanded_tokens);
 	return output;
 }
 
 /*
 1. for each token in tokens
 2. if token == #include
-    - get filename and read the content
-    - included_tokens = tokenize its content
-    - expand(included_tokens, 0, output)
+	- get filename and read the content
+	- included_tokens = tokenize its content
+	- expand(included_tokens, 0, output)
 3. if token == #define
-    - macro name = next token
-    - if next == (
-        - parameters = parse_define_parameters
-        - body = parse_define_body
-        - add FunctionMacro(name, parameters, body) to macros
-      | next != (
-        - body = parse_define_body
-        - add ObjectMacro(name, body) to macros
+	- macro name = next token
+	- if next == (
+		- parameters = parse_define_parameters
+		- body = parse_define_body
+		- add FunctionMacro(name, parameters, body) to macros
+	  | next != (
+		- body = parse_define_body
+		- add ObjectMacro(name, body) to macros
 5. if token == #undef
-    - macro name = next token
-    - remove macro from macros
+	- macro name = next token
+	- remove macro from macros
 6. if token == #if
-    - parse constant expression
-    - result = eval
-    - push (#if, result) to control_directives 
-    - if condition is false -> skip_control_group(tokens, current)
+	- parse constant expression
+	- result = eval
+	- push (#if, result) to control_directives
+	- if condition is false -> skip_control_group(tokens, current)
 7. if token == #elif
-    - get last control from control_directives
-    - if control's result is true -> skip_control_group(tokens, current)
-      | else
-        - parse constant expression
-        - result = eval
-        - if condition is true
-            - pop the last and push (#elif, result) to control_directives
-        | not -> skip_if_group(tokens, current)
+	- get last control from control_directives
+	- if control's result is true -> skip_control_group(tokens, current)
+	  | else
+		- parse constant expression
+		- result = eval
+		- if condition is true
+			- pop the last and push (#elif, result) to control_directives
+		| not -> skip_if_group(tokens, current)
 8. if token == #else
-    - get last control from control_directives
-    - if control's result is true -> skip_control_group(tokens, current)
+	- get last control from control_directives
+	- if control's result is true -> skip_control_group(tokens, current)
 9. if token->in_hide_set(token) -> push token to output and current++
 10. if token is object macro
-    - token->add_to_hide_set(token)
-    - macro = get_macro(token)
-    - expand_object_macro(macro, output, (token->hide_set, token))
+	- token->add_to_hide_set(token)
+	- macro = get_macro(token)
+	- expand_object_macro(macro, output, (token->hide_set, token))
 11. if token is function macro
-    - token->add_to_hide_set(token)
-    - macro = get_macro(token)
-    - expand_function_macro(macro, output, (token->hide_set, token))
+	- token->add_to_hide_set(token)
+	- macro = get_macro(token)
+	- expand_function_macro(macro, output, (token->hide_set, token))
 */
-void Preprocessor::expand(std::vector<std::shared_ptr<Token>> &tokens,
-						  int &index,
-						  std::vector<std::shared_ptr<Token>> &output)
+void Preprocessor::expand(std::vector<std::shared_ptr<Token>>& tokens,
+						  int& index,
+						  std::vector<std::shared_ptr<Token>>& output)
 {
 	for (int length = tokens.size(); index < length; ++index)
 	{
@@ -142,10 +149,10 @@ void Preprocessor::expand(std::vector<std::shared_ptr<Token>> &tokens,
 	}
 }
 
-void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>> &tokens,
-									 int &index,
-									 std::vector<std::shared_ptr<Token>> &output,
-									 const std::vector<std::shared_ptr<Token>> &terminated_tokens)
+void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens,
+									 int& index,
+									 std::vector<std::shared_ptr<Token>>& output,
+									 const std::vector<std::shared_ptr<Token>>& terminated_tokens)
 {
 	auto length = tokens.size();
 	index = skip_whitespaces_tokens(tokens, index, length);
@@ -202,8 +209,13 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>> &tokens
 		else if (token_identifier->name == "include")
 		{
 			auto expanded_include = parse_include(tokens, ++index);
+
 			int expanded_index = 0;
-			expand(expanded_include, expanded_index, output);
+			std::vector<std::shared_ptr<Token>> expanded_tokens;
+			expand(expanded_include, expanded_index, expanded_tokens);
+
+			auto cleanup_tokens = postpreprocess_tokens(expanded_tokens);
+			output.insert(output.end(), cleanup_tokens.begin(), cleanup_tokens.end());
 		}
 		else if (token_identifier->name == "define")
 		{
@@ -251,6 +263,9 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>> &tokens
 	}
 	else if (token->match(TokenName::tk_else))
 	{
+		auto nxt_token = tokens.at(++index);
+		nxt_token->match(TokenName::tk_newline, true);
+
 		auto [_, control_cond] = control_directives.back();
 		if (control_cond)
 			skip_control_block(tokens, ++index);
@@ -259,7 +274,7 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>> &tokens
 		throw std::runtime_error("# " + token->lexeme + " is not supported");
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_parameters(std::vector<std::shared_ptr<Token>> &tokens, int &index)
+std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_parameters(std::vector<std::shared_ptr<Token>>& tokens, int& index)
 {
 	std::vector<std::shared_ptr<Token>> parameters;
 
@@ -292,10 +307,13 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_parameters(std::v
 	return parameters;
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_body(std::vector<std::shared_ptr<Token>> &tokens, int &index)
+std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_body(std::vector<std::shared_ptr<Token>>& tokens, int& index)
 {
 	std::vector<std::shared_ptr<Token>> body;
-	for (int length = tokens.size(); index < length; ++index)
+
+	auto length = tokens.size();
+	index = skip_whitespaces_tokens(tokens, index, length);
+	for (; index < length; ++index)
 	{
 		auto token = tokens.at(index);
 		if (token->match(TokenName::tk_newline))
@@ -306,8 +324,8 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_define_body(std::vector<
 	return body;
 }
 
-std::vector<std::vector<std::shared_ptr<Token>>> Preprocessor::parse_macro_arguments(std::vector<std::shared_ptr<Token>> &tokens,
-																					 int &index)
+std::vector<std::vector<std::shared_ptr<Token>>> Preprocessor::parse_macro_arguments(std::vector<std::shared_ptr<Token>>& tokens,
+																					 int& index)
 {
 	std::vector<std::vector<std::shared_ptr<Token>>> arguments;
 
@@ -343,7 +361,7 @@ there are 2 cases comma belongs to argument when it appears between
 - [xxx,xxx]
 - (xxx,xxx)
 */
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_macro_argument(std::vector<std::shared_ptr<Token>> &tokens, int &index)
+std::vector<std::shared_ptr<Token>> Preprocessor::parse_macro_argument(std::vector<std::shared_ptr<Token>>& tokens, int& index)
 {
 	std::vector<std::shared_ptr<Token>> argument;
 
@@ -375,7 +393,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_macro_argument(std::vect
 }
 
 std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(std::shared_ptr<Macro> macro,
-																		  const std::unordered_map<std::string, bool> &hide_set)
+																		  const std::unordered_map<std::string, bool>& hide_set)
 {
 	std::vector<std::shared_ptr<Token>> expanded_tokens;
 
@@ -411,7 +429,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(std::s
 }
 
 // remove trailling and collapse sequence of whitespaces in the middle to a single space
-std::vector<std::shared_ptr<Token>> Preprocessor::standarize_function_macro_argument(std::vector<std::shared_ptr<Token>> &tokens)
+std::vector<std::shared_ptr<Token>> Preprocessor::standarize_function_macro_argument(std::vector<std::shared_ptr<Token>>& tokens)
 {
 	std::vector<std::shared_ptr<Token>> argument;
 	auto length = tokens.size();
@@ -440,8 +458,8 @@ std::vector<std::shared_ptr<Token>> Preprocessor::standarize_function_macro_argu
 }
 
 std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std::shared_ptr<Macro> macro,
-																			const std::vector<std::vector<std::shared_ptr<Token>>> &arguments,
-																			const std::unordered_map<std::string, bool> &hide_set)
+																			const std::vector<std::vector<std::shared_ptr<Token>>>& arguments,
+																			const std::unordered_map<std::string, bool>& hide_set)
 {
 	std::vector<std::shared_ptr<Token>> expanded_tokens;
 
@@ -565,7 +583,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std:
 	return expanded_tokens;
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std::shared_ptr<Token>> &tokens, int &index)
+std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std::shared_ptr<Token>>& tokens, int& index)
 {
 	index = skip_whitespaces_tokens(tokens, index, tokens.size());
 	auto token = tokens.at(index);
@@ -576,12 +594,12 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std:
 		auto token_string = std::dynamic_pointer_cast<TokenLiteral<std::string>>(token);
 		assert(token_string);
 
-		auto tmp_path = std::filesystem::path(dir_path) / token_string->value;
-		if (std::filesystem::exists(filepath))
+		auto tmp_path = std::filesystem::path(config->current_path) / token_string->value;
+		if (std::filesystem::exists(tmp_path))
 			filepath = tmp_path;
 		else
 		{
-			for (auto include_path : include_paths)
+			for (auto include_path : config->include_paths)
 			{
 				tmp_path = std::filesystem::path(include_path) / token_string->value;
 				if (std::filesystem::exists(tmp_path))
@@ -610,7 +628,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std:
 				path += token->lexeme;
 		}
 
-		for (auto include_path : include_paths)
+		for (auto include_path : config->include_paths)
 		{
 			auto tmp_path = std::filesystem::path(include_path) / path;
 			if (std::filesystem::exists(tmp_path))
@@ -633,20 +651,31 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_include(std::vector<std:
 	return lexer.scan();
 }
 
-void Preprocessor::skip_control_block(std::vector<std::shared_ptr<Token>> &tokens, int &index)
+void Preprocessor::skip_control_block(std::vector<std::shared_ptr<Token>>& tokens, int& index)
 {
 	for (int length = tokens.size(), number_of_control = 0; index < length; ++index)
 	{
 		auto token = tokens.at(index);
 		if (token->match(TokenName::tk_hash))
 		{
-			assert(index + 1 < length);
-			auto nxt_token = tokens.at(++index);
+			index = skip_whitespaces_tokens(tokens, index + 1, length);
+			assert(index < length);
+			auto nxt_token = tokens.at(index);
 
 			if (nxt_token->lexeme == "ifdef" || nxt_token->lexeme == "ifndef" || nxt_token->lexeme == "if")
 				number_of_control++;
 			else if (nxt_token->lexeme == "elif" || nxt_token->lexeme == "else")
-				throw std::runtime_error("Standalone elif or else is not valid");
+			{
+				if (number_of_control == 0)
+				{
+					// back to # position
+					index = skip_whitespaces_tokens(tokens, index - 1, length, false, false);
+					index--;
+					break;
+				}
+				else
+					throw std::runtime_error("Standalone elif or else is not valid");
+			}
 			else if (nxt_token->lexeme == "endif")
 			{
 				if (number_of_control > 0)
@@ -665,7 +694,7 @@ void Preprocessor::skip_control_block(std::vector<std::shared_ptr<Token>> &token
 - replace macros with their definition
 - replace defined identifier with 1 and undefined identifier with 0
 */
-std::vector<std::shared_ptr<Token>> Preprocessor::parse_constant_expression(std::vector<std::shared_ptr<Token>> &tokens, int &index)
+std::vector<std::shared_ptr<Token>> Preprocessor::parse_constant_expression(std::vector<std::shared_ptr<Token>>& tokens, int& index)
 {
 	std::vector<std::shared_ptr<Token>> body;
 	for (int length = tokens.size(); index < length; ++index)
@@ -677,21 +706,20 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_constant_expression(std:
 			body.push_back(token);
 	}
 
-	int ei = 0;
-	std::vector<std::shared_ptr<Token>> expanded_body;
-	expand(body, ei, expanded_body);
-
 	std::vector<std::shared_ptr<Token>> replaced_body;
-	for (int i = 0, length = expanded_body.size(); i < length; ++i)
+	for (int i = 0, length = body.size(); i < length; ++i)
 	{
-		auto token = expanded_body.at(i);
+		auto token = body.at(i);
 		if (token->lexeme == "defined")
 		{
-			auto nxt_token = expanded_body.at(++i);
+			i = skip_whitespaces_tokens(body, i + 1, length);
+			auto nxt_token = body.at(i);
 			if (nxt_token->match(TokenName::tk_left_paren))
 			{
-				nxt_token = expanded_body.at(++i);
-				expanded_body.at(++i)->match(TokenName::tk_right_paren, true);
+				i = skip_whitespaces_tokens(body, i + 1, length);
+				nxt_token = body.at(i);
+				i = skip_whitespaces_tokens(body, i + 1, length);
+				body.at(i)->match(TokenName::tk_right_paren, true);
 			}
 			assert(std::regex_match(nxt_token->lexeme, std::regex("^[a-zA-Z_]\\w*$")));
 
@@ -702,5 +730,21 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_constant_expression(std:
 			replaced_body.push_back(token);
 	}
 
-	return expanded_body;
+	int ei = 0;
+	std::vector<std::shared_ptr<Token>> expanded_body;
+	expand(replaced_body, ei, expanded_body);
+
+	std::vector<std::shared_ptr<Token>> output;
+	for (int i = 0, length = expanded_body.size(); i < length; ++i)
+	{
+		auto token = expanded_body.at(i);
+		if (std::regex_match(token->lexeme, std::regex("^[a-zA-Z_]\\w*$")))
+		{
+			auto value = macros[token->lexeme] ? 1 : 0;
+			token = std::make_shared<TokenLiteral<int>>(TokenLiteral<int>(value, std::to_string(value)));
+		}
+		output.push_back(token);
+	}
+
+	return output;
 }
