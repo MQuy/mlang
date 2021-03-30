@@ -28,7 +28,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -42,7 +41,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> constant;
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -55,7 +53,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<StmtAST> stmt;
 };
 
@@ -67,7 +64,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> expr;
 };
 
@@ -79,7 +75,6 @@ public:
 	{
 	}
 
-protected:
 	std::vector<std::shared_ptr<FragmentAST>> stmts;  // have to statement or declaration
 };
 
@@ -93,7 +88,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> if_stmt;
 	std::shared_ptr<StmtAST> else_stmt;
@@ -108,7 +102,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> expr;
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -124,7 +117,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> init;
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<ExprAST> inc;
@@ -140,7 +132,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -154,7 +145,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -167,7 +157,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 };
 
@@ -187,7 +176,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> expr;
 };
 
@@ -199,7 +187,6 @@ public:
 	{
 	}
 
-protected:
 	std::shared_ptr<TypeAST> type;
 };
 
@@ -213,7 +200,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<CompoundStmtAST> body;
 };
@@ -226,7 +212,6 @@ public:
 	{
 	}
 
-private:
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };
 
@@ -238,12 +223,6 @@ public:
 	{
 	}
 
-	void add_declaration_stmt(std::shared_ptr<ExternAST> dcl_stmt)
-	{
-		declarations.push_back(dcl_stmt);
-	}
-
-private:
 	std::vector<std::shared_ptr<ExternAST>> declarations;
 };
 

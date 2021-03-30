@@ -128,14 +128,13 @@ public:
 	}
 	virtual void relate(std::shared_ptr<TypeAST> type) { assert_not_reached(); }
 
-protected:
 	TypeKind kind;
 };
 
 class BuiltinTypeAST : public TypeAST
 {
 public:
-	BuiltinTypeAST(std::shared_ptr<BuiltinTypeName> name, int size, int align, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), std::shared_ptr<StorageSpecifier> storage = std::make_shared<StorageSpecifier>(StorageSpecifier::auto_))
+	BuiltinTypeAST(BuiltinTypeName name, int size, int align, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), StorageSpecifier storage = StorageSpecifier::auto_)
 		: TypeAST(TypeKind::builtin)
 		, name(name)
 		, size(size)
@@ -145,14 +144,13 @@ public:
 	{
 	}
 
-private:
 	int size;
 	int align;
 
-	std::shared_ptr<StorageSpecifier> storage;
+	StorageSpecifier storage;
 	std::set<TypeQualifier> qualifiers;
 
-	std::shared_ptr<BuiltinTypeName> name;
+	BuiltinTypeName name;
 };
 
 class PointerTypeAST : public TypeAST
@@ -166,7 +164,6 @@ public:
 	}
 	void relate(std::shared_ptr<TypeAST> type) override { underlay = type; }
 
-private:
 	std::shared_ptr<TypeAST> underlay;
 	std::set<TypeQualifier> qualifiers;
 };
@@ -182,7 +179,6 @@ public:
 	}
 	void relate(std::shared_ptr<TypeAST> type) override { underlay = type; }
 
-private:
 	std::shared_ptr<TypeAST> underlay;
 	std::shared_ptr<ExprAST> expr;
 };
@@ -197,7 +193,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<TypeAST> underlay;
 };
@@ -219,7 +214,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 	AggregateKind kind;
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members;	 // not support bit fields
@@ -235,7 +229,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members;
 };
@@ -250,7 +243,6 @@ public:
 	{
 	}
 
-private:
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
 	std::shared_ptr<TypeAST> returning;
 };

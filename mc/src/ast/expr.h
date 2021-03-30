@@ -18,7 +18,6 @@ public:
 	{
 	}
 
-protected:
 	std::shared_ptr<TypeAST> type;
 };
 
@@ -31,7 +30,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenLiteral<T>> value;
 };
 
@@ -43,7 +41,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<TokenIdentifier> name;
 };
 
@@ -57,7 +54,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> left;
 	std::shared_ptr<ExprAST> right;
 	BinaryOperator op;
@@ -72,7 +68,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> expr;
 	UnaryOperator op;
 };
@@ -87,7 +82,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<ExprAST> expr1;
 	std::shared_ptr<ExprAST> expr2;
@@ -102,7 +96,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> object;
 	std::shared_ptr<TokenIdentifier> member;
 };
@@ -116,7 +109,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> callee;
 	std::vector<std::shared_ptr<ExprAST>> arguments;
 };
@@ -130,7 +122,6 @@ public:
 	{
 	}
 
-private:
 	std::shared_ptr<ExprAST> expr;
 };
 
