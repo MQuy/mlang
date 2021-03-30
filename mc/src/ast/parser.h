@@ -17,6 +17,7 @@ public:
 		, tokens_length(tokens.size())
 		, program()
 		, current(0)
+		, runner(0)
 	{
 	}
 
@@ -71,6 +72,7 @@ private:
 	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parser_declarator_parameters();
 
+	void reset();
 	std::shared_ptr<Token> advance();
 	std::nullptr_t parse_not_match();
 	bool match(TokenName name, bool strict = false, bool advance = true);

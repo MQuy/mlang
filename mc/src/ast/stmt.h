@@ -233,7 +233,15 @@ private:
 class Program
 {
 public:
-	void add_declaration_stmt(std::shared_ptr<ExternAST> dcl_stmt);
+	Program()
+		: declarations(std::vector<std::shared_ptr<ExternAST>>())
+	{
+	}
+
+	void add_declaration_stmt(std::shared_ptr<ExternAST> dcl_stmt)
+	{
+		declarations.push_back(dcl_stmt);
+	}
 
 private:
 	std::vector<std::shared_ptr<ExternAST>> declarations;

@@ -1,6 +1,5 @@
 #include "parser.h"
 
-#include "ast.h"
 #include "utils.h"
 
 std::unordered_map<TokenName, BinaryOperator> binop_token;
@@ -48,6 +47,13 @@ void init_operators()
 	unaryop_token[TokenName::tk_bang] = UnaryOperator::not_;
 }
 
+void Parser::reset()
+{
+	current = 0;
+	runner = 0;
+	program = std::make_shared<Program>(Program());
+}
+
 /*
 top level only supports declaration or function definition
 1. mark current position
@@ -57,6 +63,8 @@ top level only supports declaration or function definition
 */
 std::shared_ptr<Program> Parser::parse()
 {
+	reset();
+
 	auto token = tokens.at(current);
 
 	while (runner < tokens_length)
@@ -69,6 +77,8 @@ std::shared_ptr<Program> Parser::parse()
 
 		program->add_declaration_stmt(declaration);
 	}
+
+	return program;
 }
 
 /*
@@ -130,7 +140,7 @@ std::shared_ptr<ExternAST> Parser::parse_declaration()
 	return std::make_shared<ExternAST>(DeclarationAST(type, declarators));
 }
 
-std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_storage = true, bool include_qualifier = true)
+std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_storage, bool include_qualifier)
 {
 	std::shared_ptr<StorageSpecifier> storage_specifier;
 	std::set<TypeQualifier> type_qualifiers;
@@ -407,7 +417,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	if (inner_type)
 		inner_type->relate(outer_type);
 
-	return std::make_pair(identifier, inner_type ?: outer_type);
+	return std::make_pair(identifier, inner_type ? inner_type : outer_type);
 }
 
 std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<TypeAST> type)
@@ -990,7 +1000,7 @@ std::shared_ptr<ExprAST> Parser::parse_primary_expr()
 	return expr;
 }
 
-bool Parser::match(TokenName name, bool strict = false, bool advance = true)
+bool Parser::match(TokenName name, bool strict, bool advance)
 {
 	return match([&name](TokenName nxt_name) {
 		return nxt_name == name;
@@ -999,9 +1009,9 @@ bool Parser::match(TokenName name, bool strict = false, bool advance = true)
 				 advance);
 }
 
-bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = false, bool advance = true)
+bool Parser::match(std::function<bool(TokenName)> comparator, bool strict, bool advance)
 {
-	auto token = tokens.at(current);
+	auto token = tokens.at(runner);
 	if (token->type != TokenType::tk_symbol)
 		if (strict)
 			throw ParserError("expect token symbol");
@@ -1012,7 +1022,7 @@ bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = fals
 	if (comparator(token_symbol->name))
 	{
 		if (advance)
-			current++;
+			runner++;
 		return true;
 	}
 	else if (strict)
@@ -1021,9 +1031,9 @@ bool Parser::match(std::function<bool(TokenName)> comparator, bool strict = fals
 		return false;
 }
 
-bool Parser::match(std::string name, bool strict = false, bool advance = true)
+bool Parser::match(std::string name, bool strict, bool advance)
 {
-	auto token = tokens.at(current);
+	auto token = tokens.at(runner);
 	if (token->type != TokenType::tk_identifier)
 		if (strict)
 			throw ParserError("expect token identifier");
@@ -1045,7 +1055,7 @@ bool Parser::match(std::string name, bool strict = false, bool advance = true)
 		return false;
 }
 
-bool Parser::match(TokenType type, bool strict = false, bool advance = true)
+bool Parser::match(TokenType type, bool strict, bool advance)
 {
 	return match([&type](TokenType nxt_type) {
 		return nxt_type == type;
@@ -1054,7 +1064,7 @@ bool Parser::match(TokenType type, bool strict = false, bool advance = true)
 				 advance);
 }
 
-bool Parser::match(std::function<bool(TokenType)> comparator, bool strict = false, bool advance = true)
+bool Parser::match(std::function<bool(TokenType)> comparator, bool strict, bool advance)
 {
 	auto token = tokens.at(runner);
 	assert(token);

@@ -1,13 +1,16 @@
 ### Steps
 
-- [ ] Preprocessing
-  - [ ] Replace trigraph sequences (Optional)
-  - [ ] Combine two physical lines when blashslash appears at the end of line (Optional)
-  - [ ] Comments are replace by whitespace
-  - [ ] Execute preprocessor ([Dave Prosser Algorithm](https://www.spinellis.gr/blog/20060626/))
-  - [ ] Concatenate adjacent string literals
-- [ ] Tokenization
-- [ ] AST Construction
+- [x] Tokenization
+  - [x] Replace trigraph sequences
+  - [x] Combine two physical lines when blashslash appears at the end of line
+  - [x] Tokenize
+  - [x] Comments are replace by whitespace
+- [-] Preprocessor
+  - [x] Preprocess ([Dave Prosser Algorithm](https://www.spinellis.gr/blog/20060626/))
+  - [x] Concatenate adjacent string literals
+  - [ ] Support #include_next
+  - [ ] Support #pragma
+- [x] AST
 
 ✍🏼 mc is C99-compliant
 
