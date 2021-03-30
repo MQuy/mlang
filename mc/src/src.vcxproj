@@ -147,6 +147,7 @@
   <ItemGroup>
     <ClInclude Include="ast\ast.h" />
     <ClInclude Include="ast\expr.h" />
+    <ClInclude Include="ast\parser.h" />
     <ClInclude Include="ast\stmt.h" />
     <ClInclude Include="ast\type.h" />
     <ClInclude Include="config.h" />
@@ -158,6 +159,7 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ast\parser.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="preprocesssor\const_expr.cpp" />

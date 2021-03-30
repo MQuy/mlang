@@ -41,6 +41,9 @@
       <Filter>preprocessor</Filter>
     </ClInclude>
     <ClInclude Include="config.h" />
+    <ClInclude Include="ast\parser.h">
+      <Filter>ast</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">
@@ -57,5 +60,8 @@
       <Filter>preprocessor</Filter>
     </ClCompile>
     <ClCompile Include="config.cpp" />
+    <ClCompile Include="ast\parser.cpp">
+      <Filter>ast</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
