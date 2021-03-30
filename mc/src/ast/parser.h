@@ -60,9 +60,9 @@ private:
 	std::shared_ptr<ExprAST> parse_primary_expr();
 
 	std::shared_ptr<ExternAST> parse_function_definition();
-	std::shared_ptr<ExternAST> parse_declaration();
-	std::shared_ptr<TypeAST> parse_declaration_specifiers(bool include_storage = true, bool include_qualifier = true);
-	void parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier);
+	std::shared_ptr<ExternAST> parse_declaration(bool global_scope);
+	std::shared_ptr<TypeAST> parse_declaration_specifiers(bool global_scope, bool include_storage = true, bool include_qualifier = true);
+	void parse_storage_specifier(StorageSpecifier &storage_specifier);
 	void parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers);
 	void parse_qualifier(std::set<TypeQualifier> &type_qualifiers);
 	std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> parser_init_declarator(std::shared_ptr<TypeAST> type);

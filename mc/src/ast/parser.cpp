@@ -73,9 +73,9 @@ std::shared_ptr<Program> Parser::parse()
 
 		auto declaration = parse_function_definition();
 		if (!declaration)
-			declaration = parse_declaration();
+			declaration = parse_declaration(true);
 
-		program->add_declaration_stmt(declaration);
+		program->declarations.push_back(declaration);
 	}
 
 	return program;
@@ -91,7 +91,7 @@ std::shared_ptr<Program> Parser::parse()
 */
 std::shared_ptr<ExternAST> Parser::parse_function_definition()
 {
-	auto type = parse_declaration_specifiers();
+	auto type = parse_declaration_specifiers(true);
 	if (!type)
 		return parse_not_match();
 
@@ -111,12 +111,12 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 
 	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
 	auto body = parse_compound_stmt();
-	return std::make_shared<ExternAST>(FunctionDefinitionAST(func_type, declarator_name, body));
+	return std::make_shared<FunctionDefinitionAST>(FunctionDefinitionAST(func_type, declarator_name, body));
 }
 
-std::shared_ptr<ExternAST> Parser::parse_declaration()
+std::shared_ptr<ExternAST> Parser::parse_declaration(bool global_scope)
 {
-	auto type = parse_declaration_specifiers();
+	auto type = parse_declaration_specifiers(global_scope);
 	if (!type)
 		return parse_not_match();
 
@@ -137,12 +137,12 @@ std::shared_ptr<ExternAST> Parser::parse_declaration()
 				match(TokenName::tk_comma, true);
 		}
 
-	return std::make_shared<ExternAST>(DeclarationAST(type, declarators));
+	return std::make_shared<DeclarationAST>(DeclarationAST(type, declarators));
 }
 
-std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_storage, bool include_qualifier)
+std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope, bool include_storage, bool include_qualifier)
 {
-	std::shared_ptr<StorageSpecifier> storage_specifier;
+	StorageSpecifier storage_specifier(global_scope ? StorageSpecifier::extern_ : StorageSpecifier::auto_);
 	std::set<TypeQualifier> type_qualifiers;
 
 	auto parse_storage_or_qualifier = [&storage_specifier, &type_qualifiers, &include_storage, &include_qualifier, this]() {
@@ -151,9 +151,9 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 		if (include_qualifier)
 			parse_type_qualifier(type_qualifiers);
 	};
-	auto make_builtin_ast = [&parse_storage_or_qualifier, &type_qualifiers](BuiltinTypeName name, unsigned size) {
+	auto make_builtin_ast = [&parse_storage_or_qualifier, &type_qualifiers, &storage_specifier](BuiltinTypeName name, unsigned size) {
 		parse_storage_or_qualifier();
-		return std::make_shared<TypeAST>(BuiltinTypeAST(std::make_shared<BuiltinTypeName>(name), size, size, type_qualifiers));
+		return std::make_shared<BuiltinTypeAST>(BuiltinTypeAST(name, size, size, type_qualifiers, storage_specifier));
 	};
 
 	parse_storage_or_qualifier();
@@ -243,7 +243,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 			}
 
 			parse_storage_or_qualifier();
-			return std::make_shared<TypeAST>(AggregateTypeAST(kind, token_identifier, members));
+			return std::make_shared<AggregateTypeAST>(AggregateTypeAST(kind, token_identifier, members));
 		}
 
 		case TokenName::tk_enum:
@@ -268,7 +268,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 			}
 
 			parse_storage_or_qualifier();
-			return std::make_shared<TypeAST>(EnumTypeAST(token_identifier, members));
+			return std::make_shared<EnumTypeAST>(EnumTypeAST(token_identifier, members));
 		}
 
 		default:
@@ -280,13 +280,13 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool include_stora
 		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 
 		parse_storage_or_qualifier();
-		return std::make_shared<TypeAST>(AliasTypeAST(token_identifier));
+		return std::make_shared<AliasTypeAST>(AliasTypeAST(token_identifier));
 	}
 	else
 		return nullptr;
 }
 
-void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_specifier)
+void Parser::parse_storage_specifier(StorageSpecifier &storage_specifier)
 {
 	for (auto token = tokens.at(runner); runner < tokens_length && token && token->type == TokenType::tk_symbol; runner++)
 	{
@@ -296,16 +296,16 @@ void Parser::parse_storage_specifier(std::shared_ptr<StorageSpecifier> storage_s
 		switch (token_symbol->name)
 		{
 		case TokenName::tk_auto:
-			storage_specifier = std::make_shared<StorageSpecifier>(StorageSpecifier::auto_);
+			storage_specifier = StorageSpecifier::auto_;
 			break;
 		case TokenName::tk_register:
-			storage_specifier = std::make_shared<StorageSpecifier>(StorageSpecifier::register_);
+			storage_specifier = StorageSpecifier::register_;
 			break;
 		case TokenName::tk_static:
-			storage_specifier = std::make_shared<StorageSpecifier>(StorageSpecifier::static_);
+			storage_specifier = StorageSpecifier::static_;
 			break;
 		case TokenName::tk_extern:
-			storage_specifier = std::make_shared<StorageSpecifier>(StorageSpecifier::extern_);
+			storage_specifier = StorageSpecifier::extern_;
 			break;
 
 		default:
@@ -386,7 +386,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 		std::set<TypeQualifier> qualifiers;
 		parse_type_qualifier(qualifiers);
 
-		auto pointer = std::make_shared<TypeAST>(PointerTypeAST(type, qualifiers));
+		auto pointer = std::make_shared<PointerTypeAST>(PointerTypeAST(type, qualifiers));
 		return parse_declarator(pointer);
 	}
 
@@ -440,7 +440,7 @@ std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>
 
 	while (match(TokenName::tk_right_paren))
 	{
-		auto type = parse_declaration_specifiers();
+		auto type = parse_declaration_specifiers(false);
 		auto [identifier, inner_type] = parse_declarator(type);
 		auto parameter = std::make_pair(identifier, inner_type);
 		parameters.push_back(parameter);
@@ -545,7 +545,7 @@ std::shared_ptr<CompoundStmtAST> Parser::parse_compound_stmt()
 
 	while (!match(TokenName::tk_right_brace))
 	{
-		if (auto declaration = parse_declaration())
+		if (auto declaration = parse_declaration(false))
 			stmts.push_back(declaration);
 		else if (auto stmt = parse_stmt())
 			stmts.push_back(stmt);

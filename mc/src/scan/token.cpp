@@ -152,7 +152,7 @@ bool Token::match(std::string name, bool strict)
 std::shared_ptr<ExprAST> TokenIdentifier::create_ast()
 {
 	auto identifier = std::make_shared<TokenIdentifier>(TokenIdentifier(name));
-	return std::make_shared<ExprAST>(IdentifierExprAST(identifier));
+	return std::make_shared<IdentifierExprAST>(IdentifierExprAST(identifier));
 }
 
 template <>
