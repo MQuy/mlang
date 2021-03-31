@@ -1,12 +1,13 @@
-#include "scan/lexer.h"
-#include "preprocesssor/preprocessor.h"
-#include "ast/stmt.h"
 #include "ast/parser.h"
-#include "ast/type.h"
+
 #include <filesystem>
 #include <regex>
 
+#include "ast/stmt.h"
+#include "ast/type.h"
 #include "gtest/gtest.h"
+#include "preprocesssor/preprocessor.h"
+#include "scan/lexer.h"
 
 std::shared_ptr<Program> parse(std::string content)
 {
@@ -15,7 +16,7 @@ std::shared_ptr<Program> parse(std::string content)
 
 	std::filesystem::path current_path = __FILE__;
 	std::filesystem::path library_path = "C:\\Program Files\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\mingw64\\lib\\gcc\\x86_64-w64-mingw32\\8.1.0\\include-fixed";
-	std::vector<std::string> libraries_path = { library_path.string() };
+	std::vector<std::string> libraries_path = {library_path.string()};
 	Config config(libraries_path, current_path.parent_path().string());
 	Preprocessor preprocess(content, lexer.scan(), std::make_shared<Config>(config));
 
@@ -180,18 +181,74 @@ TEST(ASTExtern, VoidDeclaration_WithConstQualifierAndConstPointer)
 
 TEST(ASTExtern, EnumDeclaration_Forward)
 {
+	auto program = parse("enum foo;");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 0);
 }
 
 TEST(ASTExtern, EnumDeclaration_WithEmptyBody)
 {
+	auto program = parse("enum foo {};");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 0);
 }
 
 TEST(ASTExtern, EnumDeclaration_WithConstantInitialForIdentifer)
 {
+	auto program = parse("enum foo { RED, GREEN = 1, BLUE = 2};");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+
+	auto declarator1 = type->members[0];
+	ASSERT_EQ(declarator1.first->lexeme, "RED");
+	ASSERT_EQ(declarator1.second, nullptr);
+
+	auto declarator2 = type->members[1];
+	ASSERT_EQ(declarator2.first->lexeme, "GREEN");
+	auto declarator2_expr = std::static_pointer_cast<LiteralExprAST<int>>(declarator2.second);
+	ASSERT_EQ(declarator2_expr->value->value, 1);
+
+	auto declarator3 = type->members[2];
+	ASSERT_EQ(declarator3.first->lexeme, "BLUE");
+	auto declarator3_expr = std::static_pointer_cast<LiteralExprAST<int>>(declarator3.second);
+	ASSERT_EQ(declarator3_expr->value->value, 2);
 }
 
 TEST(ASTExtern, EnumDeclaration_WithDeclarator)
 {
+	auto program = parse("enum foo { red, green } baz;");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+
+	auto declarator = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator)->lexeme, "baz");
+	ASSERT_EQ(std::get<1>(declarator), type);
+	ASSERT_EQ(std::get<2>(declarator), nullptr);
+}
+
+TEST(ASTExtern, EnumDeclaration_WithDeclaratorAndInitializer)
+{
+	auto program = parse("enum foo { red, green } baz = red;");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+
+	auto declarator = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator)->lexeme, "baz");
+	ASSERT_EQ(std::get<1>(declarator), type);
+	auto declarator_value = std::static_pointer_cast<IdentifierExprAST>(std::get<2>(declarator));
+	ASSERT_EQ(declarator_value->name->lexeme, "red");
 }
 
 TEST(ASTExtern, StructDeclaration_Forward)

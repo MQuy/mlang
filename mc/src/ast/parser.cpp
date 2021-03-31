@@ -266,7 +266,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			if (match(TokenType::tk_identifier, false, false))
 				token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
 
-			if (match(TokenName::tk_left_brace, true) && !match(TokenName::tk_right_brace))
+			if (match(TokenName::tk_left_brace) && !match(TokenName::tk_right_brace))
 			{
 				while (true)
 				{
@@ -394,7 +394,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> Parser::pa
 	std::shared_ptr<ExprAST> expr;
 
 	if (match(TokenName::tk_equal))
-		expr = parse_expr();
+		expr = parse_tenary_expr();
 
 	return std::make_pair(identifier, expr);
 }
