@@ -65,12 +65,12 @@ private:
 	void parse_storage_specifier(StorageSpecifier &storage_specifier);
 	void parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers);
 	void parse_qualifier(std::set<TypeQualifier> &type_qualifiers);
-	std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> parser_init_declarator(std::shared_ptr<TypeAST> type);
+	std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> parse_init_declarator(std::shared_ptr<TypeAST> type);
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parse_struct_declaration();
 	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> parse_enumerator();
 	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
-	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parser_declarator_parameters();
+	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parse_declarator_parameters();
 
 	void reset();
 	std::shared_ptr<Token> advance();

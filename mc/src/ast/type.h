@@ -116,6 +116,7 @@ enum class TypeKind
 	aggregate,
 	enum_,
 	array,
+	pointer,
 	function,
 };
 
@@ -157,7 +158,7 @@ class PointerTypeAST : public TypeAST
 {
 public:
 	PointerTypeAST(std::shared_ptr<TypeAST> underlay, std::set<TypeQualifier> qualifiers)
-		: TypeAST(TypeKind::array)
+		: TypeAST(TypeKind::pointer)
 		, underlay(underlay)
 		, qualifiers(qualifiers)
 	{

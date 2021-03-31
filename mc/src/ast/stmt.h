@@ -209,6 +209,7 @@ class DeclarationAST : public ExternAST
 public:
 	DeclarationAST(std::shared_ptr<TypeAST> type, std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators = std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>>())
 		: ExternAST(type)
+		, declarators(declarators)
 	{
 	}
 
