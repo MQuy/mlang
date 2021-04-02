@@ -185,26 +185,32 @@ TEST(ASTExtern, EnumDeclaration_Forward)
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
 	ASSERT_EQ(type->name->lexeme, "foo");
 	ASSERT_EQ(type->members.size(), 0);
 }
 
-TEST(ASTExtern, EnumDeclaration_WithEmptyBody)
+TEST(ASTExtern, EnumDeclaration_WithEmptyBodyAndAutoSpecifier)
 {
-	auto program = parse("enum foo {};");
+	auto program = parse("auto enum foo {};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
 	ASSERT_EQ(type->name->lexeme, "foo");
 	ASSERT_EQ(type->members.size(), 0);
 }
 
-TEST(ASTExtern, EnumDeclaration_WithConstantInitialForIdentifer)
+TEST(ASTExtern, EnumDeclaration_WithExternSpecifierConstantInitialForIdentifer)
 {
-	auto program = parse("enum foo { RED, GREEN = 1, BLUE = 2};");
+	auto program = parse("extern enum foo { RED, GREEN = 1, BLUE = 2};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
 	ASSERT_EQ(type->name->lexeme, "foo");
 
 	auto declarator1 = type->members[0];
@@ -222,12 +228,14 @@ TEST(ASTExtern, EnumDeclaration_WithConstantInitialForIdentifer)
 	ASSERT_EQ(declarator3_expr->value->value, 2);
 }
 
-TEST(ASTExtern, EnumDeclaration_WithDeclarator)
+TEST(ASTExtern, EnumDeclaration_WithConstQualifierAndDeclarator)
 {
-	auto program = parse("enum foo { red, green } baz;");
+	auto program = parse("const enum foo { red, green } baz;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(*type->qualifiers.begin(), TypeQualifier::const_);
 	ASSERT_EQ(type->name->lexeme, "foo");
 
 	auto declarator = stmt->declarators.front();
@@ -253,26 +261,173 @@ TEST(ASTExtern, EnumDeclaration_WithDeclaratorAndInitializer)
 
 TEST(ASTExtern, StructDeclaration_Forward)
 {
+	auto program = parse("struct foo;");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->declarators.size(), 0);
+
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 0);
 }
 
-TEST(ASTExtern, StructDeclaration_WithEmptyBody)
+TEST(ASTExtern, StructDeclaration_WithVolatileQualifierAndEmptyBody)
 {
+	auto program = parse("volatile struct foo {};");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->declarators.size(), 0);
+
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(*type->qualifiers.begin(), TypeQualifier::volatile_);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 0);
 }
 
-TEST(ASTExtern, StructDefinition_WithFlatMembers)
+TEST(ASTExtern, StructDefinition_WithConstQualifierAndFlatMembers)
 {
+	auto program = parse(
+		"const struct foo {\n"
+		"	int x, y;\n"
+		"	float z;\n"
+		"};");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->declarators.size(), 0);
+
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(*type->qualifiers.begin(), TypeQualifier::const_);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 3);
+
+	auto member1 = type->members[0];
+	ASSERT_EQ(std::get<0>(member1)->lexeme, "x");
+	auto member1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(member1));
+	ASSERT_EQ(member1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(member1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(member1_type->qualifiers.size(), 0);
+	ASSERT_EQ(member1_type->storage, StorageSpecifier::auto_);
+
+	auto member2 = type->members[1];
+	ASSERT_EQ(std::get<0>(member2)->lexeme, "y");
+	auto member2_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(member2));
+	ASSERT_EQ(member2_type->kind, TypeKind::builtin);
+	ASSERT_EQ(member2_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(member2_type->qualifiers.size(), 0);
+	ASSERT_EQ(member2_type->storage, StorageSpecifier::auto_);
+
+	auto member3 = type->members[2];
+	ASSERT_EQ(std::get<0>(member3)->lexeme, "z");
+	auto member3_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(member3));
+	ASSERT_EQ(member3_type->kind, TypeKind::builtin);
+	ASSERT_EQ(member3_type->name, BuiltinTypeName::float_);
+	ASSERT_EQ(member3_type->qualifiers.size(), 0);
+	ASSERT_EQ(member3_type->storage, StorageSpecifier::auto_);
 }
 
-TEST(ASTExtern, StructDefinition_WithNestedStruct)
+TEST(ASTExtern, StructDefinition_WithNestedNameAndUnNameStruct)
 {
+	auto program = parse(
+		"struct foo {\n"
+		"	const int x;\n"
+		"	volatile struct baz y;\n"
+		"	struct { char qux; } *z;\n"
+		"};");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->declarators.size(), 0);
+
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 3);
+
+	auto member1 = type->members[0];
+	ASSERT_EQ(std::get<0>(member1)->lexeme, "x");
+	auto member1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(member1));
+	ASSERT_EQ(member1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(member1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(*member1_type->qualifiers.begin(), TypeQualifier::const_);
+	ASSERT_EQ(member1_type->storage, StorageSpecifier::auto_);
+
+	auto member2 = type->members[1];
+	ASSERT_EQ(std::get<0>(member2)->lexeme, "y");
+	auto member2_type = std::static_pointer_cast<AggregateTypeAST>(std::get<1>(member2));
+	ASSERT_EQ(member2_type->kind, TypeKind::aggregate);
+	ASSERT_EQ(member2_type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(*member2_type->qualifiers.begin(), TypeQualifier::volatile_);
+	ASSERT_EQ(member2_type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(member2_type->name->lexeme, "baz");
+	ASSERT_EQ(member2_type->members.size(), 0);
+
+	auto member3 = type->members[2];
+	ASSERT_EQ(std::get<0>(member3)->lexeme, "z");
+	auto member3_type = std::static_pointer_cast<PointerTypeAST>(std::get<1>(member3));
+	ASSERT_EQ(member3_type->kind, TypeKind::pointer);
+	ASSERT_EQ(member3_type->qualifiers.size(), 0);
+
+	auto member3_underlay_type = std::static_pointer_cast<AggregateTypeAST>(member3_type->underlay);
+	ASSERT_EQ(member3_underlay_type->kind, TypeKind::aggregate);
+	ASSERT_EQ(member3_underlay_type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(member3_underlay_type->qualifiers.size(), 0);
+	ASSERT_EQ(member3_underlay_type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(member3_underlay_type->name, nullptr);
+	ASSERT_EQ(member3_underlay_type->members.size(), 1);
+
+	auto submember1 = member3_underlay_type->members[0];
+	ASSERT_EQ(std::get<0>(submember1)->lexeme, "qux");
+	auto submember1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(submember1));
+	ASSERT_EQ(submember1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(submember1_type->name, BuiltinTypeName::char_);
+	ASSERT_EQ(submember1_type->qualifiers.size(), 0);
+	ASSERT_EQ(submember1_type->storage, StorageSpecifier::auto_);
 }
 
 TEST(ASTExtern, StructDefinition_WithDeclarator)
 {
+	auto program = parse("struct foo {} x;");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 0);
+
+	auto declarator = stmt->declarators[0];
+	ASSERT_EQ(std::get<0>(declarator)->lexeme, "x");
+	ASSERT_EQ(std::get<1>(declarator), type);
+	ASSERT_EQ(std::get<2>(declarator), nullptr);
 }
 
 TEST(ASTExtern, StructDefinition_WithDeclaratorAndInit)
 {
+	//auto program = parse("struct foo {} x = {};");
+	//auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	//auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	//ASSERT_EQ(type->kind, TypeKind::aggregate);
+	//ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	//ASSERT_EQ(type->qualifiers.size(), 0);
+	//ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	//ASSERT_EQ(type->name->lexeme, "foo");
+	//ASSERT_EQ(type->members.size(), 0);
+
+	//auto declarator = stmt->declarators[0];
+	//ASSERT_EQ(std::get<0>(declarator)->lexeme, "foo");
+	//ASSERT_EQ(std::get<1>(declarator), type);
+
+	//auto declarator_init = std::get<2>(declarator);
+	//ASSERT_EQ(std::get<2>(declarator), nullptr);
 }
 
 TEST(ASTExtern, Typedef_MapIntToIdentifier)

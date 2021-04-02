@@ -244,18 +244,18 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			if (match(TokenType::tk_identifier, false, false))
 				token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
 
-			if (match(TokenName::tk_left_brace, true) && !match(TokenName::tk_right_brace))
+			if (match(TokenName::tk_left_brace) && !match(TokenName::tk_right_brace))
 			{
 				do
 				{
 					auto declarators = parse_struct_declaration();
 					for (auto declarator : declarators)
 						members.push_back(declarator);
-				} while (match(TokenName::tk_right_brace));
+				} while (!match(TokenName::tk_right_brace));
 			}
 
 			parse_storage_or_qualifier();
-			return std::make_shared<AggregateTypeAST>(AggregateTypeAST(kind, token_identifier, members));
+			return std::make_shared<AggregateTypeAST>(AggregateTypeAST(kind, token_identifier, members, type_qualifiers, storage_specifier));
 		}
 
 		case TokenName::tk_enum:
@@ -280,7 +280,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			}
 
 			parse_storage_or_qualifier();
-			return std::make_shared<EnumTypeAST>(EnumTypeAST(token_identifier, members));
+			return std::make_shared<EnumTypeAST>(EnumTypeAST(token_identifier, members, type_qualifiers, storage_specifier));
 		}
 
 		default:

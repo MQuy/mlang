@@ -207,30 +207,38 @@ enum class AggregateKind
 class AggregateTypeAST : public TypeAST
 {
 public:
-	AggregateTypeAST(AggregateKind kind, std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members)
+	AggregateTypeAST(AggregateKind aggregate_kind, std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), StorageSpecifier storage = StorageSpecifier::auto_)
 		: TypeAST(TypeKind::aggregate)
-		, kind(kind)
+		, aggregate_kind(aggregate_kind)
 		, name(name)
 		, members(members)
+		, qualifiers(qualifiers)
+		, storage(storage)
 	{
 	}
 
 	std::shared_ptr<TokenIdentifier> name;
-	AggregateKind kind;
+	AggregateKind aggregate_kind;
+	StorageSpecifier storage;
+	std::set<TypeQualifier> qualifiers;
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members;	 // not support bit fields
 };
 
 class EnumTypeAST : public TypeAST
 {
 public:
-	EnumTypeAST(std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members)
+	EnumTypeAST(std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), StorageSpecifier storage = StorageSpecifier::auto_)
 		: TypeAST(TypeKind::enum_)
 		, name(name)
 		, members(members)
+		, qualifiers(qualifiers)
+		, storage(storage)
 	{
 	}
 
 	std::shared_ptr<TokenIdentifier> name;
+	StorageSpecifier storage;
+	std::set<TypeQualifier> qualifiers;
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members;
 };
 
