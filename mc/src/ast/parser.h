@@ -40,10 +40,10 @@ private:
 	std::shared_ptr<BreakStmtAST> parse_break_stmt();
 	std::shared_ptr<ReturnStmtAST> parse_return_stmt();
 
+	std::shared_ptr<ExprAST> parse_initializer();
 	std::shared_ptr<ExprAST> parse_expr();
 	std::shared_ptr<ExprAST> parse_assignment_expr();
 	std::shared_ptr<ExprAST> parse_tenary_expr();
-	std::shared_ptr<ExprAST> parse_constant_expr();
 	std::shared_ptr<ExprAST> parse_logical_or_expr();
 	std::shared_ptr<ExprAST> parse_logical_and_expr();
 	std::shared_ptr<ExprAST> parse_bitwise_or_expr();

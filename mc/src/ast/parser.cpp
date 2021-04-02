@@ -365,7 +365,7 @@ std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shar
 
 	std::shared_ptr<ExprAST> expr;
 	if (match(TokenName::tk_equal))
-		expr = parse_expr();
+		expr = parse_initializer();
 
 	return std::make_tuple(identifier, inner_type, expr);
 }
@@ -684,6 +684,26 @@ std::shared_ptr<ReturnStmtAST> Parser::parse_return_stmt()
 
 	match(TokenName::tk_semicolon, true);
 	return std::make_shared<ReturnStmtAST>(ReturnStmtAST(expr));
+}
+
+std::shared_ptr<ExprAST> Parser::parse_initializer()
+{
+	if (match(TokenName::tk_left_brace))
+	{
+		std::vector<std::shared_ptr<ExprAST>> exprs;
+		while (!match(TokenName::tk_right_brace))
+		{
+			exprs.push_back(parse_initializer());
+			if (match(TokenName::tk_right_brace))
+				break;
+			else
+				match(TokenName::tk_comma, true);
+		}
+
+		return std::make_shared<InitializerExprAST>(InitializerExprAST(exprs));
+	}
+	else
+		return parse_assignment_expr();
 }
 
 std::shared_ptr<ExprAST> Parser::parse_expr()

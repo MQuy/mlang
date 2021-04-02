@@ -412,22 +412,34 @@ TEST(ASTExtern, StructDefinition_WithDeclarator)
 
 TEST(ASTExtern, StructDefinition_WithDeclaratorAndInit)
 {
-	//auto program = parse("struct foo {} x = {};");
-	//auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
-	//auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
-	//ASSERT_EQ(type->kind, TypeKind::aggregate);
-	//ASSERT_EQ(type->storage, StorageSpecifier::extern_);
-	//ASSERT_EQ(type->qualifiers.size(), 0);
-	//ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
-	//ASSERT_EQ(type->name->lexeme, "foo");
-	//ASSERT_EQ(type->members.size(), 0);
+	auto program = parse(
+		"struct foo {\n"
+		"	int x;\n"
+		"} xxx = { 1, { 2 } };"
+	);
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->name->lexeme, "foo");
+	ASSERT_EQ(type->members.size(), 1);
 
-	//auto declarator = stmt->declarators[0];
-	//ASSERT_EQ(std::get<0>(declarator)->lexeme, "foo");
-	//ASSERT_EQ(std::get<1>(declarator), type);
+	auto declarator = stmt->declarators[0];
+	ASSERT_EQ(std::get<0>(declarator)->lexeme, "xxx");
+	ASSERT_EQ(std::get<1>(declarator), type);
 
-	//auto declarator_init = std::get<2>(declarator);
-	//ASSERT_EQ(std::get<2>(declarator), nullptr);
+	auto declarator_init = std::static_pointer_cast<InitializerExprAST>(std::get<2>(declarator));
+	ASSERT_EQ(declarator_init->exprs.size(), 2);
+	auto member1 = std::static_pointer_cast<LiteralExprAST<int>>(declarator_init->exprs[0]);
+	ASSERT_EQ(member1->type, nullptr);
+	ASSERT_EQ(member1->value->value, 1);
+	auto member2 = std::static_pointer_cast<InitializerExprAST>(declarator_init->exprs[1]);
+	ASSERT_EQ(member2->exprs.size(), 1);
+	auto member2_member1 = std::static_pointer_cast<LiteralExprAST<int>>(member2->exprs[0]);
+	ASSERT_EQ(member2_member1->type, nullptr);
+	ASSERT_EQ(member2_member1->value->value, 2);
 }
 
 TEST(ASTExtern, Typedef_MapIntToIdentifier)

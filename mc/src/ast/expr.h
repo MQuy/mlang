@@ -125,4 +125,15 @@ public:
 	std::shared_ptr<ExprAST> expr;
 };
 
+class InitializerExprAST : public ExprAST
+{
+public:
+	InitializerExprAST(std::vector<std::shared_ptr<ExprAST>> exprs)
+		: exprs(exprs)
+	{
+	}
+
+	std::vector<std::shared_ptr<ExprAST>> exprs;
+};
+
 #endif
