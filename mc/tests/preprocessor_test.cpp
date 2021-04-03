@@ -1,7 +1,7 @@
 #include "preprocesssor/preprocessor.h"
 
-#include <regex>
 #include <filesystem>
+#include <regex>
 
 #include "gtest/gtest.h"
 
@@ -29,7 +29,7 @@ std::vector<std::shared_ptr<Token>> preprocess(std::string content)
 
 	std::filesystem::path current_path = __FILE__;
 	std::filesystem::path library_path = "C:\\Program Files\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\mingw64\\lib\\gcc\\x86_64-w64-mingw32\\8.1.0\\include-fixed";
-	std::vector<std::string> libraries_path = { library_path.string() };
+	std::vector<std::string> libraries_path = {library_path.string()};
 	Config config(libraries_path, current_path.parent_path().string());
 	Preprocessor preprocessor(lexer.get_source(), lexer.scan(), std::make_shared<Config>(config));
 
@@ -373,5 +373,4 @@ TEST(PreprocessorInclude, StandardIncludeDirectories)
 		"x\n"
 		"#endif");
 	ASSERT_EQ(tokens.at(0)->lexeme, "x");
-
 }

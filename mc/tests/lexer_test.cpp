@@ -579,8 +579,8 @@ TEST(Literal, StringConstant_HexaEscapeSequence_FullForm)
 	auto tokens = lexer.scan();
 	auto token = std::static_pointer_cast<TokenLiteral<std::string>>(tokens.front());
 	ASSERT_EQ(token->value,
-		"a\xfa"
-		"bb");
+			  "a\xfa"
+			  "bb");
 }
 
 TEST(Literal, StringConstant_HexaEscapeSequence_ShortForm)
@@ -591,8 +591,8 @@ TEST(Literal, StringConstant_HexaEscapeSequence_ShortForm)
 	auto tokens = lexer.scan();
 	auto token = std::static_pointer_cast<TokenLiteral<std::string>>(tokens.front());
 	ASSERT_EQ(token->value,
-		"a\xa"
-		"mf");
+			  "a\xa"
+			  "mf");
 }
 
 TEST(Literal, StringConstant_OctalEscapeSequence_FullForm)

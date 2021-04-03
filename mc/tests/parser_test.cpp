@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <regex>
 
+#include "ast/parser.h"
 #include "ast/stmt.h"
 #include "ast/type.h"
 #include "gtest/gtest.h"
@@ -12,6 +13,7 @@
 std::shared_ptr<Program> parse(std::string content)
 {
 	init_keywords();
+	init_operators();
 	Lexer lexer(content);
 
 	std::filesystem::path current_path = __FILE__;
@@ -28,6 +30,7 @@ TEST(ASTExtern, IntDeclaration_OnlyInt)
 {
 	auto program = parse("int;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	ASSERT_EQ(stmt->declarators.size(), 0);
 
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
@@ -41,6 +44,8 @@ TEST(ASTExtern, UnsignedIntDeclaration_WithStaticStorage)
 {
 	auto program = parse("static unsigned int foo;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
+
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::unsigned_int);
@@ -59,6 +64,8 @@ TEST(ASTExtern, SignedCharDeclaration_WithConstQualiferAndPointerDeclarator)
 {
 	auto program = parse("const signed char *foo;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
+
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::signed_char);
@@ -79,6 +86,8 @@ TEST(ASTExtern, DoubleDeclaration_WithStaticStorageAndConstQualiferAndFunctionDe
 {
 	auto program = parse("const static double (*foo)(int baz, void *);");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
+
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::double_);
@@ -123,6 +132,8 @@ TEST(ASTExtern, LongDeclaration_WithInitializer)
 {
 	auto program = parse("extern long x = 10;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
+
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::long_);
@@ -134,6 +145,7 @@ TEST(ASTExtern, LongDeclaration_WithInitializer)
 	ASSERT_EQ(std::get<1>(declarator), type);
 
 	auto declarator_init = std::static_pointer_cast<LiteralExprAST<int>>(std::get<2>(declarator));
+	ASSERT_EQ(declarator_init->node_type, ASTNodeType::expr_literal);
 	ASSERT_EQ(declarator_init->type, nullptr);
 	ASSERT_EQ(declarator_init->value->value, 10);
 }
@@ -142,6 +154,8 @@ TEST(ASTExtern, FloatDeclaration_WithMultiDeclarators)
 {
 	auto program = parse("float x, y;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
+
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::float_);
@@ -163,6 +177,7 @@ TEST(ASTExtern, VoidDeclaration_WithConstQualifierAndConstPointer)
 {
 	auto program = parse("void const * const baz;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::void_);
@@ -183,6 +198,7 @@ TEST(ASTExtern, EnumDeclaration_Forward)
 {
 	auto program = parse("enum foo;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
 	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
@@ -195,6 +211,7 @@ TEST(ASTExtern, EnumDeclaration_WithEmptyBodyAndAutoSpecifier)
 {
 	auto program = parse("auto enum foo {};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
 	ASSERT_EQ(type->storage, StorageSpecifier::auto_);
@@ -207,6 +224,7 @@ TEST(ASTExtern, EnumDeclaration_WithExternSpecifierConstantInitialForIdentifer)
 {
 	auto program = parse("extern enum foo { RED, GREEN = 1, BLUE = 2};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
 	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
@@ -220,11 +238,13 @@ TEST(ASTExtern, EnumDeclaration_WithExternSpecifierConstantInitialForIdentifer)
 	auto declarator2 = type->members[1];
 	ASSERT_EQ(declarator2.first->lexeme, "GREEN");
 	auto declarator2_expr = std::static_pointer_cast<LiteralExprAST<int>>(declarator2.second);
+	ASSERT_EQ(declarator2_expr->node_type, ASTNodeType::expr_literal);
 	ASSERT_EQ(declarator2_expr->value->value, 1);
 
 	auto declarator3 = type->members[2];
 	ASSERT_EQ(declarator3.first->lexeme, "BLUE");
 	auto declarator3_expr = std::static_pointer_cast<LiteralExprAST<int>>(declarator3.second);
+	ASSERT_EQ(declarator3_expr->node_type, ASTNodeType::expr_literal);
 	ASSERT_EQ(declarator3_expr->value->value, 2);
 }
 
@@ -232,6 +252,7 @@ TEST(ASTExtern, EnumDeclaration_WithConstQualifierAndDeclarator)
 {
 	auto program = parse("const enum foo { red, green } baz;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
 	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
@@ -248,6 +269,7 @@ TEST(ASTExtern, EnumDeclaration_WithDeclaratorAndInitializer)
 {
 	auto program = parse("enum foo { red, green } baz = red;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<EnumTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::enum_);
 	ASSERT_EQ(type->name->lexeme, "foo");
@@ -256,6 +278,7 @@ TEST(ASTExtern, EnumDeclaration_WithDeclaratorAndInitializer)
 	ASSERT_EQ(std::get<0>(declarator)->lexeme, "baz");
 	ASSERT_EQ(std::get<1>(declarator), type);
 	auto declarator_value = std::static_pointer_cast<IdentifierExprAST>(std::get<2>(declarator));
+	ASSERT_EQ(declarator_value->node_type, ASTNodeType::expr_identifier);
 	ASSERT_EQ(declarator_value->name->lexeme, "red");
 }
 
@@ -263,6 +286,7 @@ TEST(ASTExtern, StructDeclaration_Forward)
 {
 	auto program = parse("struct foo;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	ASSERT_EQ(stmt->declarators.size(), 0);
 
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
@@ -278,6 +302,7 @@ TEST(ASTExtern, StructDeclaration_WithVolatileQualifierAndEmptyBody)
 {
 	auto program = parse("volatile struct foo {};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	ASSERT_EQ(stmt->declarators.size(), 0);
 
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
@@ -297,6 +322,7 @@ TEST(ASTExtern, StructDefinition_WithConstQualifierAndFlatMembers)
 		"	float z;\n"
 		"};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	ASSERT_EQ(stmt->declarators.size(), 0);
 
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
@@ -341,6 +367,7 @@ TEST(ASTExtern, StructDefinition_WithNestedNameAndUnNameStruct)
 		"	struct { char qux; } *z;\n"
 		"};");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	ASSERT_EQ(stmt->declarators.size(), 0);
 
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
@@ -396,6 +423,7 @@ TEST(ASTExtern, StructDefinition_WithDeclarator)
 {
 	auto program = parse("struct foo {} x;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::aggregate);
 	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
@@ -417,6 +445,7 @@ TEST(ASTExtern, StructDefinition_WithDeclaratorAndInit)
 		"	int x;\n"
 		"} xxx = { 1, { 2 } };");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::aggregate);
 	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
@@ -430,13 +459,20 @@ TEST(ASTExtern, StructDefinition_WithDeclaratorAndInit)
 	ASSERT_EQ(std::get<1>(declarator), type);
 
 	auto declarator_init = std::static_pointer_cast<InitializerExprAST>(std::get<2>(declarator));
+	ASSERT_EQ(declarator_init->node_type, ASTNodeType::expr_initializer);
 	ASSERT_EQ(declarator_init->exprs.size(), 2);
+
 	auto member1 = std::static_pointer_cast<LiteralExprAST<int>>(declarator_init->exprs[0]);
+	ASSERT_EQ(member1->node_type, ASTNodeType::expr_literal);
 	ASSERT_EQ(member1->type, nullptr);
 	ASSERT_EQ(member1->value->value, 1);
+
 	auto member2 = std::static_pointer_cast<InitializerExprAST>(declarator_init->exprs[1]);
+	ASSERT_EQ(member2->node_type, ASTNodeType::expr_initializer);
 	ASSERT_EQ(member2->exprs.size(), 1);
+
 	auto member2_member1 = std::static_pointer_cast<LiteralExprAST<int>>(member2->exprs[0]);
+	ASSERT_EQ(member2_member1->node_type, ASTNodeType::expr_literal);
 	ASSERT_EQ(member2_member1->type, nullptr);
 	ASSERT_EQ(member2_member1->value->value, 2);
 }
@@ -445,6 +481,7 @@ TEST(ASTExtern, Typedef_IntToIdentifier)
 {
 	auto program = parse("typedef int int32_t;");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::int_);
@@ -461,6 +498,7 @@ TEST(ASTExtern, Typedef_ArrayOfIntToIdentifier)
 {
 	auto program = parse("typedef int A[];");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::int_);
@@ -483,6 +521,7 @@ TEST(ASTExtern, Typedef_MultiDelaratorsHavingPointerAndFunction)
 {
 	auto program = parse("typedef char char_t, *char_p, (*fp)(void);");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::char_);
@@ -521,6 +560,7 @@ TEST(ASTExtern, FunctionPrototype_VoidReturnAndEmptyParameters)
 {
 	auto program = parse("void foo();");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->qualifiers.size(), 0);
@@ -541,6 +581,7 @@ TEST(ASTExtern, FunctionPrototype_StaticWithIntReturnAndOneDoubleParameter)
 {
 	auto program = parse("static int LongFunctionName(double x);");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->qualifiers.size(), 0);
@@ -569,6 +610,7 @@ TEST(ASTExtern, FunctionPrototype_UnionReturnAndPointerStructParameterWithoutNam
 {
 	auto program = parse("union point LongFunctionName(struct foo);");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::aggregate);
 	ASSERT_EQ(type->aggregate_kind, AggregateKind::union_);
@@ -602,6 +644,7 @@ TEST(ASTExtern, FunctionPrototype_VoidPointerReturnAndRegisterInt)
 {
 	auto program = parse("void *foo(int register x);");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::builtin);
 	ASSERT_EQ(type->name, BuiltinTypeName::void_);
@@ -634,6 +677,7 @@ TEST(ASTExtern, FunctionPrototype_StructDefinitionAsReturnAndEnumDeclaration)
 {
 	auto program = parse("struct foo { int x; } baz(enum qux { RED });");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::extern_declaration);
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::aggregate);
 	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
@@ -676,60 +720,348 @@ TEST(ASTExtern, FunctionPrototype_StructDefinitionAsReturnAndEnumDeclaration)
 
 TEST(ASTExtern, FunctionDefinition_WithEmptyBody)
 {
+	auto program = parse("int foo() {}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	ASSERT_EQ(func->name->lexeme, "foo");
+	ASSERT_EQ(func->body->stmts.size(), 0);
+
+	auto type = std::static_pointer_cast<FunctionTypeAST>(func->type);
+	ASSERT_EQ(type->kind, TypeKind::function);
+	ASSERT_EQ(type->parameters.size(), 0);
+
+	auto return_type = std::static_pointer_cast<BuiltinTypeAST>(type->returning);
+	ASSERT_EQ(return_type->kind, TypeKind::builtin);
+	ASSERT_EQ(return_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(return_type->qualifiers.size(), 0);
+	ASSERT_EQ(return_type->storage, StorageSpecifier::extern_);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainIntDeclaration)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	int x;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	ASSERT_EQ(func->body->stmts.size(), 1);
+
+	auto stmt1 = std::static_pointer_cast<DeclarationAST>(func->body->stmts.front());
+	auto stmt1_type = std::static_pointer_cast<BuiltinTypeAST>(stmt1->type);
+	ASSERT_EQ(stmt1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(stmt1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(stmt1_type->qualifiers.size(), 0);
+	ASSERT_EQ(stmt1_type->storage, StorageSpecifier::auto_);
+
+	auto stmt1_declarator1 = stmt1->declarators.front();
+	ASSERT_EQ(std::get<0>(stmt1_declarator1)->lexeme, "x");
+	ASSERT_EQ(std::get<1>(stmt1_declarator1), stmt1_type);
+	ASSERT_EQ(std::get<2>(stmt1_declarator1), nullptr);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainStructDefinition)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	struct baz { int x; } qux = {};\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	ASSERT_EQ(func->body->stmts.size(), 1);
+
+	auto stmt1 = std::static_pointer_cast<DeclarationAST>(func->body->stmts.front());
+	auto stmt1_type = std::static_pointer_cast<AggregateTypeAST>(stmt1->type);
+	ASSERT_EQ(stmt1_type->kind, TypeKind::aggregate);
+	ASSERT_EQ(stmt1_type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(stmt1_type->name->lexeme, "baz");
+	ASSERT_EQ(stmt1_type->members.size(), 1);
+	ASSERT_EQ(stmt1_type->storage, StorageSpecifier::auto_);
+
+	auto member1 = stmt1_type->members.front();
+	ASSERT_EQ(std::get<0>(member1)->lexeme, "x");
+	auto member1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(member1));
+	ASSERT_EQ(member1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(member1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(member1_type->qualifiers.size(), 0);
+	ASSERT_EQ(member1_type->storage, StorageSpecifier::auto_);
+
+	auto stmt1_declarator1 = stmt1->declarators.front();
+	ASSERT_EQ(std::get<0>(stmt1_declarator1)->lexeme, "qux");
+	ASSERT_EQ(std::get<1>(stmt1_declarator1), stmt1_type);
+
+	auto stmt1_declarator1_value = std::static_pointer_cast<InitializerExprAST>(std::get<2>(stmt1_declarator1));
+	ASSERT_EQ(stmt1_declarator1_value->node_type, ASTNodeType::expr_initializer);
+	ASSERT_EQ(stmt1_declarator1_value->exprs.size(), 0);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainReturnStatement)
 {
+	auto program = parse(
+		"int foo() {\n"
+		"	return 1;"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ReturnStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_return);
+
+	auto expr1 = std::static_pointer_cast<LiteralExprAST<int>>(stmt1->expr);
+	ASSERT_EQ(expr1->value->value, 1);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainIfStatement)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	if (1)\n"
+		"		;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<IfStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_if);
+	ASSERT_EQ(stmt1->else_stmt, nullptr);
+
+	auto cond1 = std::static_pointer_cast<LiteralExprAST<int>>(stmt1->cond);
+	ASSERT_EQ(cond1->value->value, 1);
+
+	auto ifbody1 = std::static_pointer_cast<ExprStmtAST>(stmt1->if_stmt);
+	ASSERT_EQ(ifbody1->node_type, ASTNodeType::stmt_expr);
+	ASSERT_EQ(ifbody1->expr, nullptr);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainIfElseStatement)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	if (1)\n"
+		"		return;\n"
+		"	else if (2)\n"
+		"		return;\n"
+		"	else\n"
+		"		return;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<IfStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_if);
+	auto cond1 = std::static_pointer_cast<LiteralExprAST<int>>(stmt1->cond);
+	ASSERT_EQ(cond1->value->value, 1);
+
+	auto ifbody1 = std::static_pointer_cast<ReturnStmtAST>(stmt1->if_stmt);
+	ASSERT_EQ(ifbody1->node_type, ASTNodeType::stmt_return);
+	ASSERT_EQ(ifbody1->expr, nullptr);
+
+	auto elsebody1 = std::static_pointer_cast<IfStmtAST>(stmt1->else_stmt);
+	ASSERT_EQ(elsebody1->node_type, ASTNodeType::stmt_if);
+	auto cond2 = std::static_pointer_cast<LiteralExprAST<int>>(elsebody1->cond);
+	ASSERT_EQ(cond2->value->value, 2);
+
+	auto ifbody2 = std::static_pointer_cast<ReturnStmtAST>(elsebody1->if_stmt);
+	ASSERT_EQ(ifbody2->node_type, ASTNodeType::stmt_return);
+	ASSERT_EQ(ifbody2->expr, nullptr);
+
+	auto elsebody2 = std::static_pointer_cast<ReturnStmtAST>(elsebody1->else_stmt);
+	ASSERT_EQ(elsebody2->node_type, ASTNodeType::stmt_return);
+	ASSERT_EQ(elsebody2->expr, nullptr);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainSwitchStatement)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	switch(x) { }\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<SwitchStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_switch);
+	auto expr = std::static_pointer_cast<IdentifierExprAST>(stmt1->expr);
+	ASSERT_EQ(expr->name->name, "x");
+
+	auto body = std::static_pointer_cast<CompoundStmtAST>(stmt1->stmt);
+	ASSERT_EQ(body->node_type, ASTNodeType::stmt_compound);
+	ASSERT_EQ(body->stmts.size(), 0);
 }
 
-TEST(ASTExtern, FunctionDefinition_ContainSwitchStatementWithDefaultCase)
+TEST(ASTExtern, FunctionDefinition_ContainSwitchStatementWithCaseAndDefault)
 {
-}
+	auto program = parse(
+		"void foo() {\n"
+		"	switch(baz) {\n"
+		"		case 1:\n"
+		"			break;\n"
+		"		default:\n"
+		"			break;\n"
+		"	}\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<SwitchStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_switch);
+	auto expr = std::static_pointer_cast<IdentifierExprAST>(stmt1->expr);
+	ASSERT_EQ(expr->name->name, "baz");
 
-TEST(ASTExtern, FunctionDefinition_ContainForStatement)
-{
+	auto body = std::static_pointer_cast<CompoundStmtAST>(stmt1->stmt);
+	ASSERT_EQ(body->node_type, ASTNodeType::stmt_compound);
+	ASSERT_EQ(body->stmts.size(), 2);
+
+	auto stmt2 = std::static_pointer_cast<CaseStmtAST>(body->stmts[0]);
+	ASSERT_EQ(stmt2->node_type, ASTNodeType::stmt_case);
+	auto cond2 = std::static_pointer_cast<LiteralExprAST<int>>(stmt2->constant);
+	ASSERT_EQ(cond2->value->value, 1);
+
+	auto stmt3 = std::static_pointer_cast<DefaultStmtAST>(body->stmts[1]);
+	ASSERT_EQ(stmt3->node_type, ASTNodeType::stmt_default_);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainForStatementWithEmptyInitCondIncr)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	for(;;)\n"
+		"		;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ForStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_for);
+	ASSERT_EQ(stmt1->cond, nullptr);
+	ASSERT_EQ(stmt1->init, nullptr);
+	ASSERT_EQ(stmt1->inc, nullptr);
+
+	auto forbody = std::static_pointer_cast<ExprStmtAST>(stmt1->stmt);
+	ASSERT_EQ(forbody->node_type, ASTNodeType::stmt_expr);
+	ASSERT_EQ(forbody->expr, nullptr);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainForStatementWithBreak)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	for(int x = 10; x > 0 ; ++x)\n"
+		"		break;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ForStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_for);
+
+	auto init1 = std::static_pointer_cast<DeclarationAST>(stmt1->init);
+	ASSERT_EQ(init1->node_type, ASTNodeType::extern_declaration);
+
+	auto init1_type = std::static_pointer_cast<BuiltinTypeAST>(init1->type);
+	ASSERT_EQ(init1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(init1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(init1_type->qualifiers.size(), 0);
+	ASSERT_EQ(init1_type->storage, StorageSpecifier::auto_);
+
+	auto init1_declarator1 = init1->declarators.front();
+	ASSERT_EQ(std::get<0>(init1_declarator1)->lexeme, "x");
+	ASSERT_EQ(std::get<1>(init1_declarator1), init1_type);
+
+	auto init1_declarator1_value = std::static_pointer_cast<LiteralExprAST<int>>(std::get<2>(init1_declarator1));
+	ASSERT_EQ(init1_declarator1_value->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(init1_declarator1_value->value->value, 10);
+
+	auto cond1 = std::static_pointer_cast<BinaryExprAST>(stmt1->cond);
+	ASSERT_EQ(cond1->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(cond1->op, BinaryOperator::greater_than);
+
+	auto cond1_left = std::static_pointer_cast<IdentifierExprAST>(cond1->left);
+	ASSERT_EQ(cond1_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(cond1_left->name->lexeme, "x");
+
+	auto cond1_right = std::static_pointer_cast<LiteralExprAST<int>>(cond1->right);
+	ASSERT_EQ(cond1_right->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(cond1_right->value->value, 0);
+
+	auto inc1 = std::static_pointer_cast<UnaryExprAST>(stmt1->inc);
+	ASSERT_EQ(inc1->node_type, ASTNodeType::expr_unary);
+	ASSERT_EQ(inc1->op, UnaryOperator::prefix_increment);
+
+	auto inc1_expr = std::static_pointer_cast<IdentifierExprAST>(inc1->expr);
+	ASSERT_EQ(inc1_expr->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(inc1_expr->name->lexeme, "x");
+
+	auto stmt2 = std::static_pointer_cast<BreakStmtAST>(stmt1->stmt);
+	ASSERT_EQ(stmt2->node_type, ASTNodeType::stmt_break);
 }
 
-TEST(ASTExtern, FunctionDefinition_ContainForStatementWithContinue)
+TEST(ASTExtern, FunctionDefinition_ContainWhileStatementWithContinue)
 {
-}
+	auto program = parse(
+		"void foo() {\n"
+		"	while(1)\n"
+		"		continue;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<WhileStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_while);
 
-TEST(ASTExtern, FunctionDefinition_ContainWhileStatement)
-{
+	auto cond1 = std::static_pointer_cast<LiteralExprAST<int>>(stmt1->cond);
+	ASSERT_EQ(cond1->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(cond1->value->value, 1);
+
+	auto stmt2 = std::static_pointer_cast<ContinueStmtAST>(stmt1->stmt);
+	ASSERT_EQ(stmt2->node_type, ASTNodeType::stmt_continue);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainDoWhileStatement)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	do {\n"
+		"		return;\n"
+		"	} while(x);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<DoWhileStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_dowhile);
+
+	auto cond1 = std::static_pointer_cast<IdentifierExprAST>(stmt1->cond);
+	ASSERT_EQ(cond1->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(cond1->name->lexeme, "x");
+
+	auto stmt2 = std::static_pointer_cast<CompoundStmtAST>(stmt1->stmt);
+	ASSERT_EQ(stmt2->node_type, ASTNodeType::stmt_compound);
+	ASSERT_EQ(stmt2->stmts.size(), 1);
+
+	auto stmt2_sub = std::static_pointer_cast<ReturnStmtAST>(stmt2->stmts[0]);
+	ASSERT_EQ(stmt2_sub->node_type, ASTNodeType::stmt_return);
+	ASSERT_EQ(stmt2_sub->expr, nullptr);
+}
+
+TEST(ASTExtern, FunctionDefinition_ContainLabelStatement)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	anchor:\n"
+		"		return;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<LabelStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_label);
+	ASSERT_EQ(stmt1->name->lexeme, "anchor");
+
+	auto stmt2 = std::static_pointer_cast<ReturnStmtAST>(stmt1->stmt);
+	ASSERT_EQ(stmt2->node_type, ASTNodeType::stmt_return);
+	ASSERT_EQ(stmt2->expr, nullptr);
 }
 
 TEST(ASTExtern, FunctionDefinition_ContainGotoStatement)
 {
+	auto program = parse(
+		"void foo() {\n"
+		"	goto anchor;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<JumpStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_jump);
+	ASSERT_EQ(stmt1->name->lexeme, "anchor");
 }
