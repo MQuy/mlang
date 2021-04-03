@@ -12,9 +12,13 @@
 class ExprAST : public ASTNode
 {
 public:
-	ExprAST() {}
-	ExprAST(std::shared_ptr<TypeAST> type)
-		: type(type)
+	ExprAST(ASTNodeType node_type)
+		: ASTNode(node_type)
+	{
+	}
+	ExprAST(ASTNodeType node_type, std::shared_ptr<TypeAST> type)
+		: ASTNode(node_type)
+		, type(type)
 	{
 	}
 
@@ -26,7 +30,8 @@ class LiteralExprAST : public ExprAST
 {
 public:
 	LiteralExprAST(std::shared_ptr<TokenLiteral<T>> value)
-		: value(value)
+		: ExprAST(ASTNodeType::expr_literal)
+		, value(value)
 	{
 	}
 
@@ -37,7 +42,8 @@ class IdentifierExprAST : public ExprAST  // function and variable
 {
 public:
 	IdentifierExprAST(std::shared_ptr<TokenIdentifier> name)
-		: name(name)
+		: ExprAST(ASTNodeType::expr_identifier)
+		, name(name)
 	{
 	}
 
@@ -48,7 +54,8 @@ class BinaryExprAST : public ExprAST
 {
 public:
 	BinaryExprAST(std::shared_ptr<ExprAST> left, std::shared_ptr<ExprAST> right, BinaryOperator op)
-		: left(left)
+		: ExprAST(ASTNodeType::expr_binary)
+		, left(left)
 		, right(right)
 		, op(op)
 	{
@@ -63,7 +70,8 @@ class UnaryExprAST : public ExprAST
 {
 public:
 	UnaryExprAST(std::shared_ptr<ExprAST> expr, UnaryOperator op)
-		: expr(expr)
+		: ExprAST(ASTNodeType::expr_unary)
+		, expr(expr)
 		, op(op)
 	{
 	}
@@ -76,7 +84,8 @@ class TenaryExprAST : public ExprAST
 {
 public:
 	TenaryExprAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<ExprAST> expr1, std::shared_ptr<ExprAST> expr2)
-		: cond(cond)
+		: ExprAST(ASTNodeType::expr_tenary)
+		, cond(cond)
 		, expr1(expr1)
 		, expr2(expr2)
 	{
@@ -91,7 +100,8 @@ class MemberAccessExprAST : public ExprAST
 {
 public:
 	MemberAccessExprAST(std::shared_ptr<ExprAST> object, std::shared_ptr<TokenIdentifier> member)
-		: object(object)
+		: ExprAST(ASTNodeType::expr_member_access)
+		, object(object)
 		, member(member)
 	{
 	}
@@ -104,7 +114,8 @@ class FunctionCallExprAST : public ExprAST
 {
 public:
 	FunctionCallExprAST(std::shared_ptr<ExprAST> callee, std::vector<std::shared_ptr<ExprAST>> arguments)
-		: callee(callee)
+		: ExprAST(ASTNodeType::expr_function_call)
+		, callee(callee)
 		, arguments(arguments)
 	{
 	}
@@ -117,7 +128,7 @@ class TypeCastExprAST : public ExprAST
 {
 public:
 	TypeCastExprAST(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr)
-		: ExprAST(type)
+		: ExprAST(ASTNodeType::expr_typecast, type)
 		, expr(expr)
 	{
 	}
@@ -129,7 +140,8 @@ class InitializerExprAST : public ExprAST
 {
 public:
 	InitializerExprAST(std::vector<std::shared_ptr<ExprAST>> exprs)
-		: exprs(exprs)
+		: ExprAST(ASTNodeType::expr_initializer)
+		, exprs(exprs)
 	{
 	}
 

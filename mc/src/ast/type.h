@@ -254,8 +254,44 @@ public:
 	std::shared_ptr<TypeAST> returning;
 };
 
+enum ASTNodeType
+{
+	expr_literal,
+	expr_identifier,
+	expr_binary,
+	expr_unary,
+	expr_tenary,
+	expr_member_access,
+	expr_function_call,
+	expr_typecast,
+	expr_initializer,
+	stmt_label,
+	stmt_case,
+	stmt_default_,
+	stmt_expr,
+	stmt_compound,
+	stmt_if,
+	stmt_switch,
+	stmt_for,
+	stmt_while,
+	stmt_dowhile,
+	stmt_jump,
+	stmt_continue,
+	stmt_break,
+	stmt_return,
+	extern_declaration,
+	extern_function,
+};
+
 class ASTNode
 {
+public:
+	ASTNode(ASTNodeType node_type)
+		: node_type(node_type)
+	{
+	}
+
+	ASTNodeType node_type;
 };
 
 #endif

@@ -13,17 +13,28 @@
 
 class FragmentAST : public ASTNode
 {
+public:
+	FragmentAST(ASTNodeType node_type)
+		: ASTNode(node_type)
+	{
+	}
 };
 
 class StmtAST : public FragmentAST
 {
+public:
+	StmtAST(ASTNodeType node_type)
+		: FragmentAST(node_type)
+	{
+	}
 };
 
 class LabelStmtAST : public StmtAST
 {
 public:
 	LabelStmtAST(std::shared_ptr<TokenIdentifier> name, std::shared_ptr<StmtAST> stmt)
-		: name(name)
+		: StmtAST(ASTNodeType::stmt_label)
+		, name(name)
 		, stmt(stmt)
 	{
 	}
@@ -36,7 +47,8 @@ class CaseStmtAST : public StmtAST
 {
 public:
 	CaseStmtAST(std::shared_ptr<ExprAST> constant, std::shared_ptr<StmtAST> stmt)
-		: constant(constant)
+		: StmtAST(ASTNodeType::stmt_case)
+		, constant(constant)
 		, stmt(stmt)
 	{
 	}
@@ -49,7 +61,8 @@ class DefaultStmtAST : public StmtAST
 {
 public:
 	DefaultStmtAST(std::shared_ptr<StmtAST> stmt)
-		: stmt(stmt)
+		: StmtAST(ASTNodeType::stmt_default_)
+		, stmt(stmt)
 	{
 	}
 
@@ -60,7 +73,8 @@ class ExprStmtAST : public StmtAST
 {
 public:
 	ExprStmtAST(std::shared_ptr<ExprAST> expr)
-		: expr(expr)
+		: StmtAST(ASTNodeType::stmt_expr)
+		, expr(expr)
 	{
 	}
 
@@ -71,7 +85,8 @@ class CompoundStmtAST : public StmtAST
 {
 public:
 	CompoundStmtAST(std::vector<std::shared_ptr<FragmentAST>> stmts)
-		: stmts(stmts)
+		: StmtAST(ASTNodeType::stmt_compound)
+		, stmts(stmts)
 	{
 	}
 
@@ -82,7 +97,8 @@ class IfStmtAST : public StmtAST
 {
 public:
 	IfStmtAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<StmtAST> if_stmt, std::shared_ptr<StmtAST> else_stmt)
-		: cond(cond)
+		: StmtAST(ASTNodeType::stmt_if)
+		, cond(cond)
 		, if_stmt(if_stmt)
 		, else_stmt(else_stmt)
 	{
@@ -97,7 +113,8 @@ class SwitchStmtAST : public StmtAST
 {
 public:
 	SwitchStmtAST(std::shared_ptr<ExprAST> expr, std::shared_ptr<StmtAST> stmt)
-		: expr(expr)
+		: StmtAST(ASTNodeType::stmt_switch)
+		, expr(expr)
 		, stmt(stmt)
 	{
 	}
@@ -110,7 +127,8 @@ class ForStmtAST : public StmtAST
 {
 public:
 	ForStmtAST(std::shared_ptr<ExprAST> init, std::shared_ptr<ExprAST> cond, std::shared_ptr<ExprAST> inc, std::shared_ptr<StmtAST> stmt)
-		: init(init)
+		: StmtAST(ASTNodeType::stmt_for)
+		, init(init)
 		, cond(cond)
 		, inc(inc)
 		, stmt(stmt)
@@ -127,7 +145,8 @@ class WhileStmtAST : public StmtAST
 {
 public:
 	WhileStmtAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<StmtAST> stmt)
-		: cond(cond)
+		: StmtAST(ASTNodeType::stmt_while)
+		, cond(cond)
 		, stmt(stmt)
 	{
 	}
@@ -140,7 +159,8 @@ class DoWhileStmtAST : public StmtAST
 {
 public:
 	DoWhileStmtAST(std::shared_ptr<ExprAST> cond, std::shared_ptr<StmtAST> stmt)
-		: cond(cond)
+		: StmtAST(ASTNodeType::stmt_dowhile)
+		, cond(cond)
 		, stmt(stmt)
 	{
 	}
@@ -153,7 +173,8 @@ class JumpStmtAST : public StmtAST
 {
 public:
 	JumpStmtAST(std::shared_ptr<TokenIdentifier> name)
-		: name(name)
+		: StmtAST(ASTNodeType::stmt_jump)
+		, name(name)
 	{
 	}
 
@@ -162,17 +183,28 @@ public:
 
 class ContinueStmtAST : public StmtAST
 {
+public:
+	ContinueStmtAST()
+		: StmtAST(ASTNodeType::stmt_continue)
+	{
+	}
 };
 
 class BreakStmtAST : public StmtAST
 {
+public:
+	BreakStmtAST()
+		: StmtAST(ASTNodeType::stmt_break)
+	{
+	}
 };
 
 class ReturnStmtAST : public StmtAST
 {
 public:
 	ReturnStmtAST(std::shared_ptr<ExprAST> expr)
-		: expr(expr)
+		: StmtAST(ASTNodeType::stmt_return)
+		, expr(expr)
 	{
 	}
 
@@ -182,8 +214,9 @@ public:
 class ExternAST : public FragmentAST
 {
 public:
-	ExternAST(std::shared_ptr<TypeAST> type)
-		: type(type)
+	ExternAST(ASTNodeType node_type, std::shared_ptr<TypeAST> type)
+		: FragmentAST(node_type)
+		, type(type)
 	{
 	}
 
@@ -194,7 +227,7 @@ class FunctionDefinitionAST : public ExternAST
 {
 public:
 	FunctionDefinitionAST(std::shared_ptr<FunctionTypeAST> type, std::shared_ptr<TokenIdentifier> name, std::shared_ptr<CompoundStmtAST> body)
-		: ExternAST(type)
+		: ExternAST(ASTNodeType::extern_function, type)
 		, name(name)
 		, body(body)
 	{
@@ -208,7 +241,7 @@ class DeclarationAST : public ExternAST
 {
 public:
 	DeclarationAST(std::shared_ptr<TypeAST> type, std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators = std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>>())
-		: ExternAST(type)
+		: ExternAST(ASTNodeType::extern_declaration, type)
 		, declarators(declarators)
 	{
 	}

@@ -107,7 +107,7 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 		|| token_symbol->name == TokenName::tk_comma
 		|| token_symbol->name == TokenName::tk_semicolon)
 		return parse_not_match();
-	match(TokenName::tk_left_brace, true, false);
+	match(TokenName::tk_left_brace, true);
 
 	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
 	auto body = parse_compound_stmt();
@@ -284,7 +284,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 		}
 
 		default:
-			throw ParserError("Only support struct, union, enum or builtin types");
+			return nullptr;
 		}
 	}
 	else if (match(TokenType::tk_identifier))
@@ -491,56 +491,33 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 
 std::shared_ptr<StmtAST> Parser::parse_stmt()
 {
-	auto token = advance();
-
-	if (token->type == TokenType::tk_symbol)
+	if (match(TokenName::tk_case))
+		return parse_case_stmt();
+	else if (match(TokenName::tk_default))
+		return parse_default_stmt();
+	else if (match(TokenName::tk_left_brace))
+		return parse_compound_stmt();
+	else if (match(TokenName::tk_if))
+		return parse_if_stmt();
+	else if (match(TokenName::tk_switch))
+		return parse_switch_stmt();
+	else if (match(TokenName::tk_while))
+		return parse_while_stmt();
+	else if (match(TokenName::tk_do))
+		return parse_do_while_stmt();
+	else if (match(TokenName::tk_for))
+		return parse_for_stmt();
+	else if (match(TokenName::tk_goto))
+		return parse_goto_stmt();
+	else if (match(TokenName::tk_continue))
+		return parse_continue_stmt();
+	else if (match(TokenName::tk_break))
+		return parse_break_stmt();
+	else if (match(TokenName::tk_return))
+		return parse_return_stmt();
+	else if (match(TokenType::tk_identifier, false, false))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		switch (token_symbol->name)
-		{
-		case TokenName::tk_case:
-			return parse_case_stmt();
-
-		case TokenName::tk_default:
-			return parse_default_stmt();
-
-		case TokenName::tk_left_brace:
-			return parse_compound_stmt();
-
-		case TokenName::tk_if:
-			return parse_if_stmt();
-
-		case TokenName::tk_switch:
-			return parse_switch_stmt();
-
-		case TokenName::tk_while:
-			return parse_while_stmt();
-
-		case TokenName::tk_do:
-			return parse_do_while_stmt();
-
-		case TokenName::tk_for:
-			return parse_for_stmt();
-
-		case TokenName::tk_goto:
-			return parse_goto_stmt();
-
-		case TokenName::tk_continue:
-			return parse_continue_stmt();
-
-		case TokenName::tk_break:
-			return parse_break_stmt();
-
-		case TokenName::tk_return:
-			return parse_return_stmt();
-
-		default:
-			break;
-		}
-	}
-	else if (token->type == TokenType::tk_identifier)
-	{
-		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
 		if (match(TokenName::tk_colon))
 			return parse_label_stmt(token_identifier);
 	}
@@ -574,9 +551,10 @@ std::shared_ptr<DefaultStmtAST> Parser::parse_default_stmt()
 std::shared_ptr<ExprStmtAST> Parser::parse_expr_stmt()
 {
 	std::shared_ptr<ExprAST> expr;
-	if (!match(TokenName::tk_semicolon, true))
+	if (!match(TokenName::tk_semicolon, false, false))
 		expr = parse_expr();
 
+	match(TokenName::tk_semicolon, true);
 	return std::make_shared<ExprStmtAST>(ExprStmtAST(expr));
 }
 
@@ -586,9 +564,10 @@ std::shared_ptr<CompoundStmtAST> Parser::parse_compound_stmt()
 
 	while (!match(TokenName::tk_right_brace))
 	{
+		auto pos = runner;
 		if (auto declaration = parse_declaration(false))
 			stmts.push_back(declaration);
-		else if (auto stmt = parse_stmt())
+		else if (runner = pos; auto stmt = parse_stmt())
 			stmts.push_back(stmt);
 		else
 			assert_not_reached();
@@ -692,7 +671,7 @@ std::shared_ptr<BreakStmtAST> Parser::parse_break_stmt()
 std::shared_ptr<ReturnStmtAST> Parser::parse_return_stmt()
 {
 	std::shared_ptr<ExprAST> expr;
-	if (!match(TokenName::tk_semicolon))
+	if (!match(TokenName::tk_semicolon, false, false))
 		expr = parse_expr();
 
 	match(TokenName::tk_semicolon, true);
@@ -723,7 +702,7 @@ std::shared_ptr<ExprAST> Parser::parse_expr()
 {
 	auto expr = parse_assignment_expr();
 
-	if (!match(TokenName::tk_semicolon, true, false) && match(TokenName::tk_comma))
+	if (!match(TokenName::tk_semicolon, false, false) && match(TokenName::tk_comma))
 	{
 		auto right_expr = parse_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, right_expr, BinaryOperator::comma));
