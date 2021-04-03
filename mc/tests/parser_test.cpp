@@ -415,8 +415,7 @@ TEST(ASTExtern, StructDefinition_WithDeclaratorAndInit)
 	auto program = parse(
 		"struct foo {\n"
 		"	int x;\n"
-		"} xxx = { 1, { 2 } };"
-	);
+		"} xxx = { 1, { 2 } };");
 	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
 	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
 	ASSERT_EQ(type->kind, TypeKind::aggregate);
@@ -520,22 +519,159 @@ TEST(ASTExtern, Typedef_MultiDelaratorsHavingPointerAndFunction)
 
 TEST(ASTExtern, FunctionPrototype_VoidReturnAndEmptyParameters)
 {
+	auto program = parse("void foo();");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::builtin);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->name, BuiltinTypeName::void_);
+
+	auto declarator = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator)->lexeme, "foo");
+	ASSERT_EQ(std::get<2>(declarator), nullptr);
+
+	auto declarator_type = std::static_pointer_cast<FunctionTypeAST>(std::get<1>(declarator));
+	ASSERT_EQ(declarator_type->kind, TypeKind::function);
+	ASSERT_EQ(declarator_type->parameters.size(), 0);
+	ASSERT_EQ(declarator_type->returning, type);
 }
 
-TEST(ASTExtern, FunctionPrototype_IntReturnAndOneIntParameter)
+TEST(ASTExtern, FunctionPrototype_StaticWithIntReturnAndOneDoubleParameter)
 {
+	auto program = parse("static int LongFunctionName(double x);");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::builtin);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::static_);
+	ASSERT_EQ(type->name, BuiltinTypeName::int_);
+
+	auto declarator = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator)->lexeme, "LongFunctionName");
+	ASSERT_EQ(std::get<2>(declarator), nullptr);
+
+	auto declarator_type = std::static_pointer_cast<FunctionTypeAST>(std::get<1>(declarator));
+	ASSERT_EQ(declarator_type->kind, TypeKind::function);
+	ASSERT_EQ(declarator_type->returning, type);
+
+	auto parameter1 = declarator_type->parameters.front();
+	ASSERT_EQ(std::get<0>(parameter1)->lexeme, "x");
+
+	auto paramter1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(parameter1));
+	ASSERT_EQ(paramter1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(paramter1_type->qualifiers.size(), 0);
+	ASSERT_EQ(paramter1_type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(paramter1_type->name, BuiltinTypeName::double_);
 }
 
-TEST(ASTExtern, FunctionPrototype_StructReturnAndPointerStructParameterWithoutName)
+TEST(ASTExtern, FunctionPrototype_UnionReturnAndPointerStructParameterWithoutName)
 {
+	auto program = parse("union point LongFunctionName(struct foo);");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::union_);
+	ASSERT_EQ(type->members.size(), 0);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->name->lexeme, "point");
+
+	auto declarator1 = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator1)->lexeme, "LongFunctionName");
+	ASSERT_EQ(std::get<2>(declarator1), nullptr);
+
+	auto declarator1_type = std::static_pointer_cast<FunctionTypeAST>(std::get<1>(declarator1));
+	ASSERT_EQ(declarator1_type->kind, TypeKind::function);
+	ASSERT_EQ(declarator1_type->parameters.size(), 1);
+	ASSERT_EQ(declarator1_type->returning, type);
+
+	auto parameter1 = declarator1_type->parameters.front();
+	ASSERT_EQ(std::get<0>(parameter1), nullptr);
+
+	auto parameter1_type = std::static_pointer_cast<AggregateTypeAST>(std::get<1>(parameter1));
+	ASSERT_EQ(parameter1_type->kind, TypeKind::aggregate);
+	ASSERT_EQ(parameter1_type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(parameter1_type->members.size(), 0);
+	ASSERT_EQ(parameter1_type->qualifiers.size(), 0);
+	ASSERT_EQ(parameter1_type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(parameter1_type->name->lexeme, "foo");
 }
 
 TEST(ASTExtern, FunctionPrototype_VoidPointerReturnAndRegisterInt)
 {
+	auto program = parse("void *foo(int register x);");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::builtin);
+	ASSERT_EQ(type->name, BuiltinTypeName::void_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+
+	auto declarator1 = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator1)->lexeme, "foo");
+	ASSERT_EQ(std::get<2>(declarator1), nullptr);
+
+	auto declarator1_type = std::static_pointer_cast<FunctionTypeAST>(std::get<1>(declarator1));
+	ASSERT_EQ(declarator1_type->kind, TypeKind::function);
+	ASSERT_EQ(declarator1_type->parameters.size(), 1);
+
+	auto declarator1_underlay_type = std::static_pointer_cast<PointerTypeAST>(declarator1_type->returning);
+	ASSERT_EQ(declarator1_underlay_type->kind, TypeKind::pointer);
+	ASSERT_EQ(declarator1_underlay_type->qualifiers.size(), 0);
+
+	auto parameter1 = declarator1_type->parameters.front();
+	ASSERT_EQ(std::get<0>(parameter1)->lexeme, "x");
+
+	auto parameter1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(parameter1));
+	ASSERT_EQ(parameter1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(parameter1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(parameter1_type->qualifiers.size(), 0);
+	ASSERT_EQ(parameter1_type->storage, StorageSpecifier::register_);
 }
 
 TEST(ASTExtern, FunctionPrototype_StructDefinitionAsReturnAndEnumDeclaration)
 {
+	auto program = parse("struct foo { int x; } baz(enum qux { RED });");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<AggregateTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::aggregate);
+	ASSERT_EQ(type->aggregate_kind, AggregateKind::struct_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::extern_);
+	ASSERT_EQ(type->members.size(), 1);
+
+	auto struct_member1 = type->members.front();
+	ASSERT_EQ(std::get<0>(struct_member1)->lexeme, "x");
+
+	auto struct_member1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(struct_member1));
+	ASSERT_EQ(struct_member1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(struct_member1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(struct_member1_type->qualifiers.size(), 0);
+	ASSERT_EQ(struct_member1_type->storage, StorageSpecifier::auto_);
+
+	auto declarator1 = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(declarator1)->lexeme, "baz");
+	ASSERT_EQ(std::get<2>(declarator1), nullptr);
+
+	auto declarator1_type = std::static_pointer_cast<FunctionTypeAST>(std::get<1>(declarator1));
+	ASSERT_EQ(declarator1_type->kind, TypeKind::function);
+	ASSERT_EQ(declarator1_type->parameters.size(), 1);
+	ASSERT_EQ(declarator1_type->returning, type);
+
+	auto declarator1_parameter1 = declarator1_type->parameters.front();
+	ASSERT_EQ(std::get<0>(declarator1_parameter1), nullptr);
+
+	auto declarator1_parameter1_type = std::static_pointer_cast<EnumTypeAST>(std::get<1>(declarator1_parameter1));
+	ASSERT_EQ(declarator1_parameter1_type->kind, TypeKind::enum_);
+	ASSERT_EQ(declarator1_parameter1_type->qualifiers.size(), 0);
+	ASSERT_EQ(declarator1_parameter1_type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(declarator1_parameter1_type->members.size(), 1);
+	ASSERT_EQ(declarator1_parameter1_type->name->lexeme, "qux");
+
+	auto parameter1_member1 = declarator1_parameter1_type->members.front();
+	ASSERT_EQ(std::get<0>(parameter1_member1)->lexeme, "RED");
+	ASSERT_EQ(std::get<1>(parameter1_member1), nullptr);
 }
 
 TEST(ASTExtern, FunctionDefinition_WithEmptyBody)
