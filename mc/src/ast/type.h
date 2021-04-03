@@ -172,7 +172,7 @@ public:
 class ArrayTypeAST : public TypeAST
 {
 public:
-	ArrayTypeAST(std::shared_ptr<TypeAST> underlay, std::shared_ptr<ExprAST> expr)
+	ArrayTypeAST(std::shared_ptr<TypeAST> underlay, std::shared_ptr<ExprAST> expr = nullptr)
 		: TypeAST(TypeKind::array)
 		, underlay(underlay)
 		, expr(expr)
@@ -187,15 +187,13 @@ public:
 class AliasTypeAST : public TypeAST
 {
 public:
-	AliasTypeAST(std::shared_ptr<TokenIdentifier> name, std::shared_ptr<TypeAST> underlay = nullptr)
+	AliasTypeAST(std::shared_ptr<TokenIdentifier> name)
 		: TypeAST(TypeKind::alias)
 		, name(name)
-		, underlay(underlay)
 	{
 	}
 
 	std::shared_ptr<TokenIdentifier> name;
-	std::shared_ptr<TypeAST> underlay;
 };
 
 enum class AggregateKind

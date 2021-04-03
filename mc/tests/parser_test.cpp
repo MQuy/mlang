@@ -442,12 +442,80 @@ TEST(ASTExtern, StructDefinition_WithDeclaratorAndInit)
 	ASSERT_EQ(member2_member1->value->value, 2);
 }
 
-TEST(ASTExtern, Typedef_MapIntToIdentifier)
+TEST(ASTExtern, Typedef_IntToIdentifier)
 {
+	auto program = parse("typedef int int32_t;");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::builtin);
+	ASSERT_EQ(type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::typedef_);
+
+	auto alias = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(alias)->lexeme, "int32_t");
+	ASSERT_EQ(std::get<1>(alias), type);
+	ASSERT_EQ(std::get<2>(alias), nullptr);
 }
 
-TEST(ASTExtern, Typedef_MapArrayOfIntToIdentifier)
+TEST(ASTExtern, Typedef_ArrayOfIntToIdentifier)
 {
+	auto program = parse("typedef int A[];");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::builtin);
+	ASSERT_EQ(type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::typedef_);
+
+	auto alias = stmt->declarators.front();
+	ASSERT_EQ(std::get<0>(alias)->lexeme, "A");
+	ASSERT_EQ(std::get<2>(alias), nullptr);
+
+	auto alias_type = std::static_pointer_cast<ArrayTypeAST>(std::get<1>(alias));
+	ASSERT_EQ(alias_type->kind, TypeKind::array);
+	ASSERT_EQ(alias_type->expr, nullptr);
+
+	auto underlay_type = std::static_pointer_cast<BuiltinTypeAST>(alias_type->underlay);
+	ASSERT_EQ(underlay_type, type);
+}
+
+TEST(ASTExtern, Typedef_MultiDelaratorsHavingPointerAndFunction)
+{
+	auto program = parse("typedef char char_t, *char_p, (*fp)(void);");
+	auto stmt = std::static_pointer_cast<DeclarationAST>(program->declarations.front());
+	auto type = std::static_pointer_cast<BuiltinTypeAST>(stmt->type);
+	ASSERT_EQ(type->kind, TypeKind::builtin);
+	ASSERT_EQ(type->name, BuiltinTypeName::char_);
+	ASSERT_EQ(type->qualifiers.size(), 0);
+	ASSERT_EQ(type->storage, StorageSpecifier::typedef_);
+
+	auto alias1 = stmt->declarators[0];
+	ASSERT_EQ(std::get<0>(alias1)->lexeme, "char_t");
+	ASSERT_EQ(std::get<1>(alias1), type);
+	ASSERT_EQ(std::get<2>(alias1), nullptr);
+
+	auto alias2 = stmt->declarators[1];
+	ASSERT_EQ(std::get<0>(alias2)->lexeme, "char_p");
+	ASSERT_EQ(std::get<2>(alias2), nullptr);
+
+	auto alias2_type = std::static_pointer_cast<PointerTypeAST>(std::get<1>(alias2));
+	ASSERT_EQ(alias2_type->kind, TypeKind::pointer);
+	ASSERT_EQ(alias2_type->qualifiers.size(), 0);
+	auto alias2_underlay_type = std::static_pointer_cast<BuiltinTypeAST>(alias2_type->underlay);
+	ASSERT_EQ(alias2_underlay_type, type);
+
+	auto alias3 = stmt->declarators[2];
+	ASSERT_EQ(std::get<0>(alias3)->lexeme, "fp");
+	ASSERT_EQ(std::get<2>(alias3), nullptr);
+
+	auto alias3_type = std::static_pointer_cast<PointerTypeAST>(std::get<1>(alias3));
+	ASSERT_EQ(alias3_type->kind, TypeKind::pointer);
+	ASSERT_EQ(alias3_type->qualifiers.size(), 0);
+	auto alias3_underlay_type = std::static_pointer_cast<FunctionTypeAST>(alias3_type->underlay);
+	ASSERT_EQ(alias3_underlay_type->kind, TypeKind::function);
+	ASSERT_EQ(alias3_underlay_type->parameters.size(), 0);
+	ASSERT_EQ(alias3_underlay_type->returning, type);
 }
 
 TEST(ASTExtern, FunctionPrototype_VoidReturnAndEmptyParameters)

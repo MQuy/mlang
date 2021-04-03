@@ -149,7 +149,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 	auto parse_storage_or_qualifier = [&storage_specifier, &type_qualifiers, &include_storage, &include_qualifier, this]() {
 		std::vector<TokenName> tokenNames;
 		if (include_storage)
-			tokenNames.insert(tokenNames.end(), {TokenName::tk_auto, TokenName::tk_register, TokenName::tk_static, TokenName::tk_extern});
+			tokenNames.insert(tokenNames.end(), {TokenName::tk_auto, TokenName::tk_register, TokenName::tk_static, TokenName::tk_extern, TokenName::tk_typedef});
 		if (include_qualifier)
 			tokenNames.insert(tokenNames.end(), {TokenName::tk_const, TokenName::tk_volatile, TokenName::tk_static, TokenName::tk_restrict});
 
@@ -323,6 +323,9 @@ void Parser::parse_storage_specifier(StorageSpecifier& storage_specifier)
 		case TokenName::tk_extern:
 			storage_specifier = StorageSpecifier::extern_;
 			break;
+		case TokenName::tk_typedef:
+			storage_specifier = StorageSpecifier::typedef_;
+			break;
 
 		default:
 			return;
@@ -445,11 +448,12 @@ std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<Typ
 	if (!match(TokenName::tk_left_bracket))
 		return nullptr;
 
-	auto expr = parse_expr();
-	auto array_type = std::make_shared<ArrayTypeAST>(ArrayTypeAST(type, expr));
+	std::shared_ptr<ExprAST> expr;
+	if (!match(TokenName::tk_right_bracket, false, false))
+		expr = parse_expr();
 	match(TokenName::tk_right_bracket, true);
 
-	return array_type;
+	return std::make_shared<ArrayTypeAST>(ArrayTypeAST(type, expr));
 }
 
 std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> Parser::parse_declarator_parameters()
@@ -460,7 +464,15 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
 
 	if (!match(TokenName::tk_right_paren))
-		while (true)
+	{
+		auto cond = true;
+		if (match(TokenName::tk_void))
+			if (match(TokenName::tk_right_paren))
+				cond = false;
+			else
+				runner--;
+
+		while (cond)
 		{
 			auto type = parse_declaration_specifiers(false);
 			auto [identifier, inner_type] = parse_declarator(type);
@@ -472,6 +484,7 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 			else
 				match(TokenName::tk_comma, true);
 		}
+	}
 
 	return std::make_shared<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>>(parameters);
 }
