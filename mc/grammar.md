@@ -110,7 +110,7 @@ selection_statement = "if", "(", expression, ")", statement, [ "else", statement
 
 iteration_statement = "while", "(", expression, ")", statement
                     | "do", statement, "while", "(", expression, ")", ";"
-                    | "for", "(", [expression], ";", [expression], ";", [expression], ")", statement;
+                    | "for", "(", [expression | declaration], ";", [expression], ";", [expression], ")", statement;
 
 jump_statement = "goto", identifier, ";"
                 | "continue", ";"

@@ -630,17 +630,34 @@ std::shared_ptr<ForStmtAST> Parser::parse_for_stmt()
 {
 	match(TokenName::tk_left_paren, true);
 
-	std::shared_ptr<ExprAST> init;
+	std::shared_ptr<ASTNode> init;
 	if (!match(TokenName::tk_semicolon))
-		init = parse_expr();
+	{
+		auto pos = runner;
+		if (auto decl = parse_declaration(false))
+			init = decl;
+		else if (runner = pos; auto expr = parse_expr())
+		{
+			init = expr;
+			match(TokenName::tk_semicolon, true);
+		}
+		else
+			assert_not_reached();
+	}
 
 	std::shared_ptr<ExprAST> cond;
 	if (!match(TokenName::tk_semicolon))
+	{
 		cond = parse_expr();
+		match(TokenName::tk_semicolon, true);
+	}
 
 	std::shared_ptr<ExprAST> inc;
 	if (!match(TokenName::tk_right_paren))
+	{
 		inc = parse_expr();
+		match(TokenName::tk_right_paren, true);
+	}
 
 	auto stmt = parse_stmt();
 	return std::make_shared<ForStmtAST>(ForStmtAST(init, cond, inc, stmt));

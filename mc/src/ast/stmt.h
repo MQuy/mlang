@@ -126,7 +126,7 @@ public:
 class ForStmtAST : public StmtAST
 {
 public:
-	ForStmtAST(std::shared_ptr<ExprAST> init, std::shared_ptr<ExprAST> cond, std::shared_ptr<ExprAST> inc, std::shared_ptr<StmtAST> stmt)
+	ForStmtAST(std::shared_ptr<ASTNode> init, std::shared_ptr<ExprAST> cond, std::shared_ptr<ExprAST> inc, std::shared_ptr<StmtAST> stmt)
 		: StmtAST(ASTNodeType::stmt_for)
 		, init(init)
 		, cond(cond)
@@ -135,7 +135,7 @@ public:
 	{
 	}
 
-	std::shared_ptr<ExprAST> init;
+	std::shared_ptr<ASTNode> init;
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<ExprAST> inc;
 	std::shared_ptr<StmtAST> stmt;

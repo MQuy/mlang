@@ -97,4 +97,6 @@ public:
 	}
 };
 
+void init_operators();
+
 #endif
