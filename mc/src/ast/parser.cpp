@@ -287,7 +287,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			return nullptr;
 		}
 	}
-	else if (match(TokenType::tk_identifier))
+	else if (token->type == TokenType::tk_identifier)
 	{
 		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 
@@ -517,9 +517,12 @@ std::shared_ptr<StmtAST> Parser::parse_stmt()
 		return parse_return_stmt();
 	else if (match(TokenType::tk_identifier, false, false))
 	{
+		auto pos = runner;
 		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
 		if (match(TokenName::tk_colon))
 			return parse_label_stmt(token_identifier);
+		else
+			runner = pos;
 	}
 	return parse_expr_stmt();
 }
@@ -915,7 +918,7 @@ std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
 
 	auto token = tokens.at(runner);
 	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_ampersand
+			return nxt_tk == TokenName::tk_asterisk
 				   || nxt_tk == TokenName::tk_slash
 				   || nxt_tk == TokenName::tk_percent;
 		}))
@@ -934,11 +937,17 @@ std::shared_ptr<ExprAST> Parser::parse_cast_expr()
 
 	if (match(TokenName::tk_left_paren))
 	{
+		auto pos = runner;
 		std::shared_ptr<TypeAST> type = parse_declaration_specifiers(false);
-		match(TokenName::tk_right_paren);
+		if (type != nullptr)
+		{
+			match(TokenName::tk_right_paren, true);
 
-		auto expr1 = parse_unary_expr();
-		expr = std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
+			auto expr1 = parse_unary_expr();
+			expr = std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
+		}
+		else
+			runner = pos;
 	}
 	else
 		expr = parse_unary_expr();
@@ -975,15 +984,24 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 	}
 	else if (match(TokenName::tk_sizeof))
 	{
+		auto pos = runner;
 		if (match(TokenName::tk_left_paren))
 		{
 			auto type = parse_declaration_specifiers(false);
+			// TODO: MQ 2021-04-04 in semantic stage, we need to decide whether type is alias type or identifier
+			if (type != nullptr)
+			{
+				expr = std::make_shared<UnaryExprAST>(UnaryExprAST(nullptr, UnaryOperator::sizeof_));
+				match(TokenName::tk_right_paren, true);
+				expr->type = type;
+				return expr;
+			}
+			else
+				runner = pos;
 		}
-		else
-		{
-			auto expr1 = parse_unary_expr();
-			expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, UnaryOperator::sizeof_));
-		}
+
+		auto expr1 = parse_unary_expr();
+		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, UnaryOperator::sizeof_));
 	}
 	else
 		expr = parse_postfix_expr();
