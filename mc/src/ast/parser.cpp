@@ -367,7 +367,7 @@ std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shar
 	auto [identifier, inner_type] = parse_declarator(type);
 
 	std::shared_ptr<ExprAST> expr;
-	if (match(TokenName::tk_equal))
+	if (identifier && match(TokenName::tk_equal))
 		expr = parse_initializer();
 
 	return std::make_tuple(identifier, inner_type, expr);
@@ -933,26 +933,20 @@ std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
 
 std::shared_ptr<ExprAST> Parser::parse_cast_expr()
 {
-	std::shared_ptr<ExprAST> expr;
-
+	auto pos = runner;
 	if (match(TokenName::tk_left_paren))
 	{
-		auto pos = runner;
 		std::shared_ptr<TypeAST> type = parse_declaration_specifiers(false);
-		if (type != nullptr)
+		if (type != nullptr && match(TokenName::tk_right_paren))
 		{
-			match(TokenName::tk_right_paren, true);
-
 			auto expr1 = parse_unary_expr();
-			expr = std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
+			return std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
 		}
-		else
+		else 
 			runner = pos;
 	}
-	else
-		expr = parse_unary_expr();
 
-	return expr;
+	return parse_unary_expr();
 }
 
 std::shared_ptr<ExprAST> Parser::parse_unary_expr()
@@ -1022,16 +1016,17 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 	else if (match(TokenName::tk_left_paren))
 	{
 		std::vector<std::shared_ptr<ExprAST>> arguments;
-
-		while (!match(TokenName::tk_right_paren))
+		while (!match(TokenName::tk_right_paren, false, false))
 		{
 			auto arg = parse_assignment_expr();
 			arguments.push_back(arg);
 
-			if (!match(TokenName::tk_comma))
+			if (match(TokenName::tk_right_paren, false, false))
 				break;
+			else
+				match(TokenName::tk_comma, true);
 		}
-
+		match(TokenName::tk_right_paren, true);
 		expr = std::make_shared<FunctionCallExprAST>(FunctionCallExprAST(expr, arguments));
 	}
 	else if (match([](TokenName nxt_tk) {
