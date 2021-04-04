@@ -1256,6 +1256,7 @@ TEST(ASTExtern, FunctionDefinition_MemberAccessExpr)
 
 	auto expr1 = std::static_pointer_cast<MemberAccessExprAST>(stmt1->expr);
 	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_member_access);
+	ASSERT_EQ(expr1->access_type, MemberAccessType::dot);
 	ASSERT_EQ(expr1->member->lexeme, "y");
 
 	auto object = std::static_pointer_cast<IdentifierExprAST>(expr1->object);
@@ -1356,7 +1357,7 @@ TEST(ASTExtern, FunctionDefinition_OperatorPrecedence)
 {
 	auto program = parse(
 		"void foo() {\n"
-		"	x = (x > y ? x1 + y2 * z : x1 - ++y2) && (x2[0] >> y3(10) == z1.z);\n"
+		"	x = (x > y ? x1 + y2 * z : x1 - ++y2) && (x2[0] >> y3(10) == z1->z);\n"
 		"}");
 	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
 	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
@@ -1460,6 +1461,7 @@ TEST(ASTExtern, FunctionDefinition_OperatorPrecedence)
 
 	auto right_right = std::static_pointer_cast<MemberAccessExprAST>(right->right);
 	ASSERT_EQ(right_right->node_type, ASTNodeType::expr_member_access);
+	ASSERT_EQ(right_right->access_type, MemberAccessType::arrow);
 	ASSERT_EQ(right_right->member->lexeme, "z");
 
 	auto right_right_object = std::static_pointer_cast<IdentifierExprAST>(right_right->object);

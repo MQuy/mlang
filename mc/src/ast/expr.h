@@ -96,18 +96,25 @@ public:
 	std::shared_ptr<ExprAST> expr2;
 };
 
+enum class MemberAccessType
+{
+	dot,
+	arrow,
+};
 class MemberAccessExprAST : public ExprAST
 {
 public:
-	MemberAccessExprAST(std::shared_ptr<ExprAST> object, std::shared_ptr<TokenIdentifier> member)
+	MemberAccessExprAST(std::shared_ptr<ExprAST> object, std::shared_ptr<TokenIdentifier> member, MemberAccessType access_type)
 		: ExprAST(ASTNodeType::expr_member_access)
 		, object(object)
 		, member(member)
+		, access_type(access_type)
 	{
 	}
 
 	std::shared_ptr<ExprAST> object;
 	std::shared_ptr<TokenIdentifier> member;
+	MemberAccessType access_type;
 };
 
 class FunctionCallExprAST : public ExprAST

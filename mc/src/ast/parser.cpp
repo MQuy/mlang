@@ -942,7 +942,7 @@ std::shared_ptr<ExprAST> Parser::parse_cast_expr()
 			auto expr1 = parse_unary_expr();
 			return std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
 		}
-		else 
+		else
 			runner = pos;
 	}
 
@@ -1029,13 +1029,17 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 		match(TokenName::tk_right_paren, true);
 		expr = std::make_shared<FunctionCallExprAST>(FunctionCallExprAST(expr, arguments));
 	}
-	else if (match([](TokenName nxt_tk) {
-				 return nxt_tk == TokenName::tk_dot || nxt_tk == TokenName::tk_arrow;
-			 }))
+	else if (match(TokenName::tk_dot))
 	{
 		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
 		assert(token_identifier);
-		expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier));
+		expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier, MemberAccessType::dot));
+	}
+	else if (match(TokenName::tk_arrow))
+	{
+		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+		assert(token_identifier);
+		expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier, MemberAccessType::arrow));
 	}
 	else if (match([](TokenName nxt_tk) {
 				 return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
