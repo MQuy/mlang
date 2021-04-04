@@ -1351,3 +1351,118 @@ TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierExpr)
 	ASSERT_EQ(identifier->node_type, ASTNodeType::expr_identifier);
 	ASSERT_EQ(identifier->name->lexeme, "x");
 }
+
+TEST(ASTExtern, FunctionDefinition_OperatorPrecedence)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	x = (x > y ? x1 + y2 * z : x1 - ++y2) && (x2[0] >> y3(10) == z1.z);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt->node_type, ASTNodeType::stmt_expr);
+
+	auto expr = std::static_pointer_cast<BinaryExprAST>(stmt->expr);
+	ASSERT_EQ(expr->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(expr->op, BinaryOperator::assignment);
+
+	auto expr_left = std::static_pointer_cast<IdentifierExprAST>(expr->left);
+	ASSERT_EQ(expr_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(expr_left->name->lexeme, "x");
+
+	auto expr_right = std::static_pointer_cast<BinaryExprAST>(expr->right);
+	ASSERT_EQ(expr_right->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(expr_right->op, BinaryOperator::and_);
+
+	auto left = std::static_pointer_cast<TenaryExprAST>(expr_right->left);
+	ASSERT_EQ(left->node_type, ASTNodeType::expr_tenary);
+
+	auto left_cond = std::static_pointer_cast<BinaryExprAST>(left->cond);
+	ASSERT_EQ(left_cond->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(left_cond->op, BinaryOperator::greater_than);
+
+	auto left_cond_left = std::static_pointer_cast<IdentifierExprAST>(left_cond->left);
+	ASSERT_EQ(left_cond_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_cond_left->name->lexeme, "x");
+
+	auto left_cond_right = std::static_pointer_cast<IdentifierExprAST>(left_cond->right);
+	ASSERT_EQ(left_cond_right->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_cond_right->name->lexeme, "y");
+
+	auto left_left = std::static_pointer_cast<BinaryExprAST>(left->expr1);
+	ASSERT_EQ(left_left->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(left_left->op, BinaryOperator::addition);
+
+	auto left_left_left = std::static_pointer_cast<IdentifierExprAST>(left_left->left);
+	ASSERT_EQ(left_left_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_left_left->name->lexeme, "x1");
+
+	auto left_left_right = std::static_pointer_cast<BinaryExprAST>(left_left->right);
+	ASSERT_EQ(left_left_right->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(left_left_right->op, BinaryOperator::multiplication);
+
+	auto left_left_right_left = std::static_pointer_cast<IdentifierExprAST>(left_left_right->left);
+	ASSERT_EQ(left_left_right_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_left_right_left->name->lexeme, "y2");
+
+	auto left_left_right_right = std::static_pointer_cast<IdentifierExprAST>(left_left_right->right);
+	ASSERT_EQ(left_left_right_right->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_left_right_right->name->lexeme, "z");
+
+	auto left_right = std::static_pointer_cast<BinaryExprAST>(left->expr2);
+	ASSERT_EQ(left_right->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(left_right->op, BinaryOperator::subtraction);
+
+	auto left_right_left = std::static_pointer_cast<IdentifierExprAST>(left_right->left);
+	ASSERT_EQ(left_right_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_right_left->name->lexeme, "x1");
+
+	auto left_right_right = std::static_pointer_cast<UnaryExprAST>(left_right->right);
+	ASSERT_EQ(left_right_right->node_type, ASTNodeType::expr_unary);
+	ASSERT_EQ(left_right_right->op, UnaryOperator::prefix_increment);
+
+	auto left_right_right_expr = std::static_pointer_cast<IdentifierExprAST>(left_right_right->expr);
+	ASSERT_EQ(left_right_right_expr->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(left_right_right_expr->name->lexeme, "y2");
+
+	auto right = std::static_pointer_cast<BinaryExprAST>(expr_right->right);
+	ASSERT_EQ(right->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(right->op, BinaryOperator::equal);
+
+	auto right_left = std::static_pointer_cast<BinaryExprAST>(right->left);
+	ASSERT_EQ(right_left->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(right_left->op, BinaryOperator::shift_right);
+
+	auto right_left_left = std::static_pointer_cast<BinaryExprAST>(right_left->left);
+	ASSERT_EQ(right_left_left->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(right_left_left->op, BinaryOperator::array_subscript);
+
+	auto right_left_left_object = std::static_pointer_cast<IdentifierExprAST>(right_left_left->left);
+	ASSERT_EQ(right_left_left_object->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(right_left_left_object->name->lexeme, "x2");
+
+	auto right_left_left_sub = std::static_pointer_cast<LiteralExprAST<int>>(right_left_left->right);
+	ASSERT_EQ(right_left_left_sub->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(right_left_left_sub->value->value, 0);
+
+	auto right_left_right = std::static_pointer_cast<FunctionCallExprAST>(right_left->right);
+	ASSERT_EQ(right_left_right->node_type, ASTNodeType::expr_function_call);
+	ASSERT_EQ(right_left_right->arguments.size(), 1);
+
+	auto right_left_right_callee = std::static_pointer_cast<IdentifierExprAST>(right_left_right->callee);
+	ASSERT_EQ(right_left_right_callee->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(right_left_right_callee->name->lexeme, "y3");
+
+	auto right_left_right_argument1 = std::static_pointer_cast<LiteralExprAST<int>>(right_left_right->arguments[0]);
+	ASSERT_EQ(right_left_right_argument1->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(right_left_right_argument1->value->value, 10);
+
+	auto right_right = std::static_pointer_cast<MemberAccessExprAST>(right->right);
+	ASSERT_EQ(right_right->node_type, ASTNodeType::expr_member_access);
+	ASSERT_EQ(right_right->member->lexeme, "z");
+
+	auto right_right_object = std::static_pointer_cast<IdentifierExprAST>(right_right->object);
+	ASSERT_EQ(right_right_object->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(right_right_object->name->lexeme, "z1");
+}
