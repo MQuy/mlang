@@ -1065,3 +1065,289 @@ TEST(ASTExtern, FunctionDefinition_ContainGotoStatement)
 	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_jump);
 	ASSERT_EQ(stmt1->name->lexeme, "anchor");
 }
+
+TEST(ASTExtern, FunctionDefinition_BinaryExpr)
+{
+	std::vector<std::pair<std::string, BinaryOperator>> binops = {
+		std::make_pair("=", BinaryOperator::assignment),
+		std::make_pair("+=", BinaryOperator::addition_assigment),
+		std::make_pair("-=", BinaryOperator::subtraction_assignment),
+		std::make_pair("*=", BinaryOperator::multiplication_assigment),
+		std::make_pair("/=", BinaryOperator::division_assignment),
+		std::make_pair("%=", BinaryOperator::remainder_assignment),
+		std::make_pair("&=", BinaryOperator::bitwise_and_assigment),
+		std::make_pair("|=", BinaryOperator::bitwise_or_assigment),
+		std::make_pair("^=", BinaryOperator::bitwise_xor_assigment),
+		std::make_pair("<<=", BinaryOperator::shift_left_assignment),
+		std::make_pair(">>=", BinaryOperator::shift_right_assignment),
+
+		std::make_pair("+", BinaryOperator::addition),
+		std::make_pair("-", BinaryOperator::subtraction),
+		std::make_pair("*", BinaryOperator::multiplication),
+		std::make_pair("/", BinaryOperator::division),
+		std::make_pair("%", BinaryOperator::remainder),
+		std::make_pair("&", BinaryOperator::bitwise_and),
+		std::make_pair("|", BinaryOperator::bitwise_or),
+		std::make_pair("^", BinaryOperator::bitwise_xor),
+		std::make_pair("<<", BinaryOperator::shift_left),
+		std::make_pair(">>", BinaryOperator::shift_right),
+
+		std::make_pair("&&", BinaryOperator::and_),
+		std::make_pair("||", BinaryOperator::or_),
+
+		std::make_pair("==", BinaryOperator::equal),
+		std::make_pair("!=", BinaryOperator::not_equal),
+		std::make_pair("<", BinaryOperator::less),
+		std::make_pair(">", BinaryOperator::greater_than),
+		std::make_pair("<=", BinaryOperator::less_or_equal),
+		std::make_pair(">=", BinaryOperator::greater_or_equal),
+
+		std::make_pair(",", BinaryOperator::comma),
+	};
+
+	for (auto [name, op] : binops)
+	{
+		auto program = parse(
+			"void foo() {\n"
+			"	x "
+			+ name +
+			" 1;\n"
+			"}");
+		auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+		ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+		auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+		ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+		auto expr1 = std::static_pointer_cast<BinaryExprAST>(stmt1->expr);
+		ASSERT_EQ(expr1->node_type, ASTNodeType::expr_binary);
+		ASSERT_EQ(expr1->op, op);
+
+		auto expr1_left = std::static_pointer_cast<IdentifierExprAST>(expr1->left);
+		ASSERT_EQ(expr1_left->node_type, ASTNodeType::expr_identifier);
+		ASSERT_EQ(expr1_left->name->lexeme, "x");
+
+		auto expr1_right = std::static_pointer_cast<LiteralExprAST<int>>(expr1->right);
+		ASSERT_EQ(expr1_right->node_type, ASTNodeType::expr_literal);
+		ASSERT_EQ(expr1_right->value->value, 1);
+	}
+}
+
+TEST(ASTExtern, FunctionDefinition_TenaryExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	1 ? 2 : 3;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<TenaryExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_tenary);
+
+	auto cond1 = std::static_pointer_cast<LiteralExprAST<int>>(expr1->cond);
+	ASSERT_EQ(cond1->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(cond1->value->value, 1);
+
+	auto subexpr1 = std::static_pointer_cast<LiteralExprAST<int>>(expr1->expr1);
+	ASSERT_EQ(subexpr1->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(subexpr1->value->value, 2);
+
+	auto subexpr2 = std::static_pointer_cast<LiteralExprAST<int>>(expr1->expr2);
+	ASSERT_EQ(subexpr2->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(subexpr2->value->value, 3);
+}
+
+TEST(ASTExtern, FunctionDefinition_UnaryExpr)
+{
+	std::vector<std::pair<std::string, UnaryOperator>> binops = {
+		std::make_pair("++", UnaryOperator::prefix_increment),
+		std::make_pair("--", UnaryOperator::prefix_decrement),
+
+		std::make_pair("-", UnaryOperator::minus),
+		std::make_pair("+", UnaryOperator::plus),
+		std::make_pair("~", UnaryOperator::complement),
+
+		std::make_pair("!", UnaryOperator::not_),
+
+		std::make_pair("*", UnaryOperator::dereference),
+		std::make_pair("&", UnaryOperator::address_of),
+	};
+
+	for (auto [name, op] : binops)
+	{
+		auto program = parse(
+			"void foo() {\n"
+			"	"
+			+ name +
+			"x;\n"
+			"}");
+		auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+		ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+		auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+		ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+		auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
+		ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
+		ASSERT_EQ(expr1->op, op);
+
+		auto expr1_left = std::static_pointer_cast<IdentifierExprAST>(expr1->expr);
+		ASSERT_EQ(expr1_left->node_type, ASTNodeType::expr_identifier);
+		ASSERT_EQ(expr1_left->name->lexeme, "x");
+	}
+}
+
+TEST(ASTExtern, FunctionDefinition_FunctionCallExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	baz();\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<FunctionCallExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_function_call);
+	ASSERT_EQ(expr1->arguments.size(), 0);
+
+	auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr1->callee);
+	ASSERT_EQ(identifier->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(identifier->name->lexeme, "baz");
+}
+
+TEST(ASTExtern, FunctionDefinition_CastExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	(int)x;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<TypeCastExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_typecast);
+
+	auto expr1_type = std::static_pointer_cast<BuiltinTypeAST>(expr1->type);
+	ASSERT_EQ(expr1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(expr1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(expr1_type->qualifiers.size(), 0);
+	ASSERT_EQ(expr1_type->storage, StorageSpecifier::auto_);
+
+	auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr1->expr);
+	ASSERT_EQ(identifier->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(identifier->name->lexeme, "x");
+}
+
+TEST(ASTExtern, FunctionDefinition_MemberAccessExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	x.y;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<MemberAccessExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_member_access);
+	ASSERT_EQ(expr1->member->lexeme, "y");
+
+	auto object = std::static_pointer_cast<IdentifierExprAST>(expr1->object);
+	ASSERT_EQ(object->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(object->name->lexeme, "x");
+}
+
+TEST(ASTExtern, FunctionDefinition_ArraySubscriptExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	x[0];\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<BinaryExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_binary);
+	ASSERT_EQ(expr1->op, BinaryOperator::array_subscript);
+
+	auto expr1_left = std::static_pointer_cast<IdentifierExprAST>(expr1->left);
+	ASSERT_EQ(expr1_left->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(expr1_left->name->lexeme, "x");
+
+	auto expr1_right = std::static_pointer_cast<LiteralExprAST<int>>(expr1->right);
+	ASSERT_EQ(expr1_right->node_type, ASTNodeType::expr_literal);
+	ASSERT_EQ(expr1_right->value->value, 0);
+}
+
+TEST(ASTExtern, FunctionDefinition_SizeOfTypeExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	sizeof(int);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
+	ASSERT_EQ(expr1->op, UnaryOperator::sizeof_);
+	ASSERT_EQ(expr1->expr, nullptr);
+
+	auto expr1_type = std::static_pointer_cast<BuiltinTypeAST>(expr1->type);
+	ASSERT_EQ(expr1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(expr1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(expr1_type->qualifiers.size(), 0);
+	ASSERT_EQ(expr1_type->storage, StorageSpecifier::auto_);
+}
+
+TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierGroupExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	sizeof(x);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
+	ASSERT_EQ(expr1->op, UnaryOperator::sizeof_);
+	ASSERT_EQ(expr1->expr, nullptr);
+
+	auto expr1_type = std::static_pointer_cast<AliasTypeAST>(expr1->type);
+	ASSERT_EQ(expr1_type->kind, TypeKind::alias);
+	ASSERT_EQ(expr1_type->name->lexeme, "x");
+}
+
+TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	sizeof x;\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program->declarations.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
+	ASSERT_EQ(expr1->op, UnaryOperator::sizeof_);
+	ASSERT_EQ(expr1->type, nullptr);
+
+	auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr1->expr);
+	ASSERT_EQ(identifier->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(identifier->name->lexeme, "x");
+}
