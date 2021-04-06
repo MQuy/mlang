@@ -10,24 +10,13 @@
   - [x] Concatenate adjacent string literals
   - [ ] Support #include_next
   - [ ] Support #pragma
-- [x] AST
+- [x] Parser
+  - [x] Abstract Syntax Tree
+  - [ ] Semantic Analyzer
+- [ ] LLVM
 
 ✍🏼 mc is C99-compliant
 
 ### AST
 
 ![diagram](https://i.imgur.com/tqpvDdb.png)
-
-### LLVM
-
-```cpp
-class TransitionUnit {
-  private:
-    std::vector<FunctionProtoStmtAST> protos;
-    std::vector<Typedef> typedefs;
-    std::vector<AggregateType> aggregates;
-    std::vector<FunctionDefStmtAST> functions;
-}
-
-std::vector<BuiltinType> builtin_types;
-```

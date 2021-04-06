@@ -9,6 +9,17 @@
 #include "scan/token.h"
 #include "stmt.h"
 
+class Program
+{
+public:
+	Program()
+		: declarations(std::vector<std::shared_ptr<ExternAST>>())
+	{
+	}
+
+	std::vector<std::shared_ptr<ExternAST>> declarations;
+};
+
 class Parser
 {
 public:

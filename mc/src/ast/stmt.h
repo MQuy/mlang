@@ -11,6 +11,40 @@
 #include "scan/token.h"
 #include "type.h"
 
+class LabelStmtAST;
+class CaseStmtAST;
+class DefaultStmtAST;
+class ExprStmtAST;
+class CompoundStmtAST;
+class IfStmtAST;
+class SwitchStmtAST;
+class ForStmtAST;
+class WhileStmtAST;
+class DoWhileStmtAST;
+class JumpStmtAST;
+class ContinueStmtAST;
+class BreakStmtAST;
+class ReturnStmtAST;
+
+class StmtVisitor
+{
+public:
+	virtual void *visit_label_stmt(LabelStmtAST *stmt) = 0;
+	virtual void *visit_case_stmt(CaseStmtAST *stmt) = 0;
+	virtual void *visit_default_stmt(DefaultStmtAST *stmt) = 0;
+	virtual void *visit_expr_stmt(ExprStmtAST *stmt) = 0;
+	virtual void *visit_compound_stmt(CompoundStmtAST *stmt) = 0;
+	virtual void *visit_if_stmt(IfStmtAST *stmt) = 0;
+	virtual void *visit_switch_stmt(SwitchStmtAST *stmt) = 0;
+	virtual void *visit_for_stmt(ForStmtAST *stmt) = 0;
+	virtual void *visit_while_stmt(WhileStmtAST *stmt) = 0;
+	virtual void *visit_dowhile_stmt(DoWhileStmtAST *stmt) = 0;
+	virtual void *visit_jump_stmt(JumpStmtAST *stmt) = 0;
+	virtual void *visit_continue_stmt(ContinueStmtAST *stmt) = 0;
+	virtual void *visit_break_stmt(BreakStmtAST *stmt) = 0;
+	virtual void *visit_return_stmt(ReturnStmtAST *stmt) = 0;
+};
+
 class FragmentAST : public ASTNode
 {
 public:
@@ -27,6 +61,7 @@ public:
 		: FragmentAST(node_type)
 	{
 	}
+	virtual void *accept(StmtVisitor *visitor) = 0;
 };
 
 class LabelStmtAST : public StmtAST
@@ -38,6 +73,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_label_stmt(this); };
 
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<StmtAST> stmt;
@@ -52,6 +88,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_case_stmt(this); };
 
 	std::shared_ptr<ExprAST> constant;
 	std::shared_ptr<StmtAST> stmt;
@@ -65,6 +102,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_default_stmt(this); };
 
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -77,6 +115,7 @@ public:
 		, expr(expr)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_expr_stmt(this); };
 
 	std::shared_ptr<ExprAST> expr;
 };
@@ -89,6 +128,7 @@ public:
 		, stmts(stmts)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_compound_stmt(this); };
 
 	std::vector<std::shared_ptr<FragmentAST>> stmts;  // have to statement or declaration
 };
@@ -103,6 +143,7 @@ public:
 		, else_stmt(else_stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_if_stmt(this); };
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> if_stmt;
@@ -118,6 +159,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_switch_stmt(this); };
 
 	std::shared_ptr<ExprAST> expr;
 	std::shared_ptr<StmtAST> stmt;
@@ -134,6 +176,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_for_stmt(this); };
 
 	std::shared_ptr<ASTNode> init;
 	std::shared_ptr<ExprAST> cond;
@@ -150,6 +193,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_while_stmt(this); };
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> stmt;
@@ -164,6 +208,7 @@ public:
 		, stmt(stmt)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_dowhile_stmt(this); };
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> stmt;
@@ -177,6 +222,7 @@ public:
 		, name(name)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_jump_stmt(this); };
 
 	std::shared_ptr<TokenIdentifier> name;
 };
@@ -188,6 +234,7 @@ public:
 		: StmtAST(ASTNodeType::stmt_continue)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_continue_stmt(this); };
 };
 
 class BreakStmtAST : public StmtAST
@@ -197,6 +244,7 @@ public:
 		: StmtAST(ASTNodeType::stmt_break)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_break_stmt(this); };
 };
 
 class ReturnStmtAST : public StmtAST
@@ -207,8 +255,19 @@ public:
 		, expr(expr)
 	{
 	}
+	void *accept(StmtVisitor *visitor) { return visitor->visit_return_stmt(this); };
 
 	std::shared_ptr<ExprAST> expr;
+};
+
+class FunctionDefinitionAST;
+class DeclarationAST;
+
+class ExternVisitor
+{
+public:
+	virtual void *visit_function_definition(FunctionDefinitionAST *) = 0;
+	virtual void *visit_declaration(DeclarationAST *) = 0;
 };
 
 class ExternAST : public FragmentAST
@@ -219,6 +278,7 @@ public:
 		, type(type)
 	{
 	}
+	virtual void *accept(ExternVisitor *visitor) = 0;
 
 	std::shared_ptr<TypeAST> type;
 };
@@ -232,6 +292,7 @@ public:
 		, body(body)
 	{
 	}
+	void *accept(ExternVisitor *visitor) { return visitor->visit_function_definition(this); };
 
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<CompoundStmtAST> body;
@@ -245,19 +306,9 @@ public:
 		, declarators(declarators)
 	{
 	}
+	void *accept(ExternVisitor *visitor) { return visitor->visit_declaration(this); };
 
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
-};
-
-class Program
-{
-public:
-	Program()
-		: declarations(std::vector<std::shared_ptr<ExternAST>>())
-	{
-	}
-
-	std::vector<std::shared_ptr<ExternAST>> declarations;
 };
 
 #endif
