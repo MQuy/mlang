@@ -1,6 +1,14 @@
 #ifndef AST_TYPE_H
 #define AST_TYPE_H 1
 
+#define NBITS_CHAR 8
+#define NBITS_SHORT 16
+#define NBITS_INT 32
+#define NBITS_LONG 32
+#define NBITS_LONG_LONG 64
+#define NBITS_FLOAT 32
+#define NBITS_DOUBLE 64
+
 #include <memory>
 #include <optional>
 #include <set>

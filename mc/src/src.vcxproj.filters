@@ -10,6 +10,9 @@
     <Filter Include="preprocessor">
       <UniqueIdentifier>{c8a1713b-d587-4147-bcd2-b534efc997f8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="llvm">
+      <UniqueIdentifier>{d0432c9c-d6e3-410b-aaf3-80dcc2ca9b53}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scan\lexer.h">
@@ -44,6 +47,9 @@
     <ClInclude Include="ast\parser.h">
       <Filter>ast</Filter>
     </ClInclude>
+    <ClInclude Include="llvm\ir.h">
+      <Filter>llvm</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">
@@ -62,6 +68,9 @@
     <ClCompile Include="config.cpp" />
     <ClCompile Include="ast\parser.cpp">
       <Filter>ast</Filter>
+    </ClCompile>
+    <ClCompile Include="llvm\ir.cpp">
+      <Filter>llvm</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

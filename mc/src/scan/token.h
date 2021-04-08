@@ -177,7 +177,7 @@ struct TokenSymbol : Token
 	{
 	}
 
-	std::shared_ptr<ExprAST> create_ast() { throw std::runtime_error("cannot create ast from token symbol"); }
+	std::shared_ptr<ExprAST> create_ast() { throw std::runtime_error("not allow to create ast from token symbol"); }
 
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };

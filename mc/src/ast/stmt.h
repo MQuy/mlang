@@ -266,8 +266,8 @@ class DeclarationAST;
 class ExternVisitor
 {
 public:
-	virtual void *visit_function_definition(FunctionDefinitionAST *) = 0;
-	virtual void *visit_declaration(DeclarationAST *) = 0;
+	virtual void *visit_function_definition(FunctionDefinitionAST *stmt) = 0;
+	virtual void *visit_declaration(DeclarationAST *stmt) = 0;
 };
 
 class ExternAST : public FragmentAST

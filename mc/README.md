@@ -20,3 +20,7 @@
 ### AST
 
 ![diagram](https://i.imgur.com/tqpvDdb.png)
+
+### Semantic Analyzer
+
+### LLVM

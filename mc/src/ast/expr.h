@@ -23,11 +23,17 @@ class InitializerExprAST;
 class ExprVisitor
 {
 public:
-	template <class T>
-	void *visit_literal_expr(LiteralExprAST<T> *expr)
-	{
-		return nullptr;
-	};
+	virtual void *visit_literal_expr(LiteralExprAST<int> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<long long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned int> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned long long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<float> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<double> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<long double> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned char> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<std::string> *expr) = 0;
 	virtual void *visit_identifier_expr(IdentifierExprAST *expr) = 0;
 	virtual void *visit_binary_expr(BinaryExprAST *expr) = 0;
 	virtual void *visit_unary_expr(UnaryExprAST *expr) = 0;
