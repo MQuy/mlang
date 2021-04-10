@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "expr.h"
@@ -17,6 +18,7 @@ public:
 	{
 	}
 
+	std::unordered_map<std::string, std::shared_ptr<TypeAST>> types;
 	std::vector<std::shared_ptr<ExternAST>> declarations;
 };
 

@@ -50,6 +50,9 @@
     <ClInclude Include="llvm\ir.h">
       <Filter>llvm</Filter>
     </ClInclude>
+    <ClInclude Include="llvm\const_eval.h">
+      <Filter>llvm</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">
@@ -70,6 +73,9 @@
       <Filter>ast</Filter>
     </ClCompile>
     <ClCompile Include="llvm\ir.cpp">
+      <Filter>llvm</Filter>
+    </ClCompile>
+    <ClCompile Include="llvm\const_eval.cpp">
       <Filter>llvm</Filter>
     </ClCompile>
   </ItemGroup>

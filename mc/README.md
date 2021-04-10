@@ -23,4 +23,6 @@
 
 ### Semantic Analyzer
 
+We replace const expressions (like initializer for static or file scope variables) with literals
+
 ### LLVM

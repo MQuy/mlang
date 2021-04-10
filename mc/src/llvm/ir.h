@@ -68,6 +68,9 @@ public:
 	void *visit_function_definition(FunctionDefinitionAST *stmt);
 	void *visit_declaration(DeclarationAST *stmt);
 
+	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type, BuiltinTypeName type_name);
+	llvm::Type *get_type(std::shared_ptr<TypeAST> type, llvm::Type *base = nullptr);
+
 private:
 	Program program;
 	std::unique_ptr<llvm::LLVMContext> context;
@@ -76,8 +79,6 @@ private:
 	bool in_func_scope;
 };
 
-class TransitionUnit
-{
-};
+void init_types();
 
 #endif
