@@ -10,10 +10,10 @@
 #include "scan/token.h"
 #include "stmt.h"
 
-class Program
+class TranslationUnit
 {
 public:
-	Program()
+	TranslationUnit()
 		: declarations(std::vector<std::shared_ptr<ExternAST>>())
 	{
 	}
@@ -28,13 +28,13 @@ public:
 	Parser(std::vector<std::shared_ptr<Token>> tokens)
 		: tokens(tokens)
 		, tokens_length(tokens.size())
-		, program()
+		, translation_unit()
 		, current(0)
 		, runner(0)
 	{
 	}
 
-	std::shared_ptr<Program> parse();
+	std::shared_ptr<TranslationUnit> parse();
 
 private:
 	std::shared_ptr<StmtAST> parse_stmt();
@@ -98,7 +98,7 @@ private:
 	long runner;
 	long tokens_length;
 	std::vector<std::shared_ptr<Token>> tokens;
-	std::shared_ptr<Program> program;
+	std::shared_ptr<TranslationUnit> translation_unit;
 };
 
 class ParserError : public std::runtime_error

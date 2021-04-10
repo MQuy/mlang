@@ -25,8 +25,8 @@ std::string generate(std::string content)
 	Preprocessor preprocess(content, lexer.scan(), std::make_shared<Config>(config));
 
 	Parser parser(preprocess.process());
-	auto program = parser.parse();
-	IR ir(*program);
+	auto translation_unit = parser.parse();
+	IR ir(*translation_unit);
 	return ir.generate();
 }
 

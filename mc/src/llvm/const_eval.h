@@ -1,5 +1,5 @@
-#ifndef IR_CONST_EVAL_H
-#define IR_CONST_EVAL_H 1
+#ifndef LLVM_CONST_EVAL_H
+#define LLVM_CONST_EVAL_H 1
 
 #include <memory>
 
@@ -8,8 +8,8 @@
 class ConstExprEval
 {
 public:
-	ConstExprEval(Program program, std::shared_ptr<ExprAST> expr)
-		: program(program)
+	ConstExprEval(TranslationUnit translation_unit, std::shared_ptr<ExprAST> expr)
+		: translation_unit(translation_unit)
 		, expr(expr)
 	{
 	}
@@ -17,7 +17,7 @@ public:
 	int eval();
 
 private:
-	Program program;
+	TranslationUnit translation_unit;
 	std::shared_ptr<ExprAST> expr;
 };
 

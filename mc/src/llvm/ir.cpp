@@ -81,13 +81,13 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast, llvm::Type* base)
 	{
 		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(type_ast);
 		auto element = get_type(atype_ast->underlay);
-		auto number_of_elements = ConstExprEval(program, atype_ast->expr).eval();
+		auto number_of_elements = ConstExprEval(translation_unit, atype_ast->expr).eval();
 		type = llvm::ArrayType::get(element, number_of_elements);
 	}
 	else if (type_ast->kind == TypeKind::alias)
 	{
 		auto atype_ast = std::static_pointer_cast<AliasTypeAST>(type_ast);
-		auto stype_ast = program.types[atype_ast->name->name];
+		auto stype_ast = translation_unit.types[atype_ast->name->name];
 		type = get_type(stype_ast);
 	}
 	else if (type_ast->kind == TypeKind::aggregate)
@@ -185,7 +185,7 @@ llvm::Constant* IR::cast_constant(llvm::Constant* source, llvm::Type* type, Buil
 
 std::string IR::generate()
 {
-	for (auto declaration : program.declarations)
+	for (auto declaration : translation_unit.declarations)
 		declaration->accept(this);
 
 	std::string str;

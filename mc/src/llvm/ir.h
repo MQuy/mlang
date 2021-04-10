@@ -19,8 +19,8 @@
 class IR : ExprVisitor, StmtVisitor, ExternVisitor
 {
 public:
-	IR(Program program)
-		: program(program)
+	IR(TranslationUnit translation_unit)
+		: translation_unit(translation_unit)
 		, in_func_scope(false)
 	{
 		context = std::make_unique<llvm::LLVMContext>();
@@ -72,7 +72,7 @@ public:
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type, llvm::Type *base = nullptr);
 
 private:
-	Program program;
+	TranslationUnit translation_unit;
 	std::unique_ptr<llvm::LLVMContext> context;
 	std::unique_ptr<llvm::Module> module;
 	std::unique_ptr<llvm::IRBuilder<>> builder;

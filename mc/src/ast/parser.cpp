@@ -51,7 +51,7 @@ void Parser::reset()
 {
 	current = 0;
 	runner = 0;
-	program = std::make_shared<Program>(Program());
+	translation_unit = std::make_shared<TranslationUnit>(TranslationUnit());
 }
 
 /*
@@ -61,7 +61,7 @@ top level only supports declaration or function definition
 3. if exist -> add to list
    | otherwise -> revert back to that position and parse declaration
 */
-std::shared_ptr<Program> Parser::parse()
+std::shared_ptr<TranslationUnit> Parser::parse()
 {
 	reset();
 
@@ -75,10 +75,10 @@ std::shared_ptr<Program> Parser::parse()
 		if (!declaration)
 			declaration = parse_declaration(true);
 
-		program->declarations.push_back(declaration);
+		translation_unit->declarations.push_back(declaration);
 	}
 
-	return program;
+	return translation_unit;
 }
 
 /*

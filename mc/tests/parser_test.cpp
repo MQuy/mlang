@@ -10,7 +10,7 @@
 #include "preprocesssor/preprocessor.h"
 #include "scan/lexer.h"
 
-std::shared_ptr<Program> parse(std::string content)
+std::shared_ptr<TranslationUnit> parse(std::string content)
 {
 	init_keywords();
 	init_operators();
