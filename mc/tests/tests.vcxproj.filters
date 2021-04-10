@@ -4,6 +4,7 @@
     <ClCompile Include="lexer_test.cpp" />
     <ClCompile Include="preprocessor_test.cpp" />
     <ClCompile Include="parser_test.cpp" />
+    <ClCompile Include="ir_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
