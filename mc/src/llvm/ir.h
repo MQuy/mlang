@@ -16,7 +16,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 
-class IR : ExprVisitor, StmtVisitor, ExternVisitor
+class IR : ExprVisitor, StmtVisitor
 {
 public:
 	IR(TranslationUnit translation_unit)
@@ -69,7 +69,9 @@ public:
 	void *visit_declaration(DeclarationAST *stmt);
 
 	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type);
-	llvm::Type *get_type(std::shared_ptr<TypeAST> type, llvm::Type *base = nullptr);
+	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
+	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name);
+	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
 
 private:
 	TranslationUnit translation_unit;

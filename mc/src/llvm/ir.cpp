@@ -6,26 +6,26 @@
 - type
   | == builtin -> get llvm type
   | == pointer
-    - ntype = get_type(pointer->type)
-    - return pointer of ntype
+	- ntype = get_type(pointer->type)
+	- return pointer of ntype
   | == array
-    - evaluate array's expr
-    - ntype = get_type(array->type)
-    - return array of ntype
+	- evaluate array's expr
+	- ntype = get_type(array->type)
+	- return array of ntype
   | == alias -> return get_type(alias->type)
   | == aggregate(struct)
-    - for each member -> get_type(member) and add it to array
-    - return struct type
+	- for each member -> get_type(member) and add it to array
+	- return struct type
   | == aggregate(union)
-    - for each member -> get_type(member)
-    - return struct type with only one largest member size
+	- for each member -> get_type(member)
+	- return struct type with only one largest member size
   | == enum -> return int type;
   | == function
-    - for each parameter -> get_type(parameter) and add it
-    - rtype = get_type(function's returning)
-    - return function type
+	- for each parameter -> get_type(parameter) and add it
+	- rtype = get_type(function's returning)
+	- return function type
 */
-llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast, llvm::Type* base)
+llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 {
 	llvm::Type* type = nullptr;
 	if (type_ast->kind == TypeKind::builtin)
@@ -119,6 +119,14 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast, llvm::Type* base)
 		assert_not_reached();
 
 	return type;
+}
+
+llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
+{
+	auto linkage = storage == StorageSpecifier::static_
+					   ? llvm::GlobalValue::LinkageTypes::InternalLinkage
+					   : llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+	return linkage;
 }
 
 /*
@@ -219,7 +227,8 @@ void* IR::visit_literal_expr(LiteralExprAST<double>* expr)
 
 void* IR::visit_literal_expr(LiteralExprAST<long double>* expr)
 {
-	throw std::runtime_error("llvm does not support long double");
+	// TODO: MQ 2021-04-11 Support generating long double constant
+	return llvm::ConstantFP::get(*context, llvm::APFloat((double)expr->value->value));
 }
 
 void* IR::visit_literal_expr(LiteralExprAST<unsigned char>* expr)
@@ -294,7 +303,9 @@ void* IR::visit_expr_stmt(ExprStmtAST* stmt)
 
 void* IR::visit_compound_stmt(CompoundStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	for (auto st : stmt->stmts)
+		st->accept(this);
+	return nullptr;
 }
 
 void* IR::visit_if_stmt(IfStmtAST* stmt)
@@ -342,29 +353,66 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 	throw std::runtime_error("not implemented yet");
 }
 
+llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
+{
+	llvm::IRBuilder<> tmp_block(&func->getEntryBlock(), func->getEntryBlock().begin());
+	return tmp_block.CreateAlloca(type, nullptr, name);
+}
+
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 {
 	in_func_scope = true;
 
-	throw std::runtime_error("not implemented yet");
+	llvm::Function* func = nullptr;
+	if (!(func = module->getFunction(stmt->name->name)))
+	{
+		auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
+		llvm::FunctionType* ftype = (llvm::FunctionType*)get_type(ftype_ast);
+		auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
+		auto linkage = get_linkage_type(storage);
+		func = llvm::Function::Create(ftype, linkage, stmt->name->name, &*module);
+	}
+
+	llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", func);
+	builder->SetInsertPoint(bb);
+
+	for (auto& arg : func->args())
+	{
+		llvm::AllocaInst* Alloca = create_entry_block_alloca(func, arg.getType(), arg.getName());
+		builder->CreateStore(&arg, Alloca);
+	}
+
+	stmt->body->accept(this);
+	llvm::verifyFunction(*func);
 
 	in_func_scope = false;
+	return func;
 }
 
 void* IR::visit_declaration(DeclarationAST* stmt)
 {
 	for (auto [token, type, expr] : stmt->declarators)
 	{
-		if (!in_func_scope)
+		if (in_func_scope)
+		{
+			llvm::Function* func = builder->GetInsertBlock()->getParent();
+			auto ty = get_type(type);
+			llvm::AllocaInst* alloca = create_entry_block_alloca(func, ty, token->name);
+
+			if (expr)
+			{
+				auto value = (llvm::Value*)expr->accept(this);
+				builder->CreateStore(value, alloca);
+			}
+		}
+		else
 		{
 			auto qualifiers = translation_unit.get_type_qualifiers(type);
 			bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier) {
 				return qualifier == TypeQualifier::const_;
 			});
 			auto storage = translation_unit.get_storage_specifier(type);
-			llvm::GlobalValue::LinkageTypes linkage = storage == StorageSpecifier::static_
-														  ? llvm::GlobalValue::LinkageTypes::InternalLinkage
-														  : llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+			auto linkage = get_linkage_type(storage);
 			llvm::Type* ty = get_type(type);
 			llvm::Constant* value = nullptr;
 			if (expr)

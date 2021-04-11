@@ -31,5 +31,9 @@ std::string generate(std::string content)
 
 TEST(IR, demo)
 {
-	std::string text = generate("int x = 10.5;");
+	std::string text = generate(
+		"int main() {\n"
+		" int x = 10;\n"
+		"}"
+	);
 }

@@ -25,6 +25,8 @@ class JumpStmtAST;
 class ContinueStmtAST;
 class BreakStmtAST;
 class ReturnStmtAST;
+class FunctionDefinitionAST;
+class DeclarationAST;
 
 class StmtVisitor
 {
@@ -43,6 +45,9 @@ public:
 	virtual void *visit_continue_stmt(ContinueStmtAST *stmt) = 0;
 	virtual void *visit_break_stmt(BreakStmtAST *stmt) = 0;
 	virtual void *visit_return_stmt(ReturnStmtAST *stmt) = 0;
+
+	virtual void *visit_function_definition(FunctionDefinitionAST *stmt) = 0;
+	virtual void *visit_declaration(DeclarationAST *stmt) = 0;
 };
 
 class FragmentAST : public ASTNode
@@ -52,6 +57,7 @@ public:
 		: ASTNode(node_type)
 	{
 	}
+	virtual void *accept(StmtVisitor *visitor) = 0;
 };
 
 class StmtAST : public FragmentAST
@@ -61,7 +67,6 @@ public:
 		: FragmentAST(node_type)
 	{
 	}
-	virtual void *accept(StmtVisitor *visitor) = 0;
 };
 
 class LabelStmtAST : public StmtAST
@@ -260,16 +265,6 @@ public:
 	std::shared_ptr<ExprAST> expr;
 };
 
-class FunctionDefinitionAST;
-class DeclarationAST;
-
-class ExternVisitor
-{
-public:
-	virtual void *visit_function_definition(FunctionDefinitionAST *stmt) = 0;
-	virtual void *visit_declaration(DeclarationAST *stmt) = 0;
-};
-
 class ExternAST : public FragmentAST
 {
 public:
@@ -278,7 +273,6 @@ public:
 		, type(type)
 	{
 	}
-	virtual void *accept(ExternVisitor *visitor) = 0;
 
 	std::shared_ptr<TypeAST> type;
 };
@@ -292,7 +286,7 @@ public:
 		, body(body)
 	{
 	}
-	void *accept(ExternVisitor *visitor) { return visitor->visit_function_definition(this); };
+	void *accept(StmtVisitor *visitor) { return visitor->visit_function_definition(this); };
 
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<CompoundStmtAST> body;
@@ -306,7 +300,7 @@ public:
 		, declarators(declarators)
 	{
 	}
-	void *accept(ExternVisitor *visitor) { return visitor->visit_declaration(this); };
+	void *accept(StmtVisitor *visitor) { return visitor->visit_declaration(this); };
 
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };
