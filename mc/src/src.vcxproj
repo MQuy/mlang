@@ -151,6 +151,7 @@
     <ClInclude Include="ast\expr.h" />
     <ClInclude Include="ast\parser.h" />
     <ClInclude Include="ast\stmt.h" />
+    <ClInclude Include="ast\translation_unit.h" />
     <ClInclude Include="ast\type.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="llvm\const_eval.h" />
@@ -164,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ast\parser.cpp" />
+    <ClCompile Include="ast\translation_unit.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="llvm\const_eval.cpp" />
     <ClCompile Include="llvm\ir.cpp" />

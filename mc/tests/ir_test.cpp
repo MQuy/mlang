@@ -15,7 +15,6 @@ std::string generate(std::string content)
 {
 	init_keywords();
 	init_operators();
-	init_types();
 	Lexer lexer(content);
 
 	std::filesystem::path current_path = __FILE__;
@@ -32,5 +31,5 @@ std::string generate(std::string content)
 
 TEST(IR, demo)
 {
-	std::string text = generate("char x = 10;");
+	std::string text = generate("int x = 10.5;");
 }

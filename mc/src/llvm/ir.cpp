@@ -2,23 +2,6 @@
 
 #include "const_eval.h"
 
-std::unordered_map<BuiltinTypeName, unsigned> scalar_type_nbits;
-
-void init_types()
-{
-	scalar_type_nbits[BuiltinTypeName::char_] = NBITS_CHAR;
-	scalar_type_nbits[BuiltinTypeName::unsigned_char] = NBITS_CHAR;
-	scalar_type_nbits[BuiltinTypeName::signed_char] = NBITS_CHAR;
-	scalar_type_nbits[BuiltinTypeName::short_] = NBITS_SHORT;
-	scalar_type_nbits[BuiltinTypeName::unsigned_short] = NBITS_SHORT;
-	scalar_type_nbits[BuiltinTypeName::int_] = NBITS_INT;
-	scalar_type_nbits[BuiltinTypeName::unsigned_int] = NBITS_INT;
-	scalar_type_nbits[BuiltinTypeName::long_] = NBITS_LONG;
-	scalar_type_nbits[BuiltinTypeName::unsigned_long] = NBITS_LONG;
-	scalar_type_nbits[BuiltinTypeName::long_long] = NBITS_LONG_LONG;
-	scalar_type_nbits[BuiltinTypeName::unsigned_long_long] = NBITS_LONG_LONG;
-}
-
 /*
 - type
   | == builtin -> get llvm type
@@ -102,7 +85,7 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast, llvm::Type* base)
 
 		if (atype_ast->aggregate_kind == AggregateKind::union_)
 		{
-			llvm::Type* mtype;
+			llvm::Type* mtype = nullptr;
 			auto msize = 0;
 			for (auto member : members)
 			{
@@ -132,55 +115,55 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast, llvm::Type* base)
 	}
 	else if (type_ast->kind == TypeKind::enum_)
 		type = builder->getInt32Ty();
+	else
+		assert_not_reached();
 
 	return type;
 }
 
-llvm::Constant* IR::cast_constant(llvm::Constant* source, llvm::Type* type, BuiltinTypeName type_name)
+/*
+constant casting from integer to float/double or vice versa
+the sign of value doesn't matter since the action is performed at compile time
+*/
+llvm::Constant* IR::cast_constant(llvm::Constant* source, llvm::Type* dest_type)
 {
-	auto source_tid = source->getType()->getTypeID();
+	llvm::Instruction::CastOps inst = llvm::Instruction::BitCast;
+	auto source_type = source->getType();
 
-	llvm::Instruction::CastOps inst;
-	if (source_tid == llvm::Type::TypeID::IntegerTyID)
+	if (source_type->isIntegerTy())
 	{
-		auto src_type = (llvm::IntegerType*)source->getType();
 		auto value = ((llvm::ConstantInt*)source)->getValue();
-		auto nbits = src_type->getBitWidth();
+		auto layout = module->getDataLayout();
 
-		auto is_signed = value.isSignBitSet();
-		if (type_name == BuiltinTypeName::float_ || type_name == BuiltinTypeName::double_)
-			inst = is_signed ? llvm::Instruction::SIToFP : llvm::Instruction::UIToFP;
-		else if (nbits > scalar_type_nbits[type_name])
+		if (dest_type->isFloatTy() || dest_type->isDoubleTy() || dest_type->isFP128Ty())
+			inst = llvm::Instruction::SIToFP;
+		else if (layout.getTypeAllocSize(source_type) > layout.getTypeAllocSize(dest_type))
 			inst = llvm::Instruction::Trunc;
 		else
-			inst = llvm::Instruction::ZExt;
+			inst = llvm::Instruction::SExt;
 	}
-	else if (source_tid == llvm::Type::TypeID::FloatTyID)
+	else if (source_type->isFloatTy())
 	{
-		if (type_name == BuiltinTypeName::float_)
+		if (dest_type->isFloatTy())
 			return source;
-		else if (type_name == BuiltinTypeName::double_)
+		else if (dest_type->isDoubleTy())
 			inst = llvm::Instruction::FPExt;
-		else if (type_name == BuiltinTypeName::int_)
+		else if (dest_type->isIntegerTy())
 			inst = llvm::Instruction::FPToSI;
-		else if (type_name == BuiltinTypeName::unsigned_int)
-			inst = llvm::Instruction::FPToUI;
 	}
-	else if (source_tid == llvm::Type::TypeID::DoubleTyID)
+	else if (source_type->isDoubleTy())
 	{
-		if (type_name == BuiltinTypeName::double_)
+		if (dest_type->isDoubleTy())
 			return source;
-		if (type_name == BuiltinTypeName::float_)
+		if (dest_type->isFloatTy())
 			inst = llvm::Instruction::FPTrunc;
-		else if (type_name == BuiltinTypeName::int_)
+		else if (dest_type->isIntegerTy())
 			inst = llvm::Instruction::FPToSI;
-		else if (type_name == BuiltinTypeName::unsigned_int)
-			inst = llvm::Instruction::FPToUI;
 	}
 	else
 		assert_not_reached();
 
-	return (llvm::Constant*)builder->CreateCast(inst, source, type);
+	return (llvm::Constant*)builder->CreateCast(inst, source, dest_type);
 }
 
 std::string IR::generate()
@@ -374,21 +357,19 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 	{
 		if (!in_func_scope)
 		{
-			if (type->kind == TypeKind::builtin)
-			{
-				auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
-				bool is_constant = std::any_of(builtin_type->qualifiers.begin(), builtin_type->qualifiers.end(), [](TypeQualifier qualifier) {
-					return qualifier == TypeQualifier::const_;
-				});
-				llvm::GlobalValue::LinkageTypes linkage = builtin_type->storage == StorageSpecifier::static_
-															  ? llvm::GlobalValue::LinkageTypes::InternalLinkage
-															  : llvm::GlobalValue::LinkageTypes::ExternalLinkage;
-				llvm::Type* ty = get_type(builtin_type);
-				llvm::Constant* value = nullptr;
-				if (expr)
-					value = cast_constant((llvm::Constant*)expr->accept(this), ty, builtin_type->name);
-				new llvm::GlobalVariable(*module, ty, is_constant, linkage, value, token->name);
-			}
+			auto qualifiers = translation_unit.get_type_qualifiers(type);
+			bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier) {
+				return qualifier == TypeQualifier::const_;
+			});
+			auto storage = translation_unit.get_storage_specifier(type);
+			llvm::GlobalValue::LinkageTypes linkage = storage == StorageSpecifier::static_
+														  ? llvm::GlobalValue::LinkageTypes::InternalLinkage
+														  : llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+			llvm::Type* ty = get_type(type);
+			llvm::Constant* value = nullptr;
+			if (expr)
+				value = cast_constant((llvm::Constant*)expr->accept(this), ty);
+			new llvm::GlobalVariable(*module, ty, is_constant, linkage, value, token->name);
 		}
 	}
 	return nullptr;

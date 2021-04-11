@@ -68,7 +68,7 @@ public:
 	void *visit_function_definition(FunctionDefinitionAST *stmt);
 	void *visit_declaration(DeclarationAST *stmt);
 
-	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type, BuiltinTypeName type_name);
+	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type, llvm::Type *base = nullptr);
 
 private:
@@ -78,7 +78,5 @@ private:
 	std::unique_ptr<llvm::IRBuilder<>> builder;
 	bool in_func_scope;
 };
-
-void init_types();
 
 #endif

@@ -3,24 +3,12 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 #include "expr.h"
 #include "scan/token.h"
 #include "stmt.h"
-
-class TranslationUnit
-{
-public:
-	TranslationUnit()
-		: declarations(std::vector<std::shared_ptr<ExternAST>>())
-	{
-	}
-
-	std::unordered_map<std::string, std::shared_ptr<TypeAST>> types;
-	std::vector<std::shared_ptr<ExternAST>> declarations;
-};
+#include "translation_unit.h"
 
 class Parser
 {
