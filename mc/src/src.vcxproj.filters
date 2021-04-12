@@ -53,8 +53,11 @@
     <ClInclude Include="llvm\const_eval.h">
       <Filter>llvm</Filter>
     </ClInclude>
-    <ClInclude Include="ast\translation_unit.h">
-      <Filter>ast</Filter>
+    <ClInclude Include="llvm\environment.h">
+      <Filter>llvm</Filter>
+    </ClInclude>
+    <ClInclude Include="llvm\translation_unit.h">
+      <Filter>llvm</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -81,8 +84,11 @@
     <ClCompile Include="llvm\const_eval.cpp">
       <Filter>llvm</Filter>
     </ClCompile>
-    <ClCompile Include="ast\translation_unit.cpp">
-      <Filter>ast</Filter>
+    <ClCompile Include="llvm\environment.cpp">
+      <Filter>llvm</Filter>
+    </ClCompile>
+    <ClCompile Include="llvm\translation_unit.cpp">
+      <Filter>llvm</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

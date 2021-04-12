@@ -151,11 +151,12 @@
     <ClInclude Include="ast\expr.h" />
     <ClInclude Include="ast\parser.h" />
     <ClInclude Include="ast\stmt.h" />
-    <ClInclude Include="ast\translation_unit.h" />
     <ClInclude Include="ast\type.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="llvm\const_eval.h" />
+    <ClInclude Include="llvm\environment.h" />
     <ClInclude Include="llvm\ir.h" />
+    <ClInclude Include="llvm\translation_unit.h" />
     <ClInclude Include="preprocesssor\const_expr.h" />
     <ClInclude Include="preprocesssor\macro.h" />
     <ClInclude Include="preprocesssor\preprocessor.h" />
@@ -165,10 +166,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ast\parser.cpp" />
-    <ClCompile Include="ast\translation_unit.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="llvm\const_eval.cpp" />
+    <ClCompile Include="llvm\environment.cpp" />
     <ClCompile Include="llvm\ir.cpp" />
+    <ClCompile Include="llvm\translation_unit.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="preprocesssor\const_expr.cpp" />
     <ClCompile Include="preprocesssor\preprocessor.cpp" />

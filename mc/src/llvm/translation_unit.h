@@ -5,15 +5,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include "expr.h"
+#include "ast/expr.h"
+#include "ast/stmt.h"
 #include "scan/token.h"
-#include "stmt.h"
 
 class TranslationUnit
 {
 public:
-	TranslationUnit()
-		: declarations(std::vector<std::shared_ptr<ExternAST>>())
+	TranslationUnit(std::vector<std::shared_ptr<ExternAST>> declarations = std::vector<std::shared_ptr<ExternAST>>())
+		: declarations(declarations)
 	{
 	}
 	std::set<TypeQualifier> get_type_qualifiers(std::shared_ptr<TypeAST> type);

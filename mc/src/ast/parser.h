@@ -8,7 +8,6 @@
 #include "expr.h"
 #include "scan/token.h"
 #include "stmt.h"
-#include "translation_unit.h"
 
 class Parser
 {
@@ -16,13 +15,13 @@ public:
 	Parser(std::vector<std::shared_ptr<Token>> tokens)
 		: tokens(tokens)
 		, tokens_length(tokens.size())
-		, translation_unit()
+		, declarations()
 		, current(0)
 		, runner(0)
 	{
 	}
 
-	std::shared_ptr<TranslationUnit> parse();
+	std::vector<std::shared_ptr<ExternAST>> parse();
 
 private:
 	std::shared_ptr<StmtAST> parse_stmt();
@@ -86,7 +85,7 @@ private:
 	long runner;
 	long tokens_length;
 	std::vector<std::shared_ptr<Token>> tokens;
-	std::shared_ptr<TranslationUnit> translation_unit;
+	std::vector<std::shared_ptr<ExternAST>> declarations;
 };
 
 class ParserError : public std::runtime_error

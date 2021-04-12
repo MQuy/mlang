@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "ast/parser.h"
+#include "translation_unit.h"
 
 class ConstExprEval
 {
