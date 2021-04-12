@@ -34,6 +34,6 @@ TEST(IR, demo)
 	std::string text = generate(
 		"int foo = 10;\n"
 		"int main() {\n"
-		" int x = 10;\n"
+		" int x = foo;\n"
 		"}");
 }

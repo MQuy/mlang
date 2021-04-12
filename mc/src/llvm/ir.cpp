@@ -129,6 +129,16 @@ llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 	return linkage;
 }
 
+void IR::enter_scope()
+{
+	environment = new Environment(*environment);
+}
+
+void IR::leave_scope()
+{
+	environment = environment->get_enclosing();
+}
+
 /*
 constant casting from integer to float/double or vice versa
 the sign of value doesn't matter since the action is performed at compile time
@@ -243,7 +253,12 @@ void* IR::visit_literal_expr(LiteralExprAST<std::string>* expr)
 
 void* IR::visit_identifier_expr(IdentifierExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	llvm::Value* value = environment->lookup(expr->name->name);
+	if (!value)
+		throw std::runtime_error(expr->name->name + " doesn't exist");
+
+	assert(value->getValueID() == llvm::Value::ValueTy::GlobalVariableVal || value->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca);
+	return builder->CreateLoad(value);
 }
 
 void* IR::visit_binary_expr(BinaryExprAST* expr)
@@ -361,6 +376,7 @@ llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type
 
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 {
+	enter_scope();
 	in_func_scope = true;
 
 	llvm::Function* func = nullptr;
@@ -373,19 +389,22 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		func = llvm::Function::Create(ftype, linkage, stmt->name->name, &*module);
 	}
 
+	environment = new Environment(environment);
 	llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", func);
 	builder->SetInsertPoint(bb);
 
 	for (auto& arg : func->args())
 	{
-		llvm::AllocaInst* Alloca = create_entry_block_alloca(func, arg.getType(), arg.getName());
-		builder->CreateStore(&arg, Alloca);
+		llvm::AllocaInst* alloca = create_entry_block_alloca(func, arg.getType(), arg.getName());
+		builder->CreateStore(&arg, alloca);
+		environment->define(arg.getName().str(), alloca);
 	}
 
 	stmt->body->accept(this);
 	llvm::verifyFunction(*func);
 
 	in_func_scope = false;
+	leave_scope();
 	return func;
 }
 
@@ -397,7 +416,8 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 		{
 			llvm::Function* func = builder->GetInsertBlock()->getParent();
 			auto ty = get_type(type);
-			llvm::AllocaInst* alloca = create_entry_block_alloca(func, ty, token->name);
+			auto alloca = create_entry_block_alloca(func, ty, token->name);
+			environment->define(token->name, alloca);
 
 			if (expr)
 			{
@@ -415,9 +435,11 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			auto linkage = get_linkage_type(storage);
 			llvm::Type* ty = get_type(type);
 			llvm::Constant* value = nullptr;
+
 			if (expr)
 				value = cast_constant((llvm::Constant*)expr->accept(this), ty);
-			new llvm::GlobalVariable(*module, ty, is_constant, linkage, value, token->name);
+			auto global_variable = new llvm::GlobalVariable(*module, ty, is_constant, linkage, value, token->name);
+			environment->define(token->name, global_variable);
 		}
 	}
 	return nullptr;

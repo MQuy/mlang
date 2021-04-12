@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "ast/parser.h"
+#include "environment.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -15,12 +16,14 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "translation_unit.h"
 
 class IR : ExprVisitor, StmtVisitor
 {
 public:
 	IR(TranslationUnit translation_unit)
 		: translation_unit(translation_unit)
+		, environment(new Environment(nullptr))
 		, in_func_scope(false)
 	{
 		context = std::make_unique<llvm::LLVMContext>();
@@ -72,9 +75,12 @@ public:
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
 	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name);
 	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
+	void enter_scope();
+	void leave_scope();
 
 private:
 	TranslationUnit translation_unit;
+	Environment *environment;
 	std::unique_ptr<llvm::LLVMContext> context;
 	std::unique_ptr<llvm::Module> module;
 	std::unique_ptr<llvm::IRBuilder<>> builder;
