@@ -36,10 +36,8 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 		if (btype_ast->name == BuiltinTypeName::char_ || btype_ast->name == BuiltinTypeName::unsigned_char
 			|| btype_ast->name == BuiltinTypeName::signed_char)
 			type = builder->getInt8Ty();
-		// at this stage, there is not be any incomplete type allowed
-		// -> no standalone void and instead, void pointer which is treated at int8 pointer
 		else if (btype_ast->name == BuiltinTypeName::void_)
-			type = builder->getInt8Ty();
+			type = builder->getVoidTy();
 		else if (btype_ast->name == BuiltinTypeName::short_ || btype_ast->name == BuiltinTypeName::unsigned_short)
 			type = builder->getInt16Ty();
 		else if (btype_ast->name == BuiltinTypeName::int_ || btype_ast->name == BuiltinTypeName::unsigned_int
@@ -127,6 +125,19 @@ llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 					   ? llvm::GlobalValue::LinkageTypes::InternalLinkage
 					   : llvm::GlobalValue::LinkageTypes::ExternalLinkage;
 	return linkage;
+}
+
+llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
+{
+	auto type = source->getType();
+	if (type->isIntegerTy())
+		return builder->CreateICmpNE(source, llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0)), name);
+	else if (type->isFloatTy())
+		return builder->CreateICmpNE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
+	else if (type->isPointerTy())
+		return builder->CreateIsNull(source);
+	else
+		throw std::runtime_error("Only support scalar types in branch condtion");
 }
 
 void IR::enter_scope()
@@ -313,7 +324,10 @@ void* IR::visit_default_stmt(DefaultStmtAST* stmt)
 
 void* IR::visit_expr_stmt(ExprStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	if (stmt->expr)
+		return stmt->expr->accept(this);
+	else
+		return nullptr;
 }
 
 void* IR::visit_compound_stmt(CompoundStmtAST* stmt)
@@ -325,7 +339,31 @@ void* IR::visit_compound_stmt(CompoundStmtAST* stmt)
 
 void* IR::visit_if_stmt(IfStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	auto thenbb = llvm::BasicBlock::Create(*context, "ifthen", func);
+	auto elsebb = stmt->else_stmt ? llvm::BasicBlock::Create(*context, "ifelse") : nullptr;
+	auto mergebb = llvm::BasicBlock::Create(*context, "ifend");
+
+	auto cond = (llvm::Value*)stmt->cond->accept(this);
+	cond = create_bool_branch(cond, "ifcond");
+	builder->CreateCondBr(cond, thenbb, stmt->else_stmt ? elsebb : mergebb);
+
+	builder->SetInsertPoint(thenbb);
+	stmt->if_stmt->accept(this);
+	builder->CreateBr(mergebb);
+
+	if (stmt->else_stmt)
+	{
+		func->getBasicBlockList().push_back(elsebb);
+		builder->SetInsertPoint(elsebb);
+		stmt->else_stmt->accept(this);
+		builder->CreateBr(mergebb);
+	}
+
+	func->getBasicBlockList().push_back(mergebb);
+	builder->SetInsertPoint(mergebb);
+
+	return nullptr;
 }
 
 void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
@@ -365,7 +403,14 @@ void* IR::visit_break_stmt(BreakStmtAST* stmt)
 
 void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	if (stmt->expr)
+	{
+		auto ret = environment->lookup(LLVM_RETURN_NAME);
+		auto value = (llvm::Value*)stmt->expr->accept(this);
+
+		builder->CreateStore(value, ret);
+	}
+	return nullptr;
 }
 
 llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
@@ -393,6 +438,11 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", func);
 	builder->SetInsertPoint(bb);
 
+	if (!func->getReturnType()->isVoidTy())
+	{
+		llvm::AllocaInst* alloca = create_entry_block_alloca(func, func->getReturnType());
+		environment->define(LLVM_RETURN_NAME, alloca);
+	}
 	for (auto& arg : func->args())
 	{
 		llvm::AllocaInst* alloca = create_entry_block_alloca(func, arg.getType(), arg.getName());
@@ -401,6 +451,11 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	}
 
 	stmt->body->accept(this);
+	if (!func->getReturnType()->isVoidTy())
+	{
+		auto retval = builder->CreateLoad(environment->lookup(LLVM_RETURN_NAME));
+		builder->CreateRet(retval);
+	}
 	llvm::verifyFunction(*func);
 
 	in_func_scope = false;
@@ -434,11 +489,15 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			auto storage = translation_unit.get_storage_specifier(type);
 			auto linkage = get_linkage_type(storage);
 			llvm::Type* ty = get_type(type);
-			llvm::Constant* value = nullptr;
 
+			llvm::Constant* constant = nullptr;
 			if (expr)
-				value = cast_constant((llvm::Constant*)expr->accept(this), ty);
-			auto global_variable = new llvm::GlobalVariable(*module, ty, is_constant, linkage, value, token->name);
+			{
+				auto value = (llvm::Constant*)expr->accept(this);
+				constant = cast_constant(value, ty);
+			}
+
+			auto global_variable = new llvm::GlobalVariable(*module, ty, is_constant, linkage, constant, token->name);
 			environment->define(token->name, global_variable);
 		}
 	}

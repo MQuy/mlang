@@ -18,6 +18,8 @@
 #include "llvm/IR/Verifier.h"
 #include "translation_unit.h"
 
+#define LLVM_RETURN_NAME "__ret"
+
 class IR : ExprVisitor, StmtVisitor
 {
 public:
@@ -72,8 +74,9 @@ public:
 	void *visit_declaration(DeclarationAST *stmt);
 
 	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type);
+	llvm::Value *create_bool_branch(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
-	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name);
+	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");
 	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
 	void enter_scope();
 	void leave_scope();

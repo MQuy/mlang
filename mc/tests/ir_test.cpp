@@ -32,8 +32,10 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
-		"int foo = 10;\n"
 		"int main() {\n"
-		" int x = foo;\n"
+		"	int x = 10;\n"
+		"	if (x)\n"
+		"		99999;\n"
+		"	return x;\n"
 		"}");
 }
