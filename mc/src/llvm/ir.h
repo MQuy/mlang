@@ -20,7 +20,7 @@
 
 #define LLVM_RETURN_NAME "__ret"
 
-class IR : ExprVisitor, StmtVisitor
+class IR : NodeVisitor
 {
 public:
 	IR(TranslationUnit translation_unit)
@@ -78,6 +78,9 @@ public:
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
 	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");
 	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
+	void complete_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *nextbb);
+	void branch_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *truebb, llvm::BasicBlock *falsebb);
+	void activate_block(llvm::Function *func, llvm::BasicBlock *endbb);
 	void enter_scope();
 	void leave_scope();
 

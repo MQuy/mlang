@@ -34,8 +34,8 @@ TEST(IR, demo)
 	std::string text = generate(
 		"int main() {\n"
 		"	int x = 10;\n"
-		"	if (x)\n"
-		"		99999;\n"
+		"	for(int y = 10; y ; y)"
+		"		10;\n"
 		"	return x;\n"
 		"}");
 }

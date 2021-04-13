@@ -127,6 +127,25 @@ llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 	return linkage;
 }
 
+void IR::complete_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llvm::BasicBlock* nextbb)
+{
+	node->accept(this);
+	builder->CreateBr(nextbb);
+}
+
+void IR::branch_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llvm::BasicBlock* truebb, llvm::BasicBlock* falsebb)
+{
+	auto cond = (llvm::Value*)node->accept(this);
+	cond = create_bool_branch(cond, "loopcond");
+	builder->CreateCondBr(cond, truebb, falsebb);
+}
+
+void IR::activate_block(llvm::Function* func, llvm::BasicBlock* endbb)
+{
+	func->getBasicBlockList().push_back(endbb);
+	builder->SetInsertPoint(endbb);
+}
+
 llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 {
 	auto type = source->getType();
@@ -142,7 +161,7 @@ llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 
 void IR::enter_scope()
 {
-	environment = new Environment(*environment);
+	environment = new Environment(environment);
 }
 
 void IR::leave_scope()
@@ -332,36 +351,34 @@ void* IR::visit_expr_stmt(ExprStmtAST* stmt)
 
 void* IR::visit_compound_stmt(CompoundStmtAST* stmt)
 {
+	enter_scope();
+
 	for (auto st : stmt->stmts)
 		st->accept(this);
+
+	leave_scope();
 	return nullptr;
 }
 
 void* IR::visit_if_stmt(IfStmtAST* stmt)
 {
 	auto func = builder->GetInsertBlock()->getParent();
-	auto thenbb = llvm::BasicBlock::Create(*context, "ifthen", func);
-	auto elsebb = stmt->else_stmt ? llvm::BasicBlock::Create(*context, "ifelse") : nullptr;
-	auto mergebb = llvm::BasicBlock::Create(*context, "ifend");
+	auto thenbb = llvm::BasicBlock::Create(*context, "if.then");
+	auto elsebb = stmt->else_stmt ? llvm::BasicBlock::Create(*context, "if.else") : nullptr;
+	auto endbb = llvm::BasicBlock::Create(*context, "if.end");
 
-	auto cond = (llvm::Value*)stmt->cond->accept(this);
-	cond = create_bool_branch(cond, "ifcond");
-	builder->CreateCondBr(cond, thenbb, stmt->else_stmt ? elsebb : mergebb);
+	branch_block(func, stmt->cond, thenbb, stmt->else_stmt ? elsebb : endbb);
 
-	builder->SetInsertPoint(thenbb);
-	stmt->if_stmt->accept(this);
-	builder->CreateBr(mergebb);
+	activate_block(func, thenbb);
+	complete_block(func, stmt->if_stmt, endbb);
 
 	if (stmt->else_stmt)
 	{
-		func->getBasicBlockList().push_back(elsebb);
-		builder->SetInsertPoint(elsebb);
-		stmt->else_stmt->accept(this);
-		builder->CreateBr(mergebb);
+		activate_block(func, elsebb);
+		complete_block(func, stmt->else_stmt, endbb);
 	}
 
-	func->getBasicBlockList().push_back(mergebb);
-	builder->SetInsertPoint(mergebb);
+	activate_block(func, endbb);
 
 	return nullptr;
 }
@@ -373,17 +390,67 @@ void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
 
 void* IR::visit_for_stmt(ForStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	enter_scope();
+	stmt->init->accept(this);
+
+	auto func = builder->GetInsertBlock()->getParent();
+	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "for.cond");
+	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "for.body");
+	llvm::BasicBlock* incrbb = llvm::BasicBlock::Create(*context, "for.incr");
+	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "for.end");
+	builder->CreateBr(condbb);
+
+	activate_block(func, condbb);
+	branch_block(func, stmt->cond, bodybb, endbb);
+
+	activate_block(func, bodybb);
+	complete_block(func, stmt->stmt, incrbb);
+
+	activate_block(func, incrbb);
+	complete_block(func, stmt->inc, condbb);
+
+	activate_block(func, endbb);
+
+	leave_scope();
+	return nullptr;
 }
 
 void* IR::visit_while_stmt(WhileStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "while.cond");
+	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "while.body");
+	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "while.end");
+	builder->CreateBr(condbb);
+
+	activate_block(func, condbb);
+	branch_block(func, stmt->cond, bodybb, endbb);
+
+	activate_block(func, bodybb);
+	complete_block(func, stmt->stmt, condbb);
+
+	activate_block(func, endbb);
+
+	return nullptr;
 }
 
 void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "dowhile.body");
+	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "dowhile.cond");
+	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "dowhile.pend");
+	builder->CreateBr(bodybb);
+
+	activate_block(func, bodybb);
+	complete_block(func, stmt->stmt, condbb);
+
+	activate_block(func, condbb);
+	branch_block(func, stmt->cond, bodybb, endbb);
+
+	activate_block(func, endbb);
+
+	return nullptr;
 }
 
 void* IR::visit_jump_stmt(JumpStmtAST* stmt)
@@ -434,7 +501,6 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		func = llvm::Function::Create(ftype, linkage, stmt->name->name, &*module);
 	}
 
-	environment = new Environment(environment);
 	llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", func);
 	builder->SetInsertPoint(bb);
 

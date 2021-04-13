@@ -291,6 +291,74 @@ enum ASTNodeType
 	extern_function,
 };
 
+template <class T>
+class LiteralExprAST;
+class IdentifierExprAST;
+class BinaryExprAST;
+class UnaryExprAST;
+class TenaryExprAST;
+class MemberAccessExprAST;
+class FunctionCallExprAST;
+class TypeCastExprAST;
+class InitializerExprAST;
+class LabelStmtAST;
+class CaseStmtAST;
+class DefaultStmtAST;
+class ExprStmtAST;
+class CompoundStmtAST;
+class IfStmtAST;
+class SwitchStmtAST;
+class ForStmtAST;
+class WhileStmtAST;
+class DoWhileStmtAST;
+class JumpStmtAST;
+class ContinueStmtAST;
+class BreakStmtAST;
+class ReturnStmtAST;
+class FunctionDefinitionAST;
+class DeclarationAST;
+
+class NodeVisitor
+{
+public:
+	virtual void *visit_literal_expr(LiteralExprAST<int> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<long long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned int> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned long long> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<float> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<double> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<long double> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<unsigned char> *expr) = 0;
+	virtual void *visit_literal_expr(LiteralExprAST<std::string> *expr) = 0;
+	virtual void *visit_identifier_expr(IdentifierExprAST *expr) = 0;
+	virtual void *visit_binary_expr(BinaryExprAST *expr) = 0;
+	virtual void *visit_unary_expr(UnaryExprAST *expr) = 0;
+	virtual void *visit_tenary_expr(TenaryExprAST *expr) = 0;
+	virtual void *visit_member_access_expr(MemberAccessExprAST *expr) = 0;
+	virtual void *visit_function_call_expr(FunctionCallExprAST *expr) = 0;
+	virtual void *visit_typecast_expr(TypeCastExprAST *expr) = 0;
+	virtual void *visit_initializer_expr(InitializerExprAST *expr) = 0;
+
+	virtual void *visit_label_stmt(LabelStmtAST *stmt) = 0;
+	virtual void *visit_case_stmt(CaseStmtAST *stmt) = 0;
+	virtual void *visit_default_stmt(DefaultStmtAST *stmt) = 0;
+	virtual void *visit_expr_stmt(ExprStmtAST *stmt) = 0;
+	virtual void *visit_compound_stmt(CompoundStmtAST *stmt) = 0;
+	virtual void *visit_if_stmt(IfStmtAST *stmt) = 0;
+	virtual void *visit_switch_stmt(SwitchStmtAST *stmt) = 0;
+	virtual void *visit_for_stmt(ForStmtAST *stmt) = 0;
+	virtual void *visit_while_stmt(WhileStmtAST *stmt) = 0;
+	virtual void *visit_dowhile_stmt(DoWhileStmtAST *stmt) = 0;
+	virtual void *visit_jump_stmt(JumpStmtAST *stmt) = 0;
+	virtual void *visit_continue_stmt(ContinueStmtAST *stmt) = 0;
+	virtual void *visit_break_stmt(BreakStmtAST *stmt) = 0;
+	virtual void *visit_return_stmt(ReturnStmtAST *stmt) = 0;
+
+	virtual void *visit_function_definition(FunctionDefinitionAST *stmt) = 0;
+	virtual void *visit_declaration(DeclarationAST *stmt) = 0;
+};
 class ASTNode
 {
 public:
@@ -298,6 +366,7 @@ public:
 		: node_type(node_type)
 	{
 	}
+	virtual void *accept(NodeVisitor *visitor) = 0;
 
 	ASTNodeType node_type;
 };
