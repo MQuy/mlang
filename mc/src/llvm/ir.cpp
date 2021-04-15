@@ -232,6 +232,12 @@ llvm::Constant* IR::cast_constant(llvm::Constant* source, llvm::Type* dest_type)
 	return (llvm::Constant*)builder->CreateCast(inst, source, dest_type);
 }
 
+llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
+{
+	llvm::IRBuilder<> tmp_block(&func->getEntryBlock(), func->getEntryBlock().begin());
+	return tmp_block.CreateAlloca(type, nullptr, name);
+}
+
 std::string IR::generate()
 {
 	for (auto declaration : translation_unit.declarations)
@@ -485,14 +491,17 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 
 void* IR::visit_jump_stmt(JumpStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	for (auto& block : func->getBasicBlockList())
+		if (block.getName() == stmt->name->name)
+			builder->CreateBr(&block);
+	return nullptr;
 }
 
 void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 {
 	auto fstmt = find_flowable_stmt(FlowableStmtType::loop);
-	if (!fstmt)
-		throw std::runtime_error("continue has to be inside loop stmt");
+	assert(!fstmt);
 
 	builder->CreateBr(fstmt->nextbb);
 	unwind_flowable_stmt(fstmt, false);
@@ -502,8 +511,7 @@ void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 void* IR::visit_break_stmt(BreakStmtAST* stmt)
 {
 	auto fstmt = flowable_stmts.back();
-	if (!fstmt)
-		throw std::runtime_error("break has to be inside loop/switch stmt");
+	assert(!fstmt);
 
 	builder->CreateBr(fstmt->endbb);
 	unwind_flowable_stmt(fstmt);
@@ -519,18 +527,14 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 
 		builder->CreateStore(value, ret);
 	}
-	return nullptr;
-}
 
-llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
-{
-	llvm::IRBuilder<> tmp_block(&func->getEntryBlock(), func->getEntryBlock().begin());
-	return tmp_block.CreateAlloca(type, nullptr, name);
+	return nullptr;
 }
 
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 {
 	enter_scope();
+	flowable_stmts.clear();
 	in_func_scope = true;
 
 	llvm::Function* func = nullptr;
@@ -567,6 +571,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	llvm::verifyFunction(*func);
 
 	in_func_scope = false;
+	flowable_stmts.clear();
 	leave_scope();
 	return func;
 }
