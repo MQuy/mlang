@@ -146,6 +146,24 @@ void IR::activate_block(llvm::Function* func, llvm::BasicBlock* endbb)
 	builder->SetInsertPoint(endbb);
 }
 
+std::shared_ptr<FlowableStmt> IR::find_flowable_stmt(FlowableStmtType type)
+{
+	for (auto block = flowable_stmts.rbegin(); block != flowable_stmts.rend(); ++block)
+		if ((*block)->type == type)
+			return *block;
+	return nullptr;
+}
+
+void IR::unwind_flowable_stmt(std::shared_ptr<FlowableStmt> target, bool self_included)
+{
+	auto iterator = std::find(flowable_stmts.begin(), flowable_stmts.end(), target);
+
+	if (iterator == flowable_stmts.end())
+		return;
+
+	flowable_stmts.erase(self_included ? iterator : iterator++, flowable_stmts.end());
+}
+
 llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 {
 	auto type = source->getType();
@@ -398,6 +416,9 @@ void* IR::visit_for_stmt(ForStmtAST* stmt)
 	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "for.body");
 	llvm::BasicBlock* incrbb = llvm::BasicBlock::Create(*context, "for.incr");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "for.end");
+
+	auto fstmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::loop, endbb, incrbb));
+	flowable_stmts.push_back(fstmt);
 	builder->CreateBr(condbb);
 
 	activate_block(func, condbb);
@@ -411,6 +432,7 @@ void* IR::visit_for_stmt(ForStmtAST* stmt)
 
 	activate_block(func, endbb);
 
+	unwind_flowable_stmt(fstmt);
 	leave_scope();
 	return nullptr;
 }
@@ -421,6 +443,9 @@ void* IR::visit_while_stmt(WhileStmtAST* stmt)
 	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "while.cond");
 	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "while.body");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "while.end");
+
+	auto fstmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::loop, endbb, condbb));
+	flowable_stmts.push_back(fstmt);
 	builder->CreateBr(condbb);
 
 	activate_block(func, condbb);
@@ -431,6 +456,7 @@ void* IR::visit_while_stmt(WhileStmtAST* stmt)
 
 	activate_block(func, endbb);
 
+	unwind_flowable_stmt(fstmt);
 	return nullptr;
 }
 
@@ -440,6 +466,9 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "dowhile.body");
 	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "dowhile.cond");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "dowhile.pend");
+
+	auto fstmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::loop, endbb, condbb));
+	flowable_stmts.push_back(fstmt);
 	builder->CreateBr(bodybb);
 
 	activate_block(func, bodybb);
@@ -450,6 +479,7 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 
 	activate_block(func, endbb);
 
+	unwind_flowable_stmt(fstmt);
 	return nullptr;
 }
 
@@ -460,12 +490,24 @@ void* IR::visit_jump_stmt(JumpStmtAST* stmt)
 
 void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto fstmt = find_flowable_stmt(FlowableStmtType::loop);
+	if (!fstmt)
+		throw std::runtime_error("continue has to be inside loop stmt");
+
+	builder->CreateBr(fstmt->nextbb);
+	unwind_flowable_stmt(fstmt, false);
+	return nullptr;
 }
 
 void* IR::visit_break_stmt(BreakStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto fstmt = flowable_stmts.back();
+	if (!fstmt)
+		throw std::runtime_error("break has to be inside loop/switch stmt");
+
+	builder->CreateBr(fstmt->endbb);
+	unwind_flowable_stmt(fstmt);
+	return nullptr;
 }
 
 void* IR::visit_return_stmt(ReturnStmtAST* stmt)

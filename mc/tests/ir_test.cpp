@@ -35,7 +35,7 @@ TEST(IR, demo)
 		"int main() {\n"
 		"	int x = 10;\n"
 		"	for(int y = 10; y ; y)"
-		"		10;\n"
+		"		break;\n"
 		"	return x;\n"
 		"}");
 }

@@ -20,6 +20,26 @@
 
 #define LLVM_RETURN_NAME "__ret"
 
+enum class FlowableStmtType
+{
+	loop,
+	switch_,
+};
+
+struct FlowableStmt
+{
+	FlowableStmt(FlowableStmtType type, llvm::BasicBlock *endbb, llvm::BasicBlock *nextbb = nullptr)
+		: type(type)
+		, endbb(endbb)
+		, nextbb(nextbb)
+	{
+	}
+
+	FlowableStmtType type;
+	llvm::BasicBlock *endbb;
+	llvm::BasicBlock *nextbb;
+};
+
 class IR : NodeVisitor
 {
 public:
@@ -81,6 +101,8 @@ public:
 	void complete_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *nextbb);
 	void branch_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *truebb, llvm::BasicBlock *falsebb);
 	void activate_block(llvm::Function *func, llvm::BasicBlock *endbb);
+	std::shared_ptr<FlowableStmt> find_flowable_stmt(FlowableStmtType type);
+	void unwind_flowable_stmt(std::shared_ptr<FlowableStmt> block, bool self_included = true);
 	void enter_scope();
 	void leave_scope();
 
@@ -90,6 +112,7 @@ private:
 	std::unique_ptr<llvm::LLVMContext> context;
 	std::unique_ptr<llvm::Module> module;
 	std::unique_ptr<llvm::IRBuilder<>> builder;
+	std::vector<std::shared_ptr<FlowableStmt>> flowable_stmts;
 	bool in_func_scope;
 };
 
