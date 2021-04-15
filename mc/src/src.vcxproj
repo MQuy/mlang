@@ -181,6 +181,12 @@
     <ProjectReference Include="..\..\..\llvm\build\lib\IR\LLVMCore.vcxproj">
       <Project>{84f11254-7a51-3742-a7bc-e203bcc95102}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\llvm\build\lib\Transforms\InstCombine\LLVMInstCombine.vcxproj">
+      <Project>{a66d554b-59ae-3e77-baf5-0149d52fb6b9}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\llvm\build\lib\Transforms\Scalar\LLVMScalarOpts.vcxproj">
+      <Project>{68717995-c882-3bac-9ba7-8c53a1cfd9c0}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

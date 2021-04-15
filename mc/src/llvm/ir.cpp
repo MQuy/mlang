@@ -238,6 +238,15 @@ llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type
 	return tmp_block.CreateAlloca(type, nullptr, name);
 }
 
+void IR::init_pass_maanger()
+{
+	func_pass_manager->add(llvm::createInstructionCombiningPass());
+	func_pass_manager->add(llvm::createReassociatePass());
+	func_pass_manager->add(llvm::createGVNPass());
+	func_pass_manager->add(llvm::createCFGSimplificationPass());
+	func_pass_manager->doInitialization();
+}
+
 std::string IR::generate()
 {
 	for (auto declaration : translation_unit.declarations)
@@ -569,6 +578,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		builder->CreateRet(retval);
 	}
 	llvm::verifyFunction(*func);
+	func_pass_manager->run(*func);
 
 	in_func_scope = false;
 	flowable_stmts.clear();

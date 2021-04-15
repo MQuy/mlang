@@ -13,9 +13,13 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 #include "translation_unit.h"
 
 #define LLVM_RETURN_NAME "__ret"
@@ -51,6 +55,7 @@ public:
 		context = std::make_unique<llvm::LLVMContext>();
 		module = std::make_unique<llvm::Module>("mc", *context);
 		builder = std::make_unique<llvm::IRBuilder<>>(*context);
+		func_pass_manager = std::make_unique<llvm::legacy::FunctionPassManager>(module.get());
 	}
 
 	std::string generate();
@@ -93,6 +98,7 @@ public:
 	void *visit_function_definition(FunctionDefinitionAST *stmt);
 	void *visit_declaration(DeclarationAST *stmt);
 
+	void init_pass_maanger();
 	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type);
 	llvm::Value *create_bool_branch(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
@@ -112,6 +118,7 @@ private:
 	std::unique_ptr<llvm::LLVMContext> context;
 	std::unique_ptr<llvm::Module> module;
 	std::unique_ptr<llvm::IRBuilder<>> builder;
+	std::unique_ptr<llvm::legacy::FunctionPassManager> func_pass_manager;
 	std::vector<std::shared_ptr<FlowableStmt>> flowable_stmts;
 	bool in_func_scope;
 };
