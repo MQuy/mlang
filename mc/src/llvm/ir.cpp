@@ -147,22 +147,22 @@ void IR::activate_block(llvm::Function* func, llvm::BasicBlock* endbb)
 	builder->SetInsertPoint(endbb);
 }
 
-std::shared_ptr<FlowableStmt> IR::find_flowable_stmt(FlowableStmtType type)
+std::shared_ptr<StmtBranch> IR::find_stmt_branch(StmtBranchType type)
 {
-	for (auto block = flowable_stmts.rbegin(); block != flowable_stmts.rend(); ++block)
+	for (auto block = stmts_branch.rbegin(); block != stmts_branch.rend(); ++block)
 		if ((*block)->type == type)
 			return *block;
 	return nullptr;
 }
 
-void IR::unwind_flowable_stmt(std::shared_ptr<FlowableStmt> target, bool self_included)
+void IR::unwind_stmt_branch(std::shared_ptr<StmtBranch> target, bool self_included)
 {
-	auto iterator = std::find(flowable_stmts.begin(), flowable_stmts.end(), target);
+	auto iterator = std::find(stmts_branch.begin(), stmts_branch.end(), target);
 
-	if (iterator == flowable_stmts.end())
+	if (iterator == stmts_branch.end())
 		return;
 
-	flowable_stmts.erase(self_included ? iterator : iterator++, flowable_stmts.end());
+	stmts_branch.erase(self_included ? iterator : iterator++, stmts_branch.end());
 }
 
 llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
@@ -363,33 +363,41 @@ void* IR::visit_label_stmt(LabelStmtAST* stmt)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto labelbb = llvm::BasicBlock::Create(*context, stmt->name->name);
-
 	builder->CreateBr(labelbb);
 	activate_block(func, labelbb);
-	stmt->stmt->accept(this);
 
+	stmt->stmt->accept(this);
 	return nullptr;
 }
 
 void* IR::visit_case_stmt(CaseStmtAST* stmt)
 {
 	auto func = builder->GetInsertBlock()->getParent();
-	auto sstmt = std::static_pointer_cast<SwitchStmt>(find_flowable_stmt(FlowableStmtType::switch_));
+	auto sstmt = std::static_pointer_cast<SwitchStmtBranch>(find_stmt_branch(StmtBranchType::switch_));
 	assert(sstmt);
 
 	auto value = (llvm::ConstantInt*)stmt->constant->accept(this);
 	auto casebb = llvm::BasicBlock::Create(*context, "switch.case");
 	builder->CreateBr(casebb);
 	activate_block(func, casebb);
-
-	stmt->stmt->accept(this);
 	sstmt->inst->addCase(value, casebb);
 
+	stmt->stmt->accept(this);
 	return nullptr;
 }
 
 void* IR::visit_default_stmt(DefaultStmtAST* stmt)
 {
+	auto func = builder->GetInsertBlock()->getParent();
+	auto sstmt = std::static_pointer_cast<SwitchStmtBranch>(find_stmt_branch(StmtBranchType::switch_));
+	assert(sstmt);
+
+	auto defaultbb = llvm::BasicBlock::Create(*context, "switch.default");
+	builder->CreateBr(defaultbb);
+	activate_block(func, defaultbb);
+	sstmt->inst->setDefaultDest(defaultbb);
+
+	stmt->stmt->accept(this);
 	return nullptr;
 }
 
@@ -431,7 +439,6 @@ void* IR::visit_if_stmt(IfStmtAST* stmt)
 	}
 
 	activate_block(func, endbb);
-
 	return nullptr;
 }
 
@@ -442,12 +449,12 @@ void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
 	auto endbb = llvm::BasicBlock::Create(*context, "switch.exit");
 	auto switch_inst = builder->CreateSwitch(value, endbb, 2);
 
-	auto sstmt = std::make_shared<SwitchStmt>(SwitchStmt(switch_inst, endbb));
-	flowable_stmts.push_back(sstmt);
+	auto sstmt = std::make_shared<SwitchStmtBranch>(SwitchStmtBranch(switch_inst, endbb));
+	stmts_branch.push_back(sstmt);
 
 	stmt->stmt->accept(this);
 
-	unwind_flowable_stmt(sstmt);
+	unwind_stmt_branch(sstmt);
 	builder->CreateBr(endbb);
 	activate_block(func, endbb);
 	return nullptr;
@@ -464,8 +471,8 @@ void* IR::visit_for_stmt(ForStmtAST* stmt)
 	llvm::BasicBlock* incrbb = llvm::BasicBlock::Create(*context, "for.incr");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "for.end");
 
-	auto fstmt = std::make_shared<LoopStmt>(LoopStmt(endbb, incrbb));
-	flowable_stmts.push_back(fstmt);
+	auto fstmt = std::make_shared<LoopStmtBranch>(LoopStmtBranch(endbb, incrbb));
+	stmts_branch.push_back(fstmt);
 	builder->CreateBr(condbb);
 
 	activate_block(func, condbb);
@@ -479,7 +486,7 @@ void* IR::visit_for_stmt(ForStmtAST* stmt)
 
 	activate_block(func, endbb);
 
-	unwind_flowable_stmt(fstmt);
+	unwind_stmt_branch(fstmt);
 	leave_scope();
 	return nullptr;
 }
@@ -491,8 +498,8 @@ void* IR::visit_while_stmt(WhileStmtAST* stmt)
 	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "while.body");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "while.end");
 
-	auto fstmt = std::make_shared<LoopStmt>(LoopStmt(endbb, condbb));
-	flowable_stmts.push_back(fstmt);
+	auto fstmt = std::make_shared<LoopStmtBranch>(LoopStmtBranch(endbb, condbb));
+	stmts_branch.push_back(fstmt);
 	builder->CreateBr(condbb);
 
 	activate_block(func, condbb);
@@ -503,7 +510,7 @@ void* IR::visit_while_stmt(WhileStmtAST* stmt)
 
 	activate_block(func, endbb);
 
-	unwind_flowable_stmt(fstmt);
+	unwind_stmt_branch(fstmt);
 	return nullptr;
 }
 
@@ -514,8 +521,8 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "dowhile.cond");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "dowhile.pend");
 
-	auto fstmt = std::make_shared<LoopStmt>(LoopStmt(endbb, condbb));
-	flowable_stmts.push_back(fstmt);
+	auto fstmt = std::make_shared<LoopStmtBranch>(LoopStmtBranch(endbb, condbb));
+	stmts_branch.push_back(fstmt);
 	builder->CreateBr(bodybb);
 
 	activate_block(func, bodybb);
@@ -526,7 +533,7 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 
 	activate_block(func, endbb);
 
-	unwind_flowable_stmt(fstmt);
+	unwind_stmt_branch(fstmt);
 	return nullptr;
 }
 
@@ -541,7 +548,7 @@ void* IR::visit_jump_stmt(JumpStmtAST* stmt)
 
 void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 {
-	auto fstmt = std::static_pointer_cast<LoopStmt>(find_flowable_stmt(FlowableStmtType::loop));
+	auto fstmt = std::static_pointer_cast<LoopStmtBranch>(find_stmt_branch(StmtBranchType::loop));
 	assert(fstmt);
 
 	builder->CreateBr(fstmt->nextbb);
@@ -550,7 +557,7 @@ void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 
 void* IR::visit_break_stmt(BreakStmtAST* stmt)
 {
-	auto fstmt = flowable_stmts.back();
+	auto fstmt = stmts_branch.back();
 	assert(fstmt);
 
 	builder->CreateBr(fstmt->endbb);
@@ -566,7 +573,7 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 
 		builder->CreateStore(value, ret);
 	}
-	auto rstmt = find_flowable_stmt(FlowableStmtType::return_);
+	auto rstmt = find_stmt_branch(StmtBranchType::function);
 	builder->CreateBr(rstmt->endbb);
 
 	return nullptr;
@@ -575,7 +582,7 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 {
 	enter_scope();
-	flowable_stmts.clear();
+	stmts_branch.clear();
 	in_func_scope = true;
 
 	llvm::Function* func = nullptr;
@@ -592,8 +599,8 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	builder->SetInsertPoint(entrybb);
 
 	llvm::BasicBlock* exitbb = llvm::BasicBlock::Create(*context, "exit");
-	auto estmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::return_, exitbb));
-	flowable_stmts.push_back(estmt);
+	auto estmt = std::make_shared<StmtBranch>(StmtBranch(StmtBranchType::function, exitbb));
+	stmts_branch.push_back(estmt);
 
 	if (!func->getReturnType()->isVoidTy())
 	{
@@ -622,7 +629,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	func_pass_manager->run(*func);
 
 	in_func_scope = false;
-	flowable_stmts.clear();
+	stmts_branch.clear();
 	leave_scope();
 	return func;
 }

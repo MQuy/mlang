@@ -65,6 +65,9 @@
     <ClInclude Include="llvm\passes\unreachable_block_instruction_pass.h">
       <Filter>llvm\passes</Filter>
     </ClInclude>
+    <ClInclude Include="llvm\stmt_branch.h">
+      <Filter>llvm</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">

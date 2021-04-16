@@ -157,6 +157,7 @@
     <ClInclude Include="llvm\environment.h" />
     <ClInclude Include="llvm\ir.h" />
     <ClInclude Include="llvm\passes\unreachable_block_instruction_pass.h" />
+    <ClInclude Include="llvm\stmt_branch.h" />
     <ClInclude Include="llvm\translation_unit.h" />
     <ClInclude Include="preprocesssor\const_expr.h" />
     <ClInclude Include="preprocesssor\macro.h" />

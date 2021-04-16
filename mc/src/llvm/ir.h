@@ -5,7 +5,7 @@
 
 #include "ast/parser.h"
 #include "environment.h"
-#include "flowable_stmt.h"
+#include "stmt_branch.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Constants.h"
@@ -87,8 +87,8 @@ public:
 	void complete_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *nextbb);
 	void branch_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *truebb, llvm::BasicBlock *falsebb);
 	void activate_block(llvm::Function *func, llvm::BasicBlock *endbb);
-	std::shared_ptr<FlowableStmt> find_flowable_stmt(FlowableStmtType type);
-	void unwind_flowable_stmt(std::shared_ptr<FlowableStmt> block, bool self_included = true);
+	std::shared_ptr<StmtBranch> find_stmt_branch(StmtBranchType type);
+	void unwind_stmt_branch(std::shared_ptr<StmtBranch> block, bool self_included = true);
 	void enter_scope();
 	void leave_scope();
 
@@ -99,7 +99,7 @@ private:
 	std::unique_ptr<llvm::Module> module;
 	std::unique_ptr<llvm::IRBuilder<>> builder;
 	std::unique_ptr<llvm::legacy::FunctionPassManager> func_pass_manager;
-	std::vector<std::shared_ptr<FlowableStmt>> flowable_stmts;
+	std::vector<std::shared_ptr<StmtBranch>> stmts_branch;
 	bool in_func_scope;
 };
 

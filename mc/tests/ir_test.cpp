@@ -36,9 +36,9 @@ TEST(IR, demo)
 		"	int x = 10;\n"
 		"	switch (x) {\n"
 		"		case 10:\n"
-		"			11;\n"
-		"		case 20:\n"
-		"			return 22;\n"
+		"			return 1;\n"
+		"		default:\n"
+		"			return 2;\n"
 		"	}\n"
 		"	return x;\n"
 		"}");
