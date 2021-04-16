@@ -1,6 +1,7 @@
 #include "ir.h"
 
 #include "const_eval.h"
+#include "passes/unreachable_block_instruction_pass.h"
 
 /*
 - type
@@ -240,15 +241,14 @@ llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type
 
 void IR::init_pass_maanger()
 {
-	func_pass_manager->add(llvm::createInstructionCombiningPass());
-	func_pass_manager->add(llvm::createReassociatePass());
-	func_pass_manager->add(llvm::createGVNPass());
+	func_pass_manager->add(new UnreachableBlockInstructionPass());
 	func_pass_manager->add(llvm::createCFGSimplificationPass());
 	func_pass_manager->doInitialization();
 }
 
 std::string IR::generate()
 {
+	init_pass_maanger();
 	for (auto declaration : translation_unit.declarations)
 		declaration->accept(this);
 
