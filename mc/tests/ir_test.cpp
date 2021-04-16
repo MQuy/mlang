@@ -34,8 +34,12 @@ TEST(IR, demo)
 	std::string text = generate(
 		"int main() {\n"
 		"	int x = 10;\n"
-		"	for(int y = 10; y ; y)"
-		"		break;\n"
+		"	switch (x) {\n"
+		"		case 10:\n"
+		"			11;\n"
+		"		case 20:\n"
+		"			return 22;\n"
+		"	}\n"
 		"	return x;\n"
 		"}");
 }

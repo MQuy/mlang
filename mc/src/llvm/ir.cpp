@@ -361,17 +361,36 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 
 void* IR::visit_label_stmt(LabelStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	auto labelbb = llvm::BasicBlock::Create(*context, stmt->name->name);
+
+	builder->CreateBr(labelbb);
+	activate_block(func, labelbb);
+	stmt->stmt->accept(this);
+
+	return nullptr;
 }
 
 void* IR::visit_case_stmt(CaseStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	auto sstmt = std::static_pointer_cast<SwitchStmt>(find_flowable_stmt(FlowableStmtType::switch_));
+	assert(sstmt);
+
+	auto value = (llvm::ConstantInt*)stmt->constant->accept(this);
+	auto casebb = llvm::BasicBlock::Create(*context, "switch.case");
+	builder->CreateBr(casebb);
+	activate_block(func, casebb);
+
+	stmt->stmt->accept(this);
+	sstmt->inst->addCase(value, casebb);
+
+	return nullptr;
 }
 
 void* IR::visit_default_stmt(DefaultStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	return nullptr;
 }
 
 void* IR::visit_expr_stmt(ExprStmtAST* stmt)
@@ -418,7 +437,20 @@ void* IR::visit_if_stmt(IfStmtAST* stmt)
 
 void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	auto value = (llvm::Value*)stmt->expr->accept(this);
+	auto endbb = llvm::BasicBlock::Create(*context, "switch.exit");
+	auto switch_inst = builder->CreateSwitch(value, endbb, 2);
+
+	auto sstmt = std::make_shared<SwitchStmt>(SwitchStmt(switch_inst, endbb));
+	flowable_stmts.push_back(sstmt);
+
+	stmt->stmt->accept(this);
+
+	unwind_flowable_stmt(sstmt);
+	builder->CreateBr(endbb);
+	activate_block(func, endbb);
+	return nullptr;
 }
 
 void* IR::visit_for_stmt(ForStmtAST* stmt)
@@ -432,7 +464,7 @@ void* IR::visit_for_stmt(ForStmtAST* stmt)
 	llvm::BasicBlock* incrbb = llvm::BasicBlock::Create(*context, "for.incr");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "for.end");
 
-	auto fstmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::loop, endbb, incrbb));
+	auto fstmt = std::make_shared<LoopStmt>(LoopStmt(endbb, incrbb));
 	flowable_stmts.push_back(fstmt);
 	builder->CreateBr(condbb);
 
@@ -459,7 +491,7 @@ void* IR::visit_while_stmt(WhileStmtAST* stmt)
 	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "while.body");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "while.end");
 
-	auto fstmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::loop, endbb, condbb));
+	auto fstmt = std::make_shared<LoopStmt>(LoopStmt(endbb, condbb));
 	flowable_stmts.push_back(fstmt);
 	builder->CreateBr(condbb);
 
@@ -482,7 +514,7 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "dowhile.cond");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "dowhile.pend");
 
-	auto fstmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::loop, endbb, condbb));
+	auto fstmt = std::make_shared<LoopStmt>(LoopStmt(endbb, condbb));
 	flowable_stmts.push_back(fstmt);
 	builder->CreateBr(bodybb);
 
@@ -509,21 +541,19 @@ void* IR::visit_jump_stmt(JumpStmtAST* stmt)
 
 void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 {
-	auto fstmt = find_flowable_stmt(FlowableStmtType::loop);
-	assert(!fstmt);
+	auto fstmt = std::static_pointer_cast<LoopStmt>(find_flowable_stmt(FlowableStmtType::loop));
+	assert(fstmt);
 
 	builder->CreateBr(fstmt->nextbb);
-	unwind_flowable_stmt(fstmt, false);
 	return nullptr;
 }
 
 void* IR::visit_break_stmt(BreakStmtAST* stmt)
 {
 	auto fstmt = flowable_stmts.back();
-	assert(!fstmt);
+	assert(fstmt);
 
 	builder->CreateBr(fstmt->endbb);
-	unwind_flowable_stmt(fstmt);
 	return nullptr;
 }
 
@@ -536,6 +566,8 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 
 		builder->CreateStore(value, ret);
 	}
+	auto rstmt = find_flowable_stmt(FlowableStmtType::return_);
+	builder->CreateBr(rstmt->endbb);
 
 	return nullptr;
 }
@@ -556,8 +588,12 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		func = llvm::Function::Create(ftype, linkage, stmt->name->name, &*module);
 	}
 
-	llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", func);
-	builder->SetInsertPoint(bb);
+	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry", func);
+	builder->SetInsertPoint(entrybb);
+
+	llvm::BasicBlock* exitbb = llvm::BasicBlock::Create(*context, "exit");
+	auto estmt = std::make_shared<FlowableStmt>(FlowableStmt(FlowableStmtType::return_, exitbb));
+	flowable_stmts.push_back(estmt);
 
 	if (!func->getReturnType()->isVoidTy())
 	{
@@ -572,11 +608,16 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	}
 
 	stmt->body->accept(this);
+
+	builder->CreateBr(exitbb);
+	activate_block(func, exitbb);
+
 	if (!func->getReturnType()->isVoidTy())
 	{
 		auto retval = builder->CreateLoad(environment->lookup(LLVM_RETURN_NAME));
 		builder->CreateRet(retval);
 	}
+
 	llvm::verifyFunction(*func);
 	func_pass_manager->run(*func);
 

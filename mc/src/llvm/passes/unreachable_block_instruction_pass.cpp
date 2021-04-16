@@ -21,8 +21,10 @@ bool UnreachableBlockInstructionPass ::runOnFunction(llvm::Function& func)
 				inst = list.erase(inst);
 			else
 			{
-				auto valud_id = inst->getValueID();
-				if (valud_id == llvm::Value::InstructionVal + llvm::Instruction::Br || valud_id == llvm::Value::InstructionVal + llvm::Instruction::Ret)
+				auto value_id = inst->getValueID();
+				if (value_id == llvm::Value::InstructionVal + llvm::Instruction::Br
+					|| value_id == llvm::Value::InstructionVal + llvm::Instruction::Ret
+					|| value_id == llvm::Value::InstructionVal + llvm::Instruction::Switch)
 					deleted = true;
 				inst++;
 			}

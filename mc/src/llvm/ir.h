@@ -5,9 +5,9 @@
 
 #include "ast/parser.h"
 #include "environment.h"
+#include "flowable_stmt.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
@@ -23,26 +23,6 @@
 #include "translation_unit.h"
 
 #define LLVM_RETURN_NAME "__ret"
-
-enum class FlowableStmtType
-{
-	loop,
-	switch_,
-};
-
-struct FlowableStmt
-{
-	FlowableStmt(FlowableStmtType type, llvm::BasicBlock *endbb, llvm::BasicBlock *nextbb = nullptr)
-		: type(type)
-		, endbb(endbb)
-		, nextbb(nextbb)
-	{
-	}
-
-	FlowableStmtType type;
-	llvm::BasicBlock *endbb;
-	llvm::BasicBlock *nextbb;
-};
 
 class IR : NodeVisitor
 {
