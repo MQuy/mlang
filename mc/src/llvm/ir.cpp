@@ -188,49 +188,51 @@ void IR::leave_scope()
 	environment = environment->get_enclosing();
 }
 
-/*
-constant casting from integer to float/double or vice versa
-the sign of value doesn't matter since the action is performed at compile time
-*/
-llvm::Constant* IR::cast_constant(llvm::Constant* source, llvm::Type* dest_type)
+llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast)
 {
 	llvm::Instruction::CastOps inst = llvm::Instruction::BitCast;
-	auto source_type = source->getType();
 
-	if (source_type->isIntegerTy())
+	if (src_type_ast->isInteger())
 	{
-		auto value = ((llvm::ConstantInt*)source)->getValue();
-		auto layout = module->getDataLayout();
-
-		if (dest_type->isFloatTy() || dest_type->isDoubleTy() || dest_type->isFP128Ty())
-			inst = llvm::Instruction::SIToFP;
-		else if (layout.getTypeAllocSize(source_type) > layout.getTypeAllocSize(dest_type))
-			inst = llvm::Instruction::Trunc;
-		else
-			inst = llvm::Instruction::SExt;
+		if (dest_type_ast->isFloat() || dest_type_ast->isDouble() || dest_type_ast->isLongDouble())
+			inst = src_type_ast->isSignedInteger() ? llvm::Instruction::SIToFP : llvm::Instruction::UIToFP;
+		else if (dest_type_ast->isInteger())
+		{
+			auto sta = std::static_pointer_cast<BuiltinTypeAST>(src_type_ast);
+			auto dta = std::static_pointer_cast<BuiltinTypeAST>(dest_type_ast);
+			if (type_nbits[sta->name] > type_nbits[dta->name])
+				inst = llvm::Instruction::Trunc;
+			else
+				inst = src_type_ast->isSignedInteger() ? llvm::Instruction::SExt : llvm::Instruction::ZExt;
+		}
 	}
-	else if (source_type->isFloatTy())
+	else if (src_type_ast->isFloat())
 	{
-		if (dest_type->isFloatTy())
+		if (dest_type_ast->isFloat())
 			return source;
-		else if (dest_type->isDoubleTy())
+		else if (dest_type_ast->isDouble())
 			inst = llvm::Instruction::FPExt;
-		else if (dest_type->isIntegerTy())
+		else if (dest_type_ast->isSignedInteger())
 			inst = llvm::Instruction::FPToSI;
+		else if (dest_type_ast->isUnsignedInteger())
+			inst = llvm::Instruction::FPToUI;
 	}
-	else if (source_type->isDoubleTy())
+	else if (src_type_ast->isDouble())
 	{
-		if (dest_type->isDoubleTy())
+		if (dest_type_ast->isDouble())
 			return source;
-		if (dest_type->isFloatTy())
+		if (dest_type_ast->isFloat())
 			inst = llvm::Instruction::FPTrunc;
-		else if (dest_type->isIntegerTy())
+		else if (dest_type_ast->isSignedInteger())
 			inst = llvm::Instruction::FPToSI;
+		else if (dest_type_ast->isUnsignedInteger())
+			inst = llvm::Instruction::FPToUI;
 	}
 	else
 		assert_not_reached();
 
-	return (llvm::Constant*)builder->CreateCast(inst, source, dest_type);
+	auto dest_type = get_type(dest_type_ast);
+	return builder->CreateCast(inst, source, dest_type);
 }
 
 llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
@@ -326,7 +328,53 @@ void* IR::visit_identifier_expr(IdentifierExprAST* expr)
 
 void* IR::visit_binary_expr(BinaryExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	BinaryOperator binop = expr->op;
+	llvm::Value* left = (llvm::Value*)expr->left->accept(this);
+	llvm::Value* right = (llvm::Value*)expr->right->accept(this);
+
+	switch (binop)
+	{
+	case BinaryOperator::assignment:
+		/* code */
+		break;
+
+	case BinaryOperator::addition_assigment:
+	case BinaryOperator::subtraction_assignment:
+	case BinaryOperator::multiplication_assigment:
+	case BinaryOperator::division_assignment:
+	case BinaryOperator::remainder_assignment:
+	case BinaryOperator::bitwise_and_assigment:
+	case BinaryOperator::bitwise_or_assigment:
+	case BinaryOperator::bitwise_xor_assigment:
+	case BinaryOperator::shift_left_assignment:
+	case BinaryOperator::shift_right_assignment:
+	{
+		auto cright = cast_value(right, expr->right->type, expr->left->type);
+		llvm::Value* result;
+		if (binop == BinaryOperator::addition_assigment)
+			result = builder->CreateAdd(left, cright);
+		else if (binop == BinaryOperator::subtraction_assignment)
+			result = builder->CreateSub(left, cright);
+		else if (binop == BinaryOperator::multiplication_assigment)
+			result = builder->CreateMul(left, cright);
+		else if (binop == BinaryOperator::division_assignment)
+			if (left->getType()->isIntegerTy())
+				result = expr->right->type->isUnsignedInteger()
+							 ? builder->CreateUDiv(left, cright)
+							 : builder->CreateSDiv(left, cright);
+			else if (left->getType()->isFloatTy())
+				result = builder->CreateFDiv(left, cright);
+
+		auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr->left);
+		auto lvalue = environment->lookup(identifier->name->name);
+		builder->CreateStore(result, lvalue);
+		return result;
+	}
+
+	default:
+		break;
+	}
+	return nullptr;
 }
 
 void* IR::visit_unary_expr(UnaryExprAST* expr)
@@ -648,7 +696,8 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			if (expr)
 			{
 				auto value = (llvm::Value*)expr->accept(this);
-				builder->CreateStore(value, alloca);
+				auto cvalue = cast_value(value, expr->type, type);
+				builder->CreateStore(cvalue, alloca);
 			}
 		}
 		else
@@ -665,7 +714,7 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			if (expr)
 			{
 				auto value = (llvm::Constant*)expr->accept(this);
-				constant = cast_constant(value, ty);
+				constant = (llvm::Constant*)cast_value(value, expr->type, type);
 			}
 
 			auto global_variable = new llvm::GlobalVariable(*module, ty, is_constant, linkage, constant, token->name);

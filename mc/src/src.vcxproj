@@ -168,6 +168,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ast\parser.cpp" />
+    <ClCompile Include="ast\type.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="llvm\const_eval.cpp" />
     <ClCompile Include="llvm\environment.cpp" />

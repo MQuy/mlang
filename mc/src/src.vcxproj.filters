@@ -102,5 +102,8 @@
     <ClCompile Include="llvm\passes\unreachable_block_instruction_pass.cpp">
       <Filter>llvm\passes</Filter>
     </ClCompile>
+    <ClCompile Include="ast\type.cpp">
+      <Filter>ast</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

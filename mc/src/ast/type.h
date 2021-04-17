@@ -1,6 +1,7 @@
 #ifndef AST_TYPE_H
 #define AST_TYPE_H 1
 
+#define NBITS_BOOL 1
 #define NBITS_CHAR 8
 #define NBITS_SHORT 16
 #define NBITS_INT 32
@@ -136,6 +137,14 @@ public:
 	{
 	}
 	virtual void relate(std::shared_ptr<TypeAST> type) { assert_not_reached(); }
+
+	bool isInteger();
+	bool isSignedInteger();
+	bool isUnsignedInteger();
+	bool isFloat();
+	bool isDouble();
+	bool isLongDouble();
+	bool isPointer();
 
 	TypeKind kind;
 };
@@ -370,5 +379,9 @@ public:
 
 	ASTNodeType node_type;
 };
+
+void init_types();
+
+extern std::unordered_map<BuiltinTypeName, unsigned> type_nbits;
 
 #endif

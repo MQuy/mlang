@@ -5,7 +5,6 @@
 
 #include "ast/parser.h"
 #include "environment.h"
-#include "stmt_branch.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Constants.h"
@@ -20,6 +19,7 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "stmt_branch.h"
 #include "translation_unit.h"
 
 #define LLVM_RETURN_NAME "__ret"
@@ -79,7 +79,7 @@ public:
 	void *visit_declaration(DeclarationAST *stmt);
 
 	void init_pass_maanger();
-	llvm::Constant *cast_constant(llvm::Constant *source, llvm::Type *type);
+	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *create_bool_branch(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
 	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");

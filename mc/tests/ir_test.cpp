@@ -34,12 +34,8 @@ TEST(IR, demo)
 	std::string text = generate(
 		"int main() {\n"
 		"	int x = 10;\n"
-		"	switch (x) {\n"
-		"		case 10:\n"
-		"			return 1;\n"
-		"		default:\n"
-		"			return 2;\n"
-		"	}\n"
+		"	float y = 10.5;\n"
+		"	x += y;\n"
 		"	return x;\n"
 		"}");
 }
