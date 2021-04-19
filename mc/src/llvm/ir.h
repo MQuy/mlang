@@ -19,8 +19,8 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "semantic/translation_unit.h"
 #include "stmt_branch.h"
-#include "translation_unit.h"
 
 #define LLVM_RETURN_NAME "__ret"
 
@@ -29,7 +29,7 @@ class IR : NodeVisitor
 public:
 	IR(TranslationUnit translation_unit)
 		: translation_unit(translation_unit)
-		, environment(new Environment(nullptr))
+		, environment(new ValueEnvironment(nullptr))
 		, in_func_scope(false)
 	{
 		context = std::make_unique<llvm::LLVMContext>();
@@ -94,7 +94,7 @@ public:
 
 private:
 	TranslationUnit translation_unit;
-	Environment *environment;
+	ValueEnvironment *environment;
 	std::unique_ptr<llvm::LLVMContext> context;
 	std::unique_ptr<llvm::Module> module;
 	std::unique_ptr<llvm::IRBuilder<>> builder;

@@ -68,8 +68,7 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	}
 	else if (type_ast->kind == TypeKind::alias)
 	{
-		auto atype_ast = std::static_pointer_cast<AliasTypeAST>(type_ast);
-		auto stype_ast = translation_unit.types[atype_ast->name->name];
+		auto stype_ast = translation_unit.get_type(type_ast);
 		type = get_type(stype_ast);
 	}
 	else if (type_ast->kind == TypeKind::aggregate)
@@ -180,7 +179,7 @@ llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 
 void IR::enter_scope()
 {
-	environment = new Environment(environment);
+	environment = new ValueEnvironment(environment);
 }
 
 void IR::leave_scope()

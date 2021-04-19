@@ -5,10 +5,10 @@
 
 #include "llvm/IR/Instructions.h"
 
-class Environment
+class ValueEnvironment
 {
 public:
-	Environment(Environment *enclosing)
+	ValueEnvironment(ValueEnvironment *enclosing)
 		: symbols()
 		, enclosing(enclosing)
 	{
@@ -16,10 +16,10 @@ public:
 
 	llvm::Value *lookup(std::string name);
 	void define(std::string name, llvm::Value *value);
-	Environment *get_enclosing();
+	ValueEnvironment *get_enclosing();
 
 private:
-	Environment *enclosing;
+	ValueEnvironment *enclosing;
 	std::unordered_map<std::string, llvm::Value *> symbols;
 };
 

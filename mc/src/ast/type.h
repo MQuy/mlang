@@ -174,7 +174,7 @@ public:
 class PointerTypeAST : public TypeAST
 {
 public:
-	PointerTypeAST(std::shared_ptr<TypeAST> underlay, std::set<TypeQualifier> qualifiers)
+	PointerTypeAST(std::shared_ptr<TypeAST> underlay, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>())
 		: TypeAST(TypeKind::pointer)
 		, underlay(underlay)
 		, qualifiers(qualifiers)

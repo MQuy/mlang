@@ -16,6 +16,9 @@
     <Filter Include="llvm\passes">
       <UniqueIdentifier>{971bb805-fcaa-4e2b-8e5a-6ed612266eee}</UniqueIdentifier>
     </Filter>
+    <Filter Include="semantic">
+      <UniqueIdentifier>{b6c979ca-5c91-4b35-a1f7-1d5828a41bbc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scan\lexer.h">
@@ -59,14 +62,17 @@
     <ClInclude Include="llvm\environment.h">
       <Filter>llvm</Filter>
     </ClInclude>
-    <ClInclude Include="llvm\translation_unit.h">
-      <Filter>llvm</Filter>
-    </ClInclude>
     <ClInclude Include="llvm\passes\unreachable_block_instruction_pass.h">
       <Filter>llvm\passes</Filter>
     </ClInclude>
     <ClInclude Include="llvm\stmt_branch.h">
       <Filter>llvm</Filter>
+    </ClInclude>
+    <ClInclude Include="semantic\type_inference.h">
+      <Filter>semantic</Filter>
+    </ClInclude>
+    <ClInclude Include="semantic\translation_unit.h">
+      <Filter>semantic</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -96,14 +102,17 @@
     <ClCompile Include="llvm\environment.cpp">
       <Filter>llvm</Filter>
     </ClCompile>
-    <ClCompile Include="llvm\translation_unit.cpp">
-      <Filter>llvm</Filter>
-    </ClCompile>
     <ClCompile Include="llvm\passes\unreachable_block_instruction_pass.cpp">
       <Filter>llvm\passes</Filter>
     </ClCompile>
     <ClCompile Include="ast\type.cpp">
       <Filter>ast</Filter>
+    </ClCompile>
+    <ClCompile Include="semantic\type_inference.cpp">
+      <Filter>semantic</Filter>
+    </ClCompile>
+    <ClCompile Include="llvm\translation_unit.cpp">
+      <Filter>semantic</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
