@@ -34,10 +34,13 @@ public:
 	}
 	std::set<TypeQualifier> get_type_qualifiers(std::shared_ptr<TypeAST> type);
 	StorageSpecifier get_storage_specifier(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<TypeAST> unbox_type(std::shared_ptr<TypeAST> type);
 
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);
 	std::shared_ptr<TypeAST> get_type(std::string name);
+	void add_type(std::shared_ptr<TypeAST> type);
+	void add_type(std::string name, std::shared_ptr<TypeAST> type);
 
 	// struct or union -> aggregate::xxx
 	// alias -> same

@@ -292,7 +292,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 
 		parse_storage_or_qualifier();
-		return std::make_shared<AliasTypeAST>(AliasTypeAST(token_identifier));
+		return std::make_shared<AliasTypeAST>(AliasTypeAST(token_identifier, type_qualifiers, storage_specifier));
 	}
 	else
 		return nullptr;

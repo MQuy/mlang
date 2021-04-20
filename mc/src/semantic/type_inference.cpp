@@ -1,5 +1,15 @@
 #include "type_inference.h"
 
+void SemanticTypeInference::enter_scope()
+{
+	name_resolver = new NameResolver(name_resolver);
+}
+
+void SemanticTypeInference::leave_scope()
+{
+	name_resolver = name_resolver->get_enclosing();
+}
+
 TranslationUnit SemanticTypeInference::analyze()
 {
 	for (auto decl : translation_unit.declarations)
@@ -195,13 +205,134 @@ void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt)
 
 void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* stmt)
 {
+	in_func_scope = true;
+	enter_scope();
+
 	stmt->body->accept(this);
+
+	leave_scope();
+	in_func_scope = false;
 	return nullptr;
 }
 
 void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 {
+	auto type_defined = add_type_declaration(stmt->type);
+	resolve_type(stmt->type);
+
 	for (auto [name, type, expr] : stmt->declarators)
-		expr->accept(this);
+	{
+		if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
+		{
+			if (!type_defined)
+			{
+				auto utype = translation_unit.unbox_type(type);
+				type_defined = add_type_declaration(utype);
+			}
+			define_type(name->name, type);
+		}
+		else if (expr)
+			expr->accept(this);
+		resolve_type(type);
+	}
+
 	return nullptr;
 }
+
+// only for struct, union and enum
+bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::aggregate)
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		if (atype->members.size() > 0)
+		{
+			define_type(atype->name->name, type);
+			for (auto [mname, mtype] : atype->members)
+				add_type_declaration(mtype);
+			return true;
+		}
+	}
+	else if (type->kind == TypeKind::enum_)
+	{
+		auto atype = std::static_pointer_cast<EnumTypeAST>(type);
+		if (atype->members.size() > 0)
+		{
+			define_type(atype->name->name, type);
+			return true;
+		}
+	}
+	return false;
+}
+
+void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type)
+{
+	auto new_name = name_resolver->contain(name) ? name_resolver->unique_name(name) : name;
+	std::shared_ptr<TokenIdentifier> token_identifier;
+
+	if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
+		translation_unit.add_type(new_name, type);
+	else if (type->kind == TypeKind::aggregate)
+	{
+		token_identifier = std::static_pointer_cast<AggregateTypeAST>(type)->name;
+		token_identifier->name = new_name;
+		translation_unit.add_type(type);
+	}
+	else if (type->kind == TypeKind::enum_)
+	{
+		token_identifier = std::static_pointer_cast<EnumTypeAST>(type)->name;
+		token_identifier->name = new_name;
+		translation_unit.add_type(type);
+	}
+	else
+		assert_not_reached();
+
+	if (name == new_name)
+		name_resolver->define(name, name);
+	else
+	{
+		name_resolver->define(name, new_name);
+		name_resolver->define(new_name, new_name);
+	}
+}
+
+void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
+{
+	// don't need to resolve alias type since it is resolved at at line of declaration
+	if (type->kind == TypeKind::aggregate)
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		atype->name->name = name_resolver->get(atype->name->name);
+
+		for (auto [member_name, member_type] : atype->members)
+			resolve_type(member_type);
+	}
+	else if (type->kind == TypeKind::enum_)
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		atype->name->name = name_resolver->get(atype->name->name);
+	}
+	else if (type->kind == TypeKind::array)
+	{
+		auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
+		resolve_type(atype->underlay);
+	}
+	else if (type->kind == TypeKind::pointer)
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(type);
+		resolve_type(ptype->underlay);
+	}
+	else if (type->kind == TypeKind::function)
+	{
+		auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
+		resolve_type(ftype->returning);
+		for (auto [pname, ptype] : ftype->parameters)
+			resolve_type(ptype);
+	}
+}
+
+/*
+ir.cpp#visit_declaration
+- initialize type: create struct, union or enum if needed
+- later, transversing declaration's type, we simply get from context
+*/

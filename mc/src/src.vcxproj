@@ -158,6 +158,7 @@
     <ClInclude Include="llvm\ir.h" />
     <ClInclude Include="llvm\passes\unreachable_block_instruction_pass.h" />
     <ClInclude Include="llvm\stmt_branch.h" />
+    <ClInclude Include="semantic\name_resolver.h" />
     <ClInclude Include="semantic\translation_unit.h" />
     <ClInclude Include="preprocesssor\const_expr.h" />
     <ClInclude Include="preprocesssor\macro.h" />
@@ -175,12 +176,13 @@
     <ClCompile Include="llvm\environment.cpp" />
     <ClCompile Include="llvm\ir.cpp" />
     <ClCompile Include="llvm\passes\unreachable_block_instruction_pass.cpp" />
-    <ClCompile Include="llvm\translation_unit.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="preprocesssor\const_expr.cpp" />
     <ClCompile Include="preprocesssor\preprocessor.cpp" />
     <ClCompile Include="scan\lexer.cpp" />
     <ClCompile Include="scan\token.cpp" />
+    <ClCompile Include="semantic\name_resolver.cpp" />
+    <ClCompile Include="semantic\translation_unit.cpp" />
     <ClCompile Include="semantic\type_inference.cpp" />
   </ItemGroup>
   <ItemGroup>

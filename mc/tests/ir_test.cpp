@@ -8,6 +8,7 @@
 #include "ast/type.h"
 #include "gtest/gtest.h"
 #include "preprocesssor/preprocessor.h"
+#include "semantic/type_inference.h"
 #include "scan/lexer.h"
 
 std::string generate(std::string content)
@@ -24,7 +25,8 @@ std::string generate(std::string content)
 
 	Parser parser(preprocess.process());
 	auto declarations = parser.parse();
-	TranslationUnit translation_unit(declarations);
+	SemanticTypeInference type_inference(declarations);
+	auto translation_unit = type_inference.analyze();
 	IR ir(translation_unit);
 	return ir.generate();
 }
@@ -32,10 +34,10 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
+		"struct foo { int x, y; };\n"
 		"int main() {\n"
-		"	int x = 10;\n"
-		"	float y = 10.5;\n"
-		"	x += y;\n"
-		"	return x;\n"
+		"	struct foo { int x; } y;\n"
+		"	typedef struct foo baz;\n"
+		"   baz z;\n"
 		"}");
 }

@@ -204,13 +204,17 @@ public:
 class AliasTypeAST : public TypeAST
 {
 public:
-	AliasTypeAST(std::shared_ptr<TokenIdentifier> name)
+	AliasTypeAST(std::shared_ptr<TokenIdentifier> name, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), StorageSpecifier storage = StorageSpecifier::auto_)
 		: TypeAST(TypeKind::alias)
 		, name(name)
+		, qualifiers(qualifiers)
+		, storage(storage)
 	{
 	}
 
 	std::shared_ptr<TokenIdentifier> name;
+	StorageSpecifier storage;
+	std::set<TypeQualifier> qualifiers;
 };
 
 enum class AggregateKind

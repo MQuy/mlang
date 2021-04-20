@@ -62,8 +62,7 @@ StorageSpecifier TranslationUnit::get_storage_specifier(std::shared_ptr<TypeAST>
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto stype = types[atype->name->name];
-		return get_storage_specifier(stype);
+		return atype->storage;
 	}
 	else if (type->kind == TypeKind::aggregate)
 	{
@@ -84,13 +83,46 @@ StorageSpecifier TranslationUnit::get_storage_specifier(std::shared_ptr<TypeAST>
 		assert_not_reached();
 }
 
+std::shared_ptr<TypeAST> TranslationUnit::unbox_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin
+		|| type->kind == TypeKind::aggregate
+		|| type->kind == TypeKind::enum_)
+		return type;
+	else if (type->kind == TypeKind::pointer)
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(type);
+		return unbox_type(ptype->underlay);
+	}
+	else if (type->kind == TypeKind::array)
+	{
+		auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
+		return unbox_type(atype->underlay);
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto stype = types[atype->name->name];
+		return unbox_type(stype);
+	}
+	else if (type->kind == TypeKind::function)
+	{
+		auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
+		return unbox_type(ftype->returning);
+	}
+	else
+		assert_not_reached();
+}
+
 std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TypeAST> type_ast)
 {
 	std::string name;
 	if (type_ast->kind == TypeKind::alias)
 		name = std::static_pointer_cast<AliasTypeAST>(type_ast)->name->name;
 	else if (type_ast->kind == TypeKind::aggregate)
-		name = "aggregate::" + std::static_pointer_cast<AggregateTypeAST>(type_ast)->name->name;
+		name = "custom::" + std::static_pointer_cast<AggregateTypeAST>(type_ast)->name->name;
+	else if (type_ast->kind == TypeKind::enum_)
+		name = "custom::" + std::static_pointer_cast<EnumTypeAST>(type_ast)->name->name;
 
 	return get_type(name);
 }
@@ -140,4 +172,25 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(std::string name)
 	if (!type)
 		throw std::runtime_error(name + " doesn't not exist");
 	return type;
+}
+
+void TranslationUnit::add_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::aggregate)
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		types["custom::" + atype->name->name] = atype;
+	}
+	else if (type->kind == TypeKind::enum_)
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		types["custom::" + atype->name->name] = atype;
+	}
+	else
+		assert_not_reached();
+}
+
+void TranslationUnit::add_type(std::string name, std::shared_ptr<TypeAST> type)
+{
+	types[name] = type;
 }

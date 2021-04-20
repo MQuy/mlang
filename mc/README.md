@@ -25,5 +25,6 @@
 
 - replace const expressions (like initializer for static or file scope variables) with literals
 - throw exceptions if there is any invalid expression
+- type inference for every expression and add types to translation unit
 
 ### LLVM
