@@ -11,7 +11,7 @@ class SemanticTypeInference : NodeVisitor
 public:
 	SemanticTypeInference(std::vector<std::shared_ptr<ExternAST>> declarations)
 		: translation_unit(TranslationUnit(declarations))
-		, name_resolver(new TypeEnvironment(nullptr))
+		, environment(new TypeEnvironment(nullptr))
 	{
 	}
 
@@ -63,7 +63,7 @@ public:
 
 private:
 	TranslationUnit translation_unit;
-	TypeEnvironment *name_resolver;
+	TypeEnvironment *environment;
 };
 
 #endif

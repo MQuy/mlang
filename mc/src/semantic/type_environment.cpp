@@ -2,11 +2,10 @@
 
 bool TypeEnvironment::contain_type_name(std::string name)
 {
-	auto scope = this;
-	for (; scope; scope = scope->enclosing)
+	for (auto scope = this; scope; scope = scope->enclosing)
 	{
-		auto symbols = scope->type_names;
-		if (symbols.find(name) != symbols.end())
+		auto type_names = scope->type_names;
+		if (type_names.find(name) != type_names.end())
 			return true;
 	}
 	return false;
@@ -14,12 +13,11 @@ bool TypeEnvironment::contain_type_name(std::string name)
 
 std::string TypeEnvironment::get_type_name(std::string name)
 {
-	auto scope = this;
-	for (; scope; scope = scope->enclosing)
+	for (auto scope = this; scope; scope = scope->enclosing)
 	{
-		auto symbols = scope->type_names;
-		if (symbols.find(name) != symbols.end())
-			return symbols[name];
+		auto type_names = scope->type_names;
+		if (type_names.find(name) != type_names.end())
+			return type_names[name];
 	}
 	throw std::runtime_error(name + " doesn't exist");
 }
@@ -31,4 +29,16 @@ std::string TypeEnvironment::generate_type_name(std::string name)
 	else
 		duplicated_type_names[name] = 0;
 	return name + "." + std::to_string(duplicated_type_names[name]);
+}
+
+std::shared_ptr<TypeAST> TypeEnvironment::get_identifier_type(std::shared_ptr<TokenIdentifier> identifier)
+{
+	auto name = identifier->name;
+	for (auto scope = this; scope; scope = scope->enclosing)
+	{
+		auto variable_types = scope->identifier_types;
+		if (variable_types.find(name) != variable_types.end())
+			return variable_types[name];
+	}
+	throw std::runtime_error(name + " doesn't exist");
 }

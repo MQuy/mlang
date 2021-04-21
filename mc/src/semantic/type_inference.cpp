@@ -2,12 +2,12 @@
 
 void SemanticTypeInference::enter_scope()
 {
-	name_resolver = new TypeEnvironment(name_resolver);
+	environment = new TypeEnvironment(environment);
 }
 
 void SemanticTypeInference::leave_scope()
 {
-	name_resolver = name_resolver->get_enclosing();
+	environment = environment->get_enclosing();
 }
 
 TranslationUnit SemanticTypeInference::analyze()
@@ -85,7 +85,8 @@ void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<std::string>* exp
 
 void* SemanticTypeInference::visit_identifier_expr(IdentifierExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	expr->type = environment->get_identifier_type(expr->name);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
@@ -221,11 +222,12 @@ void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt)
 
 void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* stmt)
 {
-	enter_scope();
-
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
 	add_type_declaration(ftype->returning);
 	resolve_type(ftype);  // NOTE: MQ 2021-04-21 we don't support type definition in function parameters
+	environment->define_variable(stmt->name, ftype);
+
+	enter_scope();
 
 	stmt->body->accept(this);
 
@@ -249,8 +251,12 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 			}
 			define_type(name->name, type);
 		}
-		else if (expr)
-			expr->accept(this);
+		else
+		{
+			environment->define_variable(name, type);
+			if (expr)
+				expr->accept(this);
+		}
 		resolve_type(type);
 	}
 
@@ -285,7 +291,7 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 
 void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type)
 {
-	auto new_name = name_resolver->contain_type_name(name) ? name_resolver->generate_type_name(name) : name;
+	auto new_name = environment->contain_type_name(name) ? environment->generate_type_name(name) : name;
 	std::shared_ptr<TokenIdentifier> token_identifier;
 
 	if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
@@ -306,11 +312,11 @@ void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAS
 		assert_not_reached();
 
 	if (name == new_name)
-		name_resolver->define(name, name);
+		environment->define_type(name, name);
 	else
 	{
-		name_resolver->define(name, new_name);
-		name_resolver->define(new_name, new_name);
+		environment->define_type(name, new_name);
+		environment->define_type(new_name, new_name);
 	}
 }
 
@@ -320,7 +326,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 	if (type->kind == TypeKind::aggregate)
 	{
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
-		atype->name->name = name_resolver->get_type_name(atype->name->name);
+		atype->name->name = environment->get_type_name(atype->name->name);
 
 		for (auto [member_name, member_type] : atype->members)
 			resolve_type(member_type);
@@ -328,7 +334,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::enum_)
 	{
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
-		atype->name->name = name_resolver->get_type_name(atype->name->name);
+		atype->name->name = environment->get_type_name(atype->name->name);
 	}
 	else if (type->kind == TypeKind::array)
 	{
