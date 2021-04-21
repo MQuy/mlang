@@ -113,7 +113,6 @@ enum class UnaryOperator
 	dereference,  // *
 	address_of,	  // &
 
-	cast,
 	sizeof_,
 	alignof_,
 };
@@ -144,7 +143,10 @@ public:
 	bool isFloat();
 	bool isDouble();
 	bool isLongDouble();
+	bool isVoid();
 	bool isPointer();
+	bool isArithmetic();
+	bool isAggregate();
 
 	TypeKind kind;
 };

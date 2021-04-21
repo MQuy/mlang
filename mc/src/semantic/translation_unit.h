@@ -15,6 +15,7 @@ public:
 	TranslationUnit(std::vector<std::shared_ptr<ExternAST>> declarations = std::vector<std::shared_ptr<ExternAST>>())
 		: declarations(declarations)
 	{
+		types["void"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::void_, 0, 0);
 		types["_Bool"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::_Bool, NBITS_BOOL, NBITS_BOOL);
 		types["char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::char_, NBITS_CHAR, NBITS_CHAR);
 		types["unsigned char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::signed_char, NBITS_CHAR, NBITS_CHAR);
@@ -41,6 +42,8 @@ public:
 	std::shared_ptr<TypeAST> get_type(std::string name);
 	void add_type(std::shared_ptr<TypeAST> type);
 	void add_type(std::string name, std::shared_ptr<TypeAST> type);
+	std::shared_ptr<TypeAST> convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
+	std::shared_ptr<TypeAST> promote_integer(std::shared_ptr<TypeAST> type);
 
 	// struct or union -> aggregate::xxx
 	// alias -> same

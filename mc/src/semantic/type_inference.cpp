@@ -96,22 +96,88 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 
 void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	expr->expr->accept(this);
+
+	std::shared_ptr<TypeAST> expr_type = nullptr;
+	switch (expr->op)
+	{
+	case UnaryOperator::plus:
+	case UnaryOperator::minus:
+		expr_type = translation_unit.promote_integer(expr->expr->type);
+		break;
+
+	case UnaryOperator::postfix_increment:
+	case UnaryOperator::postfix_decrement:
+	case UnaryOperator::prefix_increment:
+	case UnaryOperator::prefix_decrement:
+	case UnaryOperator::complement:
+	case UnaryOperator::not_:
+		assert(expr->expr->type->isInteger());
+		expr_type = translation_unit.promote_integer(expr->expr->type);
+		break;
+
+	case UnaryOperator::dereference:
+	{
+		assert(expr->expr->type->isPointer());
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->expr->type);
+		expr_type = ptype->underlay;
+		break;
+	}
+
+	case UnaryOperator::address_of:
+		expr_type = std::make_shared<PointerTypeAST>(expr->expr->type);
+		break;
+
+	default:
+		assert_not_reached();
+	}
+
+	if (!expr_type)
+		throw std::runtime_error("cannot interfere type");
+	expr->type = expr_type;
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	expr->cond->accept(this);
+	expr->expr1->accept(this);
+	expr->expr2->accept(this);
+
+	auto expr1_type = expr->expr1->type;
+	auto expr2_type = expr->expr2->type;
+	std::shared_ptr<TypeAST> expr_type = nullptr;
+	if (expr1_type->isArithmetic() && expr2_type->isArithmetic())
+		expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
+	else if (expr1_type->kind == expr2_type->kind)
+	{
+		if (expr1_type->isAggregate()
+			&& std::static_pointer_cast<AggregateTypeAST>(expr1_type)->name->name
+				   == std::static_pointer_cast<AggregateTypeAST>(expr2_type)->name->name)
+			expr_type = expr1_type;
+		else if (expr1_type->isVoid() && expr2_type->isVoid())
+			expr_type = translation_unit.get_type("void");
+	}
+
+	if (!expr_type)
+		throw std::runtime_error("invalid type conversion");
+	expr->type = expr_type;
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	expr->object->accept(this);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	expr->callee->accept(this);
+	for (auto arg : expr->arguments)
+		arg->accept(this);
+
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)

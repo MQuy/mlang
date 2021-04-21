@@ -194,3 +194,54 @@ void TranslationUnit::add_type(std::string name, std::shared_ptr<TypeAST> type)
 {
 	types[name] = type;
 }
+
+std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+{
+	assert(type1->isAggregate() && type2->isAggregate());
+
+	auto btype1 = std::static_pointer_cast<BuiltinTypeAST>(type1);
+	auto btype2 = std::static_pointer_cast<BuiltinTypeAST>(type2);
+	if (btype1->name == btype2->name)
+		return btype1;
+	else if (btype1->isLongDouble() || btype2->isLongDouble())
+		return get_type("long double");
+	else if (btype1->isDouble() || btype2->isDouble())
+		return get_type("double");
+	else if (btype1->isFloat() || btype2->isFloat())
+		return get_type("float");
+	else if ((btype1->isSignedInteger() && btype2->isSignedInteger())
+			 || (btype1->isUnsignedInteger() && btype2->isUnsignedInteger()))
+		return type_nbits[btype1->name] > type_nbits[btype2->name] ? btype1 : btype2;
+	else
+	{
+		std::shared_ptr<BuiltinTypeAST> utype = nullptr;
+		std::shared_ptr<BuiltinTypeAST> stype = nullptr;
+		if (btype1->isUnsignedInteger())
+		{
+			utype = btype1;
+			stype = btype2;
+		}
+		else
+		{
+			utype = btype2;
+			stype = btype1;
+		}
+		if (type_nbits[utype->name] >= type_nbits[stype->name])
+			return utype;
+		else
+			return stype;
+	}
+}
+
+std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAST> type)
+{
+	assert(type->isArithmetic());
+
+	auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+	if (btype->isFloat() || btype->isDouble() || btype->isLongDouble())
+		return type;
+	else if (type_nbits[btype->name] < NBITS_INT || btype->name == BuiltinTypeName::int_)
+		return get_type("int");
+	else
+		return get_type("unsigned int");
+}

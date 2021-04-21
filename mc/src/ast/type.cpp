@@ -78,7 +78,22 @@ bool TypeAST::isLongDouble()
 	return kind == TypeKind::builtin && ((BuiltinTypeAST *)this)->name == BuiltinTypeName::long_double;
 }
 
+bool TypeAST::isVoid()
+{
+	return kind == TypeKind::builtin && ((BuiltinTypeAST *)this)->name == BuiltinTypeName::void_;
+}
+
 bool TypeAST::isPointer()
 {
 	return kind == TypeKind::pointer;
+}
+
+bool TypeAST::isArithmetic()
+{
+	return isInteger() || isFloat() || isDouble() || isLongDouble();
+}
+
+bool TypeAST::isAggregate()
+{
+	return kind == TypeKind::aggregate;
 }
