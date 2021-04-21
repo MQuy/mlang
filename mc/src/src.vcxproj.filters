@@ -59,9 +59,6 @@
     <ClInclude Include="llvm\const_eval.h">
       <Filter>llvm</Filter>
     </ClInclude>
-    <ClInclude Include="llvm\environment.h">
-      <Filter>llvm</Filter>
-    </ClInclude>
     <ClInclude Include="llvm\passes\unreachable_block_instruction_pass.h">
       <Filter>llvm\passes</Filter>
     </ClInclude>
@@ -74,7 +71,10 @@
     <ClInclude Include="semantic\translation_unit.h">
       <Filter>semantic</Filter>
     </ClInclude>
-    <ClInclude Include="semantic\name_resolver.h">
+    <ClInclude Include="llvm\value_environment.h">
+      <Filter>llvm</Filter>
+    </ClInclude>
+    <ClInclude Include="semantic\type_environment.h">
       <Filter>semantic</Filter>
     </ClInclude>
   </ItemGroup>
@@ -102,9 +102,6 @@
     <ClCompile Include="llvm\const_eval.cpp">
       <Filter>llvm</Filter>
     </ClCompile>
-    <ClCompile Include="llvm\environment.cpp">
-      <Filter>llvm</Filter>
-    </ClCompile>
     <ClCompile Include="llvm\passes\unreachable_block_instruction_pass.cpp">
       <Filter>llvm\passes</Filter>
     </ClCompile>
@@ -117,7 +114,10 @@
     <ClCompile Include="semantic\translation_unit.cpp">
       <Filter>semantic</Filter>
     </ClCompile>
-    <ClCompile Include="semantic\name_resolver.cpp">
+    <ClCompile Include="llvm\value_environment.cpp">
+      <Filter>llvm</Filter>
+    </ClCompile>
+    <ClCompile Include="semantic\type_environment.cpp">
       <Filter>semantic</Filter>
     </ClCompile>
   </ItemGroup>

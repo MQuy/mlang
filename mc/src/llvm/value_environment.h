@@ -1,5 +1,5 @@
-#ifndef LLVM_ENVIRONMENT_H
-#define LLVM_ENVIRONMENT_H 1
+#ifndef LLVM_VALUE_ENVIRONMENT_H
+#define LLVM_VALUE_ENVIRONMENT_H 1
 
 #include <unordered_map>
 

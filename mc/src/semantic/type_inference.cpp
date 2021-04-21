@@ -2,7 +2,7 @@
 
 void SemanticTypeInference::enter_scope()
 {
-	name_resolver = new NameResolver(name_resolver);
+	name_resolver = new TypeEnvironment(name_resolver);
 }
 
 void SemanticTypeInference::leave_scope()
@@ -19,57 +19,68 @@ TranslationUnit SemanticTypeInference::analyze()
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<int>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::int_).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::int_);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::long_).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::long_);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long long>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::long_long).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::long_long);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned int>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::unsigned_int).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_int);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned long>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::unsigned_long).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_long);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned long long>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::unsigned_long_long).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_long_long);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<float>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::float_).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::float_);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<double>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::double_).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::double_);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long double>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::long_double).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::long_double);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned char>* expr)
 {
-	return translation_unit.get_type(BuiltinTypeName::unsigned_char).get();
+	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_char);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<std::string>* expr)
 {
-	return translation_unit.get_type("const char *").get();
+	expr->type = translation_unit.get_type("const char *");
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_identifier_expr(IdentifierExprAST* expr)
@@ -104,7 +115,8 @@ void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
 
 void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)
 {
-	return expr->type.get();
+	resolve_type(expr->type);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_initializer_expr(InitializerExprAST* expr)
@@ -139,8 +151,12 @@ void* SemanticTypeInference::visit_expr_stmt(ExprStmtAST* stmt)
 
 void* SemanticTypeInference::visit_compound_stmt(CompoundStmtAST* stmt)
 {
+	enter_scope();
+
 	for (auto s : stmt->stmts)
 		s->accept(this);
+
+	leave_scope();
 	return nullptr;
 }
 
@@ -205,13 +221,15 @@ void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt)
 
 void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* stmt)
 {
-	in_func_scope = true;
 	enter_scope();
+
+	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
+	add_type_declaration(ftype->returning);
+	resolve_type(ftype);  // NOTE: MQ 2021-04-21 we don't support type definition in function parameters
 
 	stmt->body->accept(this);
 
 	leave_scope();
-	in_func_scope = false;
 	return nullptr;
 }
 
@@ -267,7 +285,7 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 
 void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type)
 {
-	auto new_name = name_resolver->contain(name) ? name_resolver->unique_name(name) : name;
+	auto new_name = name_resolver->contain_type_name(name) ? name_resolver->generate_type_name(name) : name;
 	std::shared_ptr<TokenIdentifier> token_identifier;
 
 	if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
@@ -302,7 +320,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 	if (type->kind == TypeKind::aggregate)
 	{
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
-		atype->name->name = name_resolver->get(atype->name->name);
+		atype->name->name = name_resolver->get_type_name(atype->name->name);
 
 		for (auto [member_name, member_type] : atype->members)
 			resolve_type(member_type);
@@ -310,7 +328,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::enum_)
 	{
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
-		atype->name->name = name_resolver->get(atype->name->name);
+		atype->name->name = name_resolver->get_type_name(atype->name->name);
 	}
 	else if (type->kind == TypeKind::array)
 	{

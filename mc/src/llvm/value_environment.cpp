@@ -1,4 +1,4 @@
-#include "environment.h"
+#include "value_environment.h"
 
 llvm::Value* ValueEnvironment::lookup(std::string name)
 {

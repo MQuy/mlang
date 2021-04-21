@@ -3,7 +3,7 @@
 
 #include "ast/expr.h"
 #include "ast/stmt.h"
-#include "name_resolver.h"
+#include "type_environment.h"
 #include "translation_unit.h"
 
 class SemanticTypeInference : NodeVisitor
@@ -11,8 +11,7 @@ class SemanticTypeInference : NodeVisitor
 public:
 	SemanticTypeInference(std::vector<std::shared_ptr<ExternAST>> declarations)
 		: translation_unit(TranslationUnit(declarations))
-		, in_func_scope(false)
-		, name_resolver(new NameResolver(nullptr))
+		, name_resolver(new TypeEnvironment(nullptr))
 	{
 	}
 
@@ -63,9 +62,8 @@ public:
 	void resolve_type(std::shared_ptr<TypeAST> type);
 
 private:
-	bool in_func_scope;
 	TranslationUnit translation_unit;
-	NameResolver *name_resolver;
+	TypeEnvironment *name_resolver;
 };
 
 #endif

@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "ast/parser.h"
-#include "environment.h"
+#include "value_environment.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Constants.h"
