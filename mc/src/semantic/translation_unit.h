@@ -53,11 +53,12 @@ public:
 	bool is_aggregate_type(std::shared_ptr<TypeAST> type);
 	bool is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	bool is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
-	bool is_null_pointer(std::shared_ptr<TypeAST> type);
+	bool is_null_pointer(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr);
 	bool is_void_pointer(std::shared_ptr<TypeAST> type);
 
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);
+	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TokenIdentifier> identifier);
 	std::shared_ptr<TypeAST> get_type(std::string name);
 	void add_type(std::shared_ptr<TypeAST> type);
 	void add_type(std::string name, std::shared_ptr<TypeAST> type);

@@ -174,6 +174,11 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(std::string name)
 	return type;
 }
 
+std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TokenIdentifier> identifier)
+{
+	return get_type(identifier->name);
+}
+
 void TranslationUnit::add_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::aggregate)
@@ -467,18 +472,82 @@ bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::s
 
 bool TranslationUnit::is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	assert_not_implemented();
+	if (type1->kind == type2->kind)
+	{
+		if (type1->kind == TypeKind::builtin)
+		{
+			auto btype1 = std::static_pointer_cast<BuiltinTypeAST>(type1);
+			auto btype2 = std::static_pointer_cast<BuiltinTypeAST>(type2);
+			return btype1->name == btype2->name;
+		}
+		else if (type1->kind == TypeKind::pointer)
+		{
+			auto ptype1 = std::static_pointer_cast<PointerTypeAST>(type1);
+			auto ptype2 = std::static_pointer_cast<PointerTypeAST>(type2);
+			return is_same_types(ptype1->underlay, ptype2->underlay);
+		}
+		else if (type1->kind == TypeKind::array)
+		{
+			auto atype1 = std::static_pointer_cast<ArrayTypeAST>(type1);
+			auto atype2 = std::static_pointer_cast<ArrayTypeAST>(type2);
+			return is_same_types(atype1->underlay, atype2->underlay);
+		}
+		else if (type1->kind == TypeKind::alias)
+		{
+			auto atype1 = std::static_pointer_cast<AliasTypeAST>(type1);
+			auto atype2 = std::static_pointer_cast<AliasTypeAST>(type2);
+			return is_same_types(get_type(atype1->name), get_type(atype2->name));
+		}
+		else if (type1->kind == TypeKind::aggregate)
+		{
+			auto atype1 = std::static_pointer_cast<AggregateTypeAST>(type1);
+			auto atype2 = std::static_pointer_cast<AggregateTypeAST>(type2);
+			return atype1->aggregate_kind == atype2->aggregate_kind && atype1->name->name == atype2->name->name;
+		}
+		else if (type1->kind == TypeKind::enum_)
+		{
+			auto etype1 = std::static_pointer_cast<EnumTypeAST>(type1);
+			auto etype2 = std::static_pointer_cast<EnumTypeAST>(type2);
+			return etype1->name == etype1->name;
+		}
+		else if (type1->kind == TypeKind::function)
+		{
+			auto ftype1 = std::static_pointer_cast<FunctionTypeAST>(type1);
+			auto ftype2 = std::static_pointer_cast<FunctionTypeAST>(type2);
+
+			if (ftype1->parameters.size() != ftype2->parameters.size())
+				return false;
+			for (auto i = 0; i < ftype1->parameters.size(); ++i)
+			{
+				auto ptype1 = std::get<1>(ftype1->parameters[i]);
+				auto ptype2 = std::get<1>(ftype2->parameters[i]);
+				if (!is_same_types(ptype1, ptype2))
+					return false;
+			}
+			return is_same_types(ftype1->returning, ftype2->returning);
+		}
+		else
+			assert_not_reached();
+	}
 	return false;
 }
 
-bool TranslationUnit::is_null_pointer(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_null_pointer(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr)
 {
-	assert_not_implemented();
+	if (is_integer_type(type) || is_void_pointer(type))
+	{
+		auto constant = std::dynamic_pointer_cast<LiteralExprAST<int>>(expr);
+		return constant && constant->value->value == 0;
+	}
 	return false;
 }
 
 bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
 {
-	assert_not_implemented();
+	if (type->kind == TypeKind::pointer)
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(type);
+		return is_void_type(ptype->underlay);
+	}
 	return false;
 }

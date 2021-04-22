@@ -336,9 +336,9 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 			expr_type = expr1_type;
 		else if (translation_unit.is_void_type(expr1_type) && translation_unit.is_void_type(expr2_type))
 			expr_type = translation_unit.get_type("void");
-		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type))
+		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type, expr->expr2))
 			expr_type = expr1_type;
-		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type))
+		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type, expr->expr2))
 			expr_type = expr2_type;
 		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type))
 			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
