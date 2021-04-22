@@ -246,6 +246,12 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 		return get_type("unsigned int");
 }
 
+std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+{
+	assert_not_implemented();
+	return nullptr;
+}
+
 bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind != TypeKind::builtin)
@@ -396,6 +402,16 @@ bool TranslationUnit::is_void_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
+bool TranslationUnit::is_real_type(std::shared_ptr<TypeAST> type)
+{
+	return is_integer_type(type) || is_real_float_type(type);
+}
+
+bool TranslationUnit::is_arithmetic_type(std::shared_ptr<TypeAST> type)
+{
+	return is_integer_type(type) || is_real_float_type(type);
+}
+
 bool TranslationUnit::is_pointer_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::pointer)
@@ -410,9 +426,9 @@ bool TranslationUnit::is_pointer_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_arithmetic_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_scalar_type(std::shared_ptr<TypeAST> type)
 {
-	return is_integer_type(type) || is_real_float_type(type);
+	return is_arithmetic_type(type) || is_pointer_type(type);
 }
 
 bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
@@ -427,4 +443,42 @@ bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
 	}
 	else
 		return false;
+}
+
+bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::array)
+		return true;
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_array_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+{
+	assert_not_implemented();
+	return false;
+}
+
+bool TranslationUnit::is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+{
+	assert_not_implemented();
+	return false;
+}
+
+bool TranslationUnit::is_null_pointer(std::shared_ptr<TypeAST> type)
+{
+	assert_not_implemented();
+	return false;
+}
+
+bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
+{
+	assert_not_implemented();
+	return false;
 }

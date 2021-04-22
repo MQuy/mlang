@@ -45,9 +45,16 @@ public:
 	bool is_double_type(std::shared_ptr<TypeAST> type);
 	bool is_long_double_type(std::shared_ptr<TypeAST> type);
 	bool is_void_type(std::shared_ptr<TypeAST> type);
-	bool is_pointer_type(std::shared_ptr<TypeAST> type);
+	bool is_real_type(std::shared_ptr<TypeAST> type);
 	bool is_arithmetic_type(std::shared_ptr<TypeAST> type);
+	bool is_pointer_type(std::shared_ptr<TypeAST> type);
+	bool is_scalar_type(std::shared_ptr<TypeAST> type);
+	bool is_array_type(std::shared_ptr<TypeAST> type);
 	bool is_aggregate_type(std::shared_ptr<TypeAST> type);
+	bool is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
+	bool is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
+	bool is_null_pointer(std::shared_ptr<TypeAST> type);
+	bool is_void_pointer(std::shared_ptr<TypeAST> type);
 
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);
@@ -56,6 +63,7 @@ public:
 	void add_type(std::string name, std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	std::shared_ptr<TypeAST> promote_integer(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<TypeAST> composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 
 	// struct or union -> aggregate::xxx
 	// alias -> same

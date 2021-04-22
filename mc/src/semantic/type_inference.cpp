@@ -97,8 +97,40 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	auto expr1_type = expr->left->type;
 	auto expr2_type = expr->right->type;
 	std::shared_ptr<TypeAST> expr_type = nullptr;
+
 	switch (expr->op)
 	{
+	case BinaryOperator::assignment:
+		expr_type = expr1_type;
+		break;
+
+	case BinaryOperator::addition_assigment:
+		assert((translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type)));
+		expr_type = expr1_type;
+		break;
+
+	case BinaryOperator::subtraction_assignment:
+		assert((translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
+			   || (translation_unit.is_pointer_type(expr1_type)
+				   && translation_unit.is_pointer_type(expr2_type)
+				   && translation_unit.is_compatible_types(expr1_type, expr2_type)));
+		expr_type = expr1_type;
+		break;
+
+	case BinaryOperator::multiplication_assigment:
+	case BinaryOperator::division_assignment:
+	case BinaryOperator::remainder_assignment:
+	case BinaryOperator::bitwise_and_assigment:
+	case BinaryOperator::bitwise_or_assigment:
+	case BinaryOperator::bitwise_xor_assigment:
+	case BinaryOperator::shift_left_assignment:
+	case BinaryOperator::shift_right_assignment:
+		assert(translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type));
+		expr_type = expr1_type;
+		break;
+
 	case BinaryOperator::addition:
 		if (translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
 			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
@@ -107,12 +139,126 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
 			expr_type = expr2_type;
 		else
-			throw std::runtime_error("invalid type conversion");
+			throw std::runtime_error("addition only supports both arithmetic types or pointer/integer");
+		break;
+
+	case BinaryOperator::subtraction:
+		if (translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
+		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
+			expr_type = expr1_type;
+		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
+			expr_type = expr2_type;
+		else if (translation_unit.is_pointer_type(expr1_type)
+				 && translation_unit.is_pointer_type(expr2_type)
+				 && translation_unit.is_compatible_types(expr1_type, expr2_type))
+			expr_type = translation_unit.get_type("long long");
+		else
+			throw std::runtime_error("subtraction only supports both arithmetic types, both pointers or pointer/integer");
+		break;
+
+	case BinaryOperator::multiplication:
+	case BinaryOperator::division:
+		assert(translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type));
+		expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
+		break;
+
+	case BinaryOperator::remainder:
+		assert(translation_unit.is_integer_type(expr1_type) && translation_unit.is_integer_type(expr2_type));
+		expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
+		break;
+
+	case BinaryOperator::bitwise_and:
+	case BinaryOperator::bitwise_or:
+	case BinaryOperator::bitwise_xor:
+		assert(translation_unit.is_integer_type(expr1_type) && translation_unit.is_integer_type(expr2_type));
+		expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
+		break;
+
+	case BinaryOperator::shift_left:
+	case BinaryOperator::shift_right:
+	{
+		assert(translation_unit.is_integer_type(expr1_type) && translation_unit.is_integer_type(expr2_type));
+		auto t1 = std::static_pointer_cast<BuiltinTypeAST>(translation_unit.promote_integer(expr1_type));
+		auto t2 = std::static_pointer_cast<BuiltinTypeAST>(translation_unit.promote_integer(expr2_type));
+
+		if (translation_unit.is_unsigned_integer_type(t1))
+			expr_type = t1;
+		else if (translation_unit.is_unsigned_integer_type(t2))
+			expr_type = t2;
+		else
+			expr_type = type_nbits[t1->name] >= type_nbits[t2->name] ? t1 : t2;
+		break;
+	}
+
+	case BinaryOperator::and_:
+	case BinaryOperator::or_:
+		assert(translation_unit.is_scalar_type(expr1_type) && translation_unit.is_scalar_type(expr2_type));
+		expr_type = translation_unit.get_type("int");
+		break;
+
+	case BinaryOperator::equal:
+	case BinaryOperator::not_equal:
+		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
+			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type)));
+		expr_type = translation_unit.get_type("int");
+		break;
+
+	case BinaryOperator::greater_than:
+	case BinaryOperator::greater_or_equal:
+	case BinaryOperator::less:
+	case BinaryOperator::less_or_equal:
+		assert((translation_unit.is_real_float_type(expr1_type) && translation_unit.is_real_float_type(expr2_type))
+			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type)));
+		expr_type = translation_unit.get_type("int");
+		break;
+
+	case BinaryOperator::array_subscript:
+	{
+		std::shared_ptr<PointerTypeAST> ptype = nullptr;
+		std::shared_ptr<BuiltinTypeAST> btype = nullptr;
+
+		if ((translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type)))
+		{
+			ptype = std::static_pointer_cast<PointerTypeAST>(expr1_type);
+			btype = std::static_pointer_cast<BuiltinTypeAST>(expr2_type);
+		}
+		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
+		{
+			ptype = std::static_pointer_cast<PointerTypeAST>(expr2_type);
+			btype = std::static_pointer_cast<BuiltinTypeAST>(expr1_type);
+		}
+
+		assert(ptype && btype);
+		expr_type = ptype->underlay;
+		break;
+	}
+
+	case BinaryOperator::member_access:
+	{
+		assert(translation_unit.is_aggregate_type(expr1_type));
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(expr1_type);
+		auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr->right);
+
+		for (auto [mname, mtype] : atype->members)
+			if (mname->name == identifier->name->name)
+			{
+				expr1_type = mtype;
+				break;
+			}
+		break;
+	}
+
+	case BinaryOperator::comma:
+		expr_type = expr2_type;
 		break;
 
 	default:
 		assert_not_reached();
 	}
+
+	if (!expr_type)
+		throw std::runtime_error("cannot interfere type from binary expression");
 
 	expr->type = expr_type;
 	return nullptr;
@@ -132,7 +278,7 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 		if (translation_unit.is_aggregate_type(expr->expr->type))
 			expr_type = translation_unit.promote_integer(expr->expr->type);
 		else if (translation_unit.is_pointer_type(expr->expr->type))
-			assert_not_implemented();
+			expr_type = expr->expr->type;
 		else
 			throw std::runtime_error("only integer, real float or pointer type is supported in increment/decrement");
 		break;
@@ -166,7 +312,7 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 	}
 
 	if (!expr_type)
-		throw std::runtime_error("cannot interfere type");
+		throw std::runtime_error("cannot interfere type from unary expression");
 	expr->type = expr_type;
 	return nullptr;
 }
@@ -190,8 +336,16 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 			expr_type = expr1_type;
 		else if (translation_unit.is_void_type(expr1_type) && translation_unit.is_void_type(expr2_type))
 			expr_type = translation_unit.get_type("void");
+		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type))
+			expr_type = expr1_type;
+		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type))
+			expr_type = expr2_type;
+		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type))
+			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
+		else if ((translation_unit.is_pointer_type(expr1_type) && translation_unit.is_void_pointer(expr2_type))
+				 || (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_void_pointer(expr1_type)))
+			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
 	}
-	// TODO: MQ 2021-04-22 Support pointer conversion
 
 	if (!expr_type)
 		throw std::runtime_error("invalid type conversion");
