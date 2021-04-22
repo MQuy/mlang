@@ -356,6 +356,22 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 {
 	expr->object->accept(this);
+
+	assert(translation_unit.is_aggregate_type(expr->object->type));
+	auto object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+	std::shared_ptr<TypeAST> expr_type = nullptr;
+	for (auto [mname, mtype] : object_type->members)
+	{
+		if (expr->member->name == mname->name)
+		{
+			expr_type = mtype;
+			break;
+		}
+	}
+
+	if (!expr_type)
+		throw std::runtime_error(expr->member->name + " doesn't exist");
+	expr->type = expr_type;
 	return nullptr;
 }
 
@@ -365,6 +381,11 @@ void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
 	for (auto arg : expr->arguments)
 		arg->accept(this);
 
+	assert(translation_unit.is_function_type(expr->callee->type));
+	std::shared_ptr<TypeAST> expr_type = translation_unit.get_function_return_type(expr->callee->type);
+	if (!expr_type)
+		throw std::runtime_error("function call type is not valid");
+	expr->type = expr_type;
 	return nullptr;
 }
 

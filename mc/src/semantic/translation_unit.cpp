@@ -179,6 +179,21 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TokenIdentifi
 	return get_type(identifier->name);
 }
 
+std::shared_ptr<TypeAST> TranslationUnit::get_function_return_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::function)
+	{
+		auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
+		return ftype->returning;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		return get_function_return_type(get_type(atype->name));
+	}
+	return nullptr;
+}
+
 void TranslationUnit::add_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::aggregate)
@@ -448,6 +463,16 @@ bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
 	}
 	else
 		return false;
+}
+
+bool TranslationUnit::is_function_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<PointerTypeAST>(type);
+		return is_function_type(atype->underlay);
+	}
+	return type->kind == TypeKind::function;
 }
 
 bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)

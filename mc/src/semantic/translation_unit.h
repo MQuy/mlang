@@ -51,6 +51,7 @@ public:
 	bool is_scalar_type(std::shared_ptr<TypeAST> type);
 	bool is_array_type(std::shared_ptr<TypeAST> type);
 	bool is_aggregate_type(std::shared_ptr<TypeAST> type);
+	bool is_function_type(std::shared_ptr<TypeAST> type);
 	bool is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	bool is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	bool is_null_pointer(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr);
@@ -60,6 +61,7 @@ public:
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TokenIdentifier> identifier);
 	std::shared_ptr<TypeAST> get_type(std::string name);
+	std::shared_ptr<TypeAST> get_function_return_type(std::shared_ptr<TypeAST> type);
 	void add_type(std::shared_ptr<TypeAST> type);
 	void add_type(std::string name, std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
