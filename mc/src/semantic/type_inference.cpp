@@ -91,7 +91,31 @@ void* SemanticTypeInference::visit_identifier_expr(IdentifierExprAST* expr)
 
 void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	expr->left->accept(this);
+	expr->right->accept(this);
+
+	auto expr1_type = expr->left->type;
+	auto expr2_type = expr->right->type;
+	std::shared_ptr<TypeAST> expr_type = nullptr;
+	switch (expr->op)
+	{
+	case BinaryOperator::addition:
+		if (translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
+		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
+			expr_type = expr1_type;
+		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
+			expr_type = expr2_type;
+		else
+			throw std::runtime_error("invalid type conversion");
+		break;
+
+	default:
+		assert_not_reached();
+	}
+
+	expr->type = expr_type;
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
@@ -101,24 +125,33 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 	std::shared_ptr<TypeAST> expr_type = nullptr;
 	switch (expr->op)
 	{
-	case UnaryOperator::plus:
-	case UnaryOperator::minus:
-		expr_type = translation_unit.promote_integer(expr->expr->type);
-		break;
-
 	case UnaryOperator::postfix_increment:
 	case UnaryOperator::postfix_decrement:
 	case UnaryOperator::prefix_increment:
 	case UnaryOperator::prefix_decrement:
+		if (translation_unit.is_aggregate_type(expr->expr->type))
+			expr_type = translation_unit.promote_integer(expr->expr->type);
+		else if (translation_unit.is_pointer_type(expr->expr->type))
+			assert_not_implemented();
+		else
+			throw std::runtime_error("only integer, real float or pointer type is supported in increment/decrement");
+		break;
+
+	case UnaryOperator::plus:
+	case UnaryOperator::minus:
+		assert(translation_unit.is_aggregate_type(expr->expr->type));
+		expr_type = translation_unit.promote_integer(expr->expr->type);
+		break;
+
 	case UnaryOperator::complement:
 	case UnaryOperator::not_:
-		assert(expr->expr->type->isInteger());
+		assert(translation_unit.is_integer_type(expr->expr->type));
 		expr_type = translation_unit.promote_integer(expr->expr->type);
 		break;
 
 	case UnaryOperator::dereference:
 	{
-		assert(expr->expr->type->isPointer());
+		assert(translation_unit.is_pointer_type(expr->expr->type));
 		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->expr->type);
 		expr_type = ptype->underlay;
 		break;
@@ -147,17 +180,18 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 	auto expr1_type = expr->expr1->type;
 	auto expr2_type = expr->expr2->type;
 	std::shared_ptr<TypeAST> expr_type = nullptr;
-	if (expr1_type->isArithmetic() && expr2_type->isArithmetic())
+	if (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 		expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
 	else if (expr1_type->kind == expr2_type->kind)
 	{
-		if (expr1_type->isAggregate()
+		if (translation_unit.is_aggregate_type(expr1_type)
 			&& std::static_pointer_cast<AggregateTypeAST>(expr1_type)->name->name
 				   == std::static_pointer_cast<AggregateTypeAST>(expr2_type)->name->name)
 			expr_type = expr1_type;
-		else if (expr1_type->isVoid() && expr2_type->isVoid())
+		else if (translation_unit.is_void_type(expr1_type) && translation_unit.is_void_type(expr2_type))
 			expr_type = translation_unit.get_type("void");
 	}
+	// TODO: MQ 2021-04-22 Support pointer conversion
 
 	if (!expr_type)
 		throw std::runtime_error("invalid type conversion");

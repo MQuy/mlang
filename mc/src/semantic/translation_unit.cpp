@@ -197,26 +197,26 @@ void TranslationUnit::add_type(std::string name, std::shared_ptr<TypeAST> type)
 
 std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	assert(type1->isAggregate() && type2->isAggregate());
+	assert(is_aggregate_type(type1) && is_aggregate_type(type2));
 
 	auto btype1 = std::static_pointer_cast<BuiltinTypeAST>(type1);
 	auto btype2 = std::static_pointer_cast<BuiltinTypeAST>(type2);
 	if (btype1->name == btype2->name)
 		return btype1;
-	else if (btype1->isLongDouble() || btype2->isLongDouble())
+	else if (is_long_double_type(btype1) || is_long_double_type(btype2))
 		return get_type("long double");
-	else if (btype1->isDouble() || btype2->isDouble())
+	else if (is_double_type(btype1) || is_double_type(btype2))
 		return get_type("double");
-	else if (btype1->isFloat() || btype2->isFloat())
+	else if (is_float_type(btype1) || is_float_type(btype2))
 		return get_type("float");
-	else if ((btype1->isSignedInteger() && btype2->isSignedInteger())
-			 || (btype1->isUnsignedInteger() && btype2->isUnsignedInteger()))
+	else if ((is_signed_integer_type(btype1) && is_signed_integer_type(btype2))
+			 || (is_unsigned_integer_type(btype1) && is_unsigned_integer_type(btype2)))
 		return type_nbits[btype1->name] > type_nbits[btype2->name] ? btype1 : btype2;
 	else
 	{
 		std::shared_ptr<BuiltinTypeAST> utype = nullptr;
 		std::shared_ptr<BuiltinTypeAST> stype = nullptr;
-		if (btype1->isUnsignedInteger())
+		if (is_unsigned_integer_type(btype1))
 		{
 			utype = btype1;
 			stype = btype2;
@@ -235,13 +235,196 @@ std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_pt
 
 std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAST> type)
 {
-	assert(type->isArithmetic());
+	assert(is_arithmetic_type(type));
 
 	auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
-	if (btype->isFloat() || btype->isDouble() || btype->isLongDouble())
+	if (is_real_float_type(btype))
 		return type;
 	else if (type_nbits[btype->name] < NBITS_INT || btype->name == BuiltinTypeName::int_)
 		return get_type("int");
 	else
 		return get_type("unsigned int");
+}
+
+bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind != TypeKind::builtin)
+		return false;
+	auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
+	return builtin_type->name == BuiltinTypeName::_Bool
+		   || builtin_type->name == BuiltinTypeName::char_
+		   || builtin_type->name == BuiltinTypeName::unsigned_char
+		   || builtin_type->name == BuiltinTypeName::signed_char
+		   || builtin_type->name == BuiltinTypeName::short_
+		   || builtin_type->name == BuiltinTypeName::unsigned_short
+		   || builtin_type->name == BuiltinTypeName::int_
+		   || builtin_type->name == BuiltinTypeName::unsigned_int
+		   || builtin_type->name == BuiltinTypeName::long_
+		   || builtin_type->name == BuiltinTypeName::unsigned_long
+		   || builtin_type->name == BuiltinTypeName::long_long
+		   || builtin_type->name == BuiltinTypeName::unsigned_long_long;
+}
+
+bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return builtin_type->name == BuiltinTypeName::char_
+			   || builtin_type->name == BuiltinTypeName::signed_char
+			   || builtin_type->name == BuiltinTypeName::short_
+			   || builtin_type->name == BuiltinTypeName::int_
+			   || builtin_type->name == BuiltinTypeName::long_
+			   || builtin_type->name == BuiltinTypeName::long_long;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_signed_integer_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_unsigned_integer_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return builtin_type->name == BuiltinTypeName::_Bool
+			   || builtin_type->name == BuiltinTypeName::unsigned_char
+			   || builtin_type->name == BuiltinTypeName::unsigned_short
+			   || builtin_type->name == BuiltinTypeName::unsigned_int
+			   || builtin_type->name == BuiltinTypeName::unsigned_long
+			   || builtin_type->name == BuiltinTypeName::unsigned_long_long;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_unsigned_integer_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_real_float_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return btype->name == BuiltinTypeName::float_
+			   || btype->name == BuiltinTypeName::double_
+			   || btype->name == BuiltinTypeName::long_double;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_real_float_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_float_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return btype->name == BuiltinTypeName::float_;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_float_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_double_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return btype->name == BuiltinTypeName::double_;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_double_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_long_double_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return btype->name == BuiltinTypeName::long_double;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_long_double_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_void_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::builtin)
+	{
+		auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return btype->name == BuiltinTypeName::void_;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_void_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_pointer_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::pointer)
+		return true;
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_pointer_type(original_type);
+	}
+	else
+		return false;
+}
+
+bool TranslationUnit::is_arithmetic_type(std::shared_ptr<TypeAST> type)
+{
+	return is_integer_type(type) || is_real_float_type(type);
+}
+
+bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::aggregate)
+		return true;
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_aggregate_type(original_type);
+	}
+	else
+		return false;
 }

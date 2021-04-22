@@ -18,6 +18,13 @@ struct EnumClassHash
 	{                                                  \
 		std::cout << __FILE__ << __LINE__ << __func__; \
 		assert(false);                                 \
-	} while (0);
+	} while (0)
+
+#define assert_not_implemented()                                                    \
+	do                                                                              \
+	{                                                                               \
+		std::cout << __FILE__ << __LINE__ << __func__ << " is not implemented yet"; \
+		assert(false);                                                              \
+	} while (0)
 
 #endif

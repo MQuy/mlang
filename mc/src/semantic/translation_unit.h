@@ -37,6 +37,18 @@ public:
 	StorageSpecifier get_storage_specifier(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> unbox_type(std::shared_ptr<TypeAST> type);
 
+	bool is_integer_type(std::shared_ptr<TypeAST> type);
+	bool is_signed_integer_type(std::shared_ptr<TypeAST> type);
+	bool is_unsigned_integer_type(std::shared_ptr<TypeAST> type);
+	bool is_real_float_type(std::shared_ptr<TypeAST> type);
+	bool is_float_type(std::shared_ptr<TypeAST> type);
+	bool is_double_type(std::shared_ptr<TypeAST> type);
+	bool is_long_double_type(std::shared_ptr<TypeAST> type);
+	bool is_void_type(std::shared_ptr<TypeAST> type);
+	bool is_pointer_type(std::shared_ptr<TypeAST> type);
+	bool is_arithmetic_type(std::shared_ptr<TypeAST> type);
+	bool is_aggregate_type(std::shared_ptr<TypeAST> type);
+
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);
 	std::shared_ptr<TypeAST> get_type(std::string name);

@@ -191,40 +191,40 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 {
 	llvm::Instruction::CastOps inst = llvm::Instruction::BitCast;
 
-	if (src_type_ast->isInteger())
+	if (translation_unit.is_integer_type(src_type_ast))
 	{
-		if (dest_type_ast->isFloat() || dest_type_ast->isDouble() || dest_type_ast->isLongDouble())
-			inst = src_type_ast->isSignedInteger() ? llvm::Instruction::SIToFP : llvm::Instruction::UIToFP;
-		else if (dest_type_ast->isInteger())
+		if (translation_unit.is_real_float_type(dest_type_ast))
+			inst = translation_unit.is_signed_integer_type(src_type_ast) ? llvm::Instruction::SIToFP : llvm::Instruction::UIToFP;
+		else if (translation_unit.is_integer_type(dest_type_ast))
 		{
 			auto sta = std::static_pointer_cast<BuiltinTypeAST>(src_type_ast);
 			auto dta = std::static_pointer_cast<BuiltinTypeAST>(dest_type_ast);
 			if (type_nbits[sta->name] > type_nbits[dta->name])
 				inst = llvm::Instruction::Trunc;
 			else
-				inst = src_type_ast->isSignedInteger() ? llvm::Instruction::SExt : llvm::Instruction::ZExt;
+				inst = translation_unit.is_signed_integer_type(src_type_ast) ? llvm::Instruction::SExt : llvm::Instruction::ZExt;
 		}
 	}
-	else if (src_type_ast->isFloat())
+	else if (translation_unit.is_float_type(src_type_ast))
 	{
-		if (dest_type_ast->isFloat())
+		if (translation_unit.is_float_type(dest_type_ast))
 			return source;
-		else if (dest_type_ast->isDouble())
+		else if (translation_unit.is_double_type(dest_type_ast))
 			inst = llvm::Instruction::FPExt;
-		else if (dest_type_ast->isSignedInteger())
+		else if (translation_unit.is_signed_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToSI;
-		else if (dest_type_ast->isUnsignedInteger())
+		else if (translation_unit.is_unsigned_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToUI;
 	}
-	else if (src_type_ast->isDouble())
+	else if (translation_unit.is_double_type(src_type_ast))
 	{
-		if (dest_type_ast->isDouble())
+		if (translation_unit.is_double_type(dest_type_ast))
 			return source;
-		if (dest_type_ast->isFloat())
+		if (translation_unit.is_float_type(dest_type_ast))
 			inst = llvm::Instruction::FPTrunc;
-		else if (dest_type_ast->isSignedInteger())
+		else if (translation_unit.is_signed_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToSI;
-		else if (dest_type_ast->isUnsignedInteger())
+		else if (translation_unit.is_unsigned_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToUI;
 	}
 	else
@@ -358,7 +358,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 			result = builder->CreateMul(left, cright);
 		else if (binop == BinaryOperator::division_assignment)
 			if (left->getType()->isIntegerTy())
-				result = expr->right->type->isUnsignedInteger()
+				result = translation_unit.is_unsigned_integer_type(expr->right->type)
 							 ? builder->CreateUDiv(left, cright)
 							 : builder->CreateSDiv(left, cright);
 			else if (left->getType()->isFloatTy())

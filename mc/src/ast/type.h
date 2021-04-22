@@ -137,17 +137,6 @@ public:
 	}
 	virtual void relate(std::shared_ptr<TypeAST> type) { assert_not_reached(); }
 
-	bool isInteger();
-	bool isSignedInteger();
-	bool isUnsignedInteger();
-	bool isFloat();
-	bool isDouble();
-	bool isLongDouble();
-	bool isVoid();
-	bool isPointer();
-	bool isArithmetic();
-	bool isAggregate();
-
 	TypeKind kind;
 };
 
