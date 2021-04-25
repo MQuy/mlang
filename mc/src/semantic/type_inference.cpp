@@ -105,13 +105,13 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 		break;
 
 	case BinaryOperator::addition_assigment:
-		assert((translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type)));
 		expr_type = expr1_type;
 		break;
 
 	case BinaryOperator::subtraction_assignment:
-		assert((translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type)
 				   && translation_unit.is_pointer_type(expr2_type)
@@ -132,7 +132,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 		break;
 
 	case BinaryOperator::addition:
-		if (translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+		if (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
 		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
 			expr_type = expr1_type;
@@ -143,7 +143,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 		break;
 
 	case BinaryOperator::subtraction:
-		if (translation_unit.is_aggregate_type(expr1_type) && translation_unit.is_aggregate_type(expr2_type))
+		if (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
 		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
 			expr_type = expr1_type;
@@ -629,9 +629,3 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 			resolve_type(ptype);
 	}
 }
-
-/*
-ir.cpp#visit_declaration
-- initialize type: create struct, union or enum if needed
-- later, transversing declaration's type, we simply get from context
-*/

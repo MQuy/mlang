@@ -34,10 +34,10 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
-		"struct foo { int x, y; };\n"
 		"int main() {\n"
-		"	struct foo { int x; } y;\n"
-		"	typedef struct foo baz;\n"
-		"   baz z;\n"
+		"	float x = 1 + 1;\n"
+		"	float y = x + 1;\n"
+		"   int z; z = y;\n"
+		"	return 10;\n"
 		"}");
 }

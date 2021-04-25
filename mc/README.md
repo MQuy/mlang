@@ -29,3 +29,5 @@
 - type inference for every expression and add types to translation unit
 
 ### LLVM
+
+- [ ] Support forward declaration

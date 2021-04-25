@@ -217,7 +217,7 @@ void TranslationUnit::add_type(std::string name, std::shared_ptr<TypeAST> type)
 
 std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	assert(is_aggregate_type(type1) && is_aggregate_type(type2));
+	assert(is_arithmetic_type(type1) && is_arithmetic_type(type2));
 
 	auto btype1 = std::static_pointer_cast<BuiltinTypeAST>(type1);
 	auto btype2 = std::static_pointer_cast<BuiltinTypeAST>(type2);

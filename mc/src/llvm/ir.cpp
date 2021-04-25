@@ -74,30 +74,35 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	else if (type_ast->kind == TypeKind::aggregate)
 	{
 		auto atype_ast = std::static_pointer_cast<AggregateTypeAST>(type_ast);
-		std::vector<llvm::Type*> members;
-		for (auto [aname, atype_ast] : atype_ast->members)
-		{
-			auto atype = get_type(atype_ast);
-			members.push_back(atype);
-		}
-
-		if (atype_ast->aggregate_kind == AggregateKind::union_)
-		{
-			llvm::Type* mtype = nullptr;
-			auto msize = 0;
-			for (auto member : members)
-			{
-				auto nsize = module->getDataLayout().getTypeAllocSize(member);
-				if (nsize > msize)
-				{
-					msize = nsize;
-					mtype = member;
-				}
-			}
-			type = llvm::StructType::create(*context, {mtype}, atype_ast->name->name);
-		}
+		if (auto ty = module->getTypeByName(atype_ast->name->name))
+			type = ty;
 		else
-			type = llvm::StructType::create(*context, members, atype_ast->name->name);
+		{
+			std::vector<llvm::Type*> members;
+			for (auto [aname, atype_ast] : atype_ast->members)
+			{
+				auto atype = get_type(atype_ast);
+				members.push_back(atype);
+			}
+
+			if (atype_ast->aggregate_kind == AggregateKind::union_)
+			{
+				llvm::Type* mtype = nullptr;
+				auto msize = 0;
+				for (auto member : members)
+				{
+					auto nsize = module->getDataLayout().getTypeAllocSize(member);
+					if (nsize > msize)
+					{
+						msize = nsize;
+						mtype = member;
+					}
+				}
+				type = llvm::StructType::create(*context, {mtype}, atype_ast->name->name);
+			}
+			else
+				type = llvm::StructType::create(*context, members, atype_ast->name->name);
+		}
 	}
 	else if (type_ast->kind == TypeKind::function)
 	{
@@ -185,6 +190,54 @@ void IR::enter_scope()
 void IR::leave_scope()
 {
 	environment = environment->get_enclosing();
+}
+
+llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value* left, llvm::Value* right)
+{
+	llvm::Value* result = nullptr;
+
+	// TODO: MQ 2021-04-25 Support pointer addition and substraction
+	if (op == BinaryOperator::addition)
+		if (translation_unit.is_integer_type(type))
+			result = builder->CreateAdd(left, right);
+		else
+			result = builder->CreateFAdd(left, right);
+	else if (op == BinaryOperator::subtraction)
+		if (translation_unit.is_integer_type(type))
+			result = builder->CreateSub(left, right);
+		else
+			result = builder->CreateFSub(left, right);
+	else if (op == BinaryOperator::multiplication)
+		if (translation_unit.is_integer_type(type))
+			result = builder->CreateMul(left, right);
+		else
+			result = builder->CreateFMul(left, right);
+	else if (op == BinaryOperator::division)
+		if (translation_unit.is_integer_type(type))
+			result = translation_unit.is_unsigned_integer_type(type)
+						 ? builder->CreateUDiv(left, right)
+						 : builder->CreateSDiv(left, right);
+		else
+			result = builder->CreateFDiv(left, right);
+	else if (op == BinaryOperator::remainder)
+		if (translation_unit.is_integer_type(type))
+			result = translation_unit.is_unsigned_integer_type(type)
+						 ? builder->CreateURem(left, right)
+						 : builder->CreateSRem(left, right);
+		else
+			result = builder->CreateFRem(left, right);
+
+	assert(result);
+	return result;
+}
+
+llvm::Value* IR::load_value(llvm::Value* source)
+{
+	if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
+		|| source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca)
+		return builder->CreateLoad(source);
+	else
+		return source;
 }
 
 llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast)
@@ -320,9 +373,7 @@ void* IR::visit_identifier_expr(IdentifierExprAST* expr)
 	llvm::Value* value = environment->lookup(expr->name->name);
 	if (!value)
 		throw std::runtime_error(expr->name->name + " doesn't exist");
-
-	assert(value->getValueID() == llvm::Value::ValueTy::GlobalVariableVal || value->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca);
-	return builder->CreateLoad(value);
+	return value;
 }
 
 void* IR::visit_binary_expr(BinaryExprAST* expr)
@@ -330,12 +381,19 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	BinaryOperator binop = expr->op;
 	llvm::Value* left = (llvm::Value*)expr->left->accept(this);
 	llvm::Value* right = (llvm::Value*)expr->right->accept(this);
+	llvm::Value* result = nullptr;
 
 	switch (binop)
 	{
 	case BinaryOperator::assignment:
-		/* code */
+	{
+		auto rvalue_right = load_value(right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->left->type);
+
+		builder->CreateStore(casted_rvalue_right, left);
+		result = casted_rvalue_right;
 		break;
+	}
 
 	case BinaryOperator::addition_assigment:
 	case BinaryOperator::subtraction_assignment:
@@ -348,32 +406,32 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::shift_left_assignment:
 	case BinaryOperator::shift_right_assignment:
 	{
-		auto cright = cast_value(right, expr->right->type, expr->left->type);
-		llvm::Value* result;
-		if (binop == BinaryOperator::addition_assigment)
-			result = builder->CreateAdd(left, cright);
-		else if (binop == BinaryOperator::subtraction_assignment)
-			result = builder->CreateSub(left, cright);
-		else if (binop == BinaryOperator::multiplication_assigment)
-			result = builder->CreateMul(left, cright);
-		else if (binop == BinaryOperator::division_assignment)
-			if (left->getType()->isIntegerTy())
-				result = translation_unit.is_unsigned_integer_type(expr->right->type)
-							 ? builder->CreateUDiv(left, cright)
-							 : builder->CreateSDiv(left, cright);
-			else if (left->getType()->isFloatTy())
-				result = builder->CreateFDiv(left, cright);
+		auto rvalue_right = load_value(right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->left->type);
+		auto rvalue_left = load_value(left);
 
-		auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr->left);
-		auto lvalue = environment->lookup(identifier->name->name);
-		builder->CreateStore(result, lvalue);
-		return result;
-	}
-
-	default:
+		result = execute_binop(binop, expr->type, rvalue_left, casted_rvalue_right);
+		builder->CreateStore(result, left);
 		break;
 	}
-	return nullptr;
+
+	case BinaryOperator::addition:
+	case BinaryOperator::subtraction:
+	case BinaryOperator::multiplication:
+	case BinaryOperator::division:
+	case BinaryOperator::remainder:
+	{
+		auto rvalue_left = load_value(left);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
+		auto rvalue_right = load_value(right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->type);
+		result = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
+		break;
+	}
+	}
+
+	assert(result);
+	return result;
 }
 
 void* IR::visit_unary_expr(UnaryExprAST* expr)

@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "ast/parser.h"
-#include "value_environment.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Constants.h"
@@ -21,6 +20,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "semantic/translation_unit.h"
 #include "stmt_branch.h"
+#include "value_environment.h"
 
 #define LLVM_RETURN_NAME "__ret"
 
@@ -79,6 +79,7 @@ public:
 	void *visit_declaration(DeclarationAST *stmt);
 
 	void init_pass_maanger();
+	llvm::Value *load_value(llvm::Value *source);
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *create_bool_branch(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
@@ -91,6 +92,7 @@ public:
 	void unwind_stmt_branch(std::shared_ptr<StmtBranch> block, bool self_included = true);
 	void enter_scope();
 	void leave_scope();
+	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value *left, llvm::Value *right);
 
 private:
 	TranslationUnit translation_unit;
