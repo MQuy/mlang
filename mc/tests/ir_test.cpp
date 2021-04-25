@@ -34,10 +34,7 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
-		"int main() {\n"
-		"	float x = 1 + 1;\n"
-		"	float y = x + 1;\n"
-		"   int z; z = y;\n"
-		"	return 10;\n"
+		"int average(int x, int y) {\n"
+		"	return (x + y) / 2;\n"
 		"}");
 }

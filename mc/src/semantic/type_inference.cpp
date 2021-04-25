@@ -502,6 +502,9 @@ void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* st
 	resolve_type(ftype);  // NOTE: MQ 2021-04-21 we don't support type definition in function parameters
 	environment->define_variable(stmt->name, ftype);
 
+	for (auto [pname, ptype] : ftype->parameters)
+		environment->define_variable(pname, ptype);
+
 	enter_scope();
 
 	stmt->body->accept(this);

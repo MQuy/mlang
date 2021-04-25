@@ -175,7 +175,7 @@ llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 	if (type->isIntegerTy())
 		return builder->CreateICmpNE(source, llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0)), name);
 	else if (type->isFloatTy())
-		return builder->CreateICmpNE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
+		return builder->CreateFCmpUNE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
 	else if (type->isPointerTy())
 		return builder->CreateIsNull(source);
 	else
@@ -226,6 +226,18 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 						 : builder->CreateSRem(left, right);
 		else
 			result = builder->CreateFRem(left, right);
+	else if (op == BinaryOperator::bitwise_and)
+		result = builder->CreateAnd(left, right);
+	else if (op == BinaryOperator::bitwise_or)
+		result = builder->CreateOr(left, right);
+	else if (op == BinaryOperator::bitwise_xor)
+		result = builder->CreateXor(left, right);
+	else if (op == BinaryOperator::shift_left)
+		result = builder->CreateShl(left, right);
+	else if (op == BinaryOperator::shift_right)
+		result = translation_unit.is_signed_integer_type(type)
+					 ? builder->CreateAShr(left, right)
+					 : builder->CreateLShr(left, right);
 
 	assert(result);
 	return result;
@@ -300,6 +312,49 @@ void IR::init_pass_maanger()
 	func_pass_manager->doInitialization();
 }
 
+void IR::emit_object_file()
+{
+	llvm::InitializeAllTargetInfos();
+	llvm::InitializeAllTargets();
+	llvm::InitializeAllTargetMCs();
+	llvm::InitializeAllAsmParsers();
+	llvm::InitializeAllAsmPrinters();
+
+	auto target_triple = llvm::sys::getDefaultTargetTriple();
+	module->setTargetTriple(target_triple);
+
+	std::string error;
+	auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+
+	if (!target)
+		throw std::runtime_error(error);
+
+	auto cpu = "generic";
+	auto features = "";
+
+	llvm::TargetOptions opt;
+	auto rm = llvm::Optional<llvm::Reloc::Model>();
+	auto target_machine = target->createTargetMachine(target_triple, cpu, features, opt, rm);
+
+	module->setDataLayout(target_machine->createDataLayout());
+
+	auto filename = "output.o";
+	std::error_code ec;
+	llvm::raw_fd_ostream dest(filename, ec, llvm::sys::fs::OF_None);
+
+	if (ec)
+		throw std::runtime_error("Could not open file: " + ec.message());
+
+	llvm::legacy::PassManager pass;
+	auto filetype = llvm::CGFT_ObjectFile;
+
+	if (target_machine->addPassesToEmitFile(pass, dest, nullptr, filetype))
+		throw std::runtime_error("the target machine can't emit a file of this type");
+
+	pass.run(*module);
+	dest.flush();
+}
+
 std::string IR::generate()
 {
 	init_pass_maanger();
@@ -309,7 +364,10 @@ std::string IR::generate()
 	std::string str;
 	llvm::raw_string_ostream ros(str);
 	module->print(ros, nullptr);
-	return ros.str();
+
+	emit_object_file();
+
+	return str;
 }
 
 void* IR::visit_literal_expr(LiteralExprAST<int>* expr)
@@ -420,6 +478,11 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::multiplication:
 	case BinaryOperator::division:
 	case BinaryOperator::remainder:
+	case BinaryOperator::bitwise_and:
+	case BinaryOperator::bitwise_or:
+	case BinaryOperator::bitwise_xor:
+	case BinaryOperator::shift_left:
+	case BinaryOperator::shift_right:
 	{
 		auto rvalue_left = load_value(left);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
@@ -698,6 +761,10 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
 		auto linkage = get_linkage_type(storage);
 		func = llvm::Function::Create(ftype, linkage, stmt->name->name, &*module);
+
+		unsigned idx = 0;
+		for (auto& arg : func->args())
+			arg.setName(std::get<0>(ftype_ast->parameters[idx++])->name);
 	}
 
 	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry", func);
