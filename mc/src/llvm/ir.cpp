@@ -198,34 +198,44 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 
 	// TODO: MQ 2021-04-25 Support pointer addition and substraction
 	if (op == BinaryOperator::addition)
+	{
 		if (translation_unit.is_integer_type(type))
-			result = builder->CreateAdd(left, right);
+			result = builder->CreateAdd(left, right, "", false, translation_unit.is_signed_integer_type(type));
 		else
 			result = builder->CreateFAdd(left, right);
+	}
 	else if (op == BinaryOperator::subtraction)
+	{
 		if (translation_unit.is_integer_type(type))
-			result = builder->CreateSub(left, right);
+			result = builder->CreateSub(left, right, "", false, translation_unit.is_signed_integer_type(type));
 		else
 			result = builder->CreateFSub(left, right);
+	}
 	else if (op == BinaryOperator::multiplication)
+	{
 		if (translation_unit.is_integer_type(type))
 			result = builder->CreateMul(left, right);
 		else
 			result = builder->CreateFMul(left, right);
+	}
 	else if (op == BinaryOperator::division)
+	{
 		if (translation_unit.is_integer_type(type))
 			result = translation_unit.is_unsigned_integer_type(type)
 						 ? builder->CreateUDiv(left, right)
 						 : builder->CreateSDiv(left, right);
 		else
 			result = builder->CreateFDiv(left, right);
+	}
 	else if (op == BinaryOperator::remainder)
+	{
 		if (translation_unit.is_integer_type(type))
 			result = translation_unit.is_unsigned_integer_type(type)
 						 ? builder->CreateURem(left, right)
 						 : builder->CreateSRem(left, right);
 		else
 			result = builder->CreateFRem(left, right);
+	}
 	else if (op == BinaryOperator::bitwise_and)
 		result = builder->CreateAnd(left, right);
 	else if (op == BinaryOperator::bitwise_or)
@@ -238,6 +248,20 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 		result = translation_unit.is_signed_integer_type(type)
 					 ? builder->CreateAShr(left, right)
 					 : builder->CreateLShr(left, right);
+	else if (op == BinaryOperator::equal)
+	{
+		if (translation_unit.is_integer_type(type) || translation_unit.is_pointer_type(type))
+			result = builder->CreateICmpEQ(left, right);
+		else if (translation_unit.is_real_float_type(type))
+			result = builder->CreateFCmpUEQ(left, right);
+	}
+	else if (op == BinaryOperator::not_equal)
+	{
+		if (translation_unit.is_integer_type(type) || translation_unit.is_pointer_type(type))
+			result = builder->CreateICmpNE(left, right);
+		else if (translation_unit.is_real_float_type(type))
+			result = builder->CreateFCmpUNE(left, right);
+	}
 
 	assert(result);
 	return result;
@@ -483,6 +507,8 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::bitwise_xor:
 	case BinaryOperator::shift_left:
 	case BinaryOperator::shift_right:
+	case BinaryOperator::equal:
+	case BinaryOperator::not_equal:
 	{
 		auto rvalue_left = load_value(left);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
@@ -499,7 +525,52 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 
 void* IR::visit_unary_expr(UnaryExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	UnaryOperator unaryop = expr->op;
+	llvm::Value* expr1 = expr->expr ? (llvm::Value*)expr->expr->accept(this) : nullptr;
+	llvm::Value* result = nullptr;
+
+	switch (unaryop)
+	{
+	case UnaryOperator::plus:
+		result = load_value(expr1);
+		break;
+
+	case UnaryOperator::minus:
+	{
+		auto rvalue_left = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0, true)),
+									  translation_unit.get_type("int"),
+									  expr->type);
+		auto rvalue_right = load_value(expr1);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->expr->type, expr->type);
+		result = execute_binop(BinaryOperator::subtraction, expr->type, rvalue_left, casted_rvalue_right);
+		break;
+	}
+
+	case UnaryOperator::complement:
+	{
+		auto rvalue_left = load_value(expr1);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr->type);
+		auto rvalue_right = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, -1, true)),
+									   translation_unit.get_type("int"),
+									   expr->type);
+		result = execute_binop(BinaryOperator::bitwise_xor, expr->type, casted_rvalue_left, rvalue_right);
+		break;
+	}
+
+	case UnaryOperator::not_:
+	{
+		auto rvalue_left = load_value(expr1);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr->type);
+		auto rvalue_right = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0, true)),
+									   translation_unit.get_type("int"),
+									   expr->type);
+		result = execute_binop(BinaryOperator::equal, expr->type, casted_rvalue_left, rvalue_right);
+		break;
+	}
+	}
+
+	assert(result);
+	return result;
 }
 
 void* IR::visit_tenary_expr(TenaryExprAST* expr)

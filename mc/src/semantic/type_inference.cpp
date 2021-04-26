@@ -266,7 +266,8 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 
 void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 {
-	expr->expr->accept(this);
+	if (expr->expr)
+		expr->expr->accept(this);
 
 	std::shared_ptr<TypeAST> expr_type = nullptr;
 	switch (expr->op)
@@ -275,7 +276,7 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 	case UnaryOperator::postfix_decrement:
 	case UnaryOperator::prefix_increment:
 	case UnaryOperator::prefix_decrement:
-		if (translation_unit.is_aggregate_type(expr->expr->type))
+		if (translation_unit.is_arithmetic_type(expr->expr->type))
 			expr_type = translation_unit.promote_integer(expr->expr->type);
 		else if (translation_unit.is_pointer_type(expr->expr->type))
 			expr_type = expr->expr->type;
@@ -285,7 +286,7 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 
 	case UnaryOperator::plus:
 	case UnaryOperator::minus:
-		assert(translation_unit.is_aggregate_type(expr->expr->type));
+		assert(translation_unit.is_arithmetic_type(expr->expr->type));
 		expr_type = translation_unit.promote_integer(expr->expr->type);
 		break;
 
