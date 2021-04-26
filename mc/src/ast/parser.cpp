@@ -982,10 +982,9 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 		if (match(TokenName::tk_left_paren))
 		{
 			auto type = parse_declaration_specifiers(false);
-			// TODO: MQ 2021-04-04 in semantic stage, we need to decide whether type is alias type or identifier
 			if (type != nullptr)
 			{
-				expr = std::make_shared<UnaryExprAST>(UnaryExprAST(nullptr, UnaryOperator::sizeof_));
+				expr = std::make_shared<SizeOfExprAST>(SizeOfExprAST(type, nullptr));
 				match(TokenName::tk_right_paren, true);
 				expr->type = type;
 				return expr;
@@ -995,7 +994,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 		}
 
 		auto expr1 = parse_unary_expr();
-		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, UnaryOperator::sizeof_));
+		expr = std::make_shared<SizeOfExprAST>(SizeOfExprAST(nullptr, expr1));
 	}
 	else
 		expr = parse_postfix_expr();

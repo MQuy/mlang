@@ -168,10 +168,7 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(BuiltinTypeName name)
 
 std::shared_ptr<TypeAST> TranslationUnit::get_type(std::string name)
 {
-	auto type = types[name];
-	if (!type)
-		throw std::runtime_error(name + " doesn't not exist");
-	return type;
+	return types[name];
 }
 
 std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TokenIdentifier> identifier)

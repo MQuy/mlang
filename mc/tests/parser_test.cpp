@@ -1299,12 +1299,11 @@ TEST(ASTExtern, FunctionDefinition_SizeOfTypeExpr)
 	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
 	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
 
-	auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
-	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
-	ASSERT_EQ(expr1->op, UnaryOperator::sizeof_);
+	auto expr1 = std::static_pointer_cast<SizeOfExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_sizeof);
 	ASSERT_EQ(expr1->expr, nullptr);
 
-	auto expr1_type = std::static_pointer_cast<BuiltinTypeAST>(expr1->type);
+	auto expr1_type = std::static_pointer_cast<BuiltinTypeAST>(expr1->size_of_type);
 	ASSERT_EQ(expr1_type->kind, TypeKind::builtin);
 	ASSERT_EQ(expr1_type->name, BuiltinTypeName::int_);
 	ASSERT_EQ(expr1_type->qualifiers.size(), 0);
@@ -1322,12 +1321,11 @@ TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierGroupExpr)
 	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
 	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
 
-	auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
-	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
-	ASSERT_EQ(expr1->op, UnaryOperator::sizeof_);
+	auto expr1 = std::static_pointer_cast<SizeOfExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_sizeof);
 	ASSERT_EQ(expr1->expr, nullptr);
 
-	auto expr1_type = std::static_pointer_cast<AliasTypeAST>(expr1->type);
+	auto expr1_type = std::static_pointer_cast<AliasTypeAST>(expr1->size_of_type);
 	ASSERT_EQ(expr1_type->kind, TypeKind::alias);
 	ASSERT_EQ(expr1_type->name->lexeme, "x");
 }
@@ -1343,9 +1341,8 @@ TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierExpr)
 	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
 	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
 
-	auto expr1 = std::static_pointer_cast<UnaryExprAST>(stmt1->expr);
-	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_unary);
-	ASSERT_EQ(expr1->op, UnaryOperator::sizeof_);
+	auto expr1 = std::static_pointer_cast<SizeOfExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_sizeof);
 	ASSERT_EQ(expr1->type, nullptr);
 
 	auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr1->expr);

@@ -35,7 +35,7 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	int x = 10;\n"
-		"	int y = sizeof(int);\n"
+		"	double x = 10;\n"
+		"	int y = sizeof(x);\n"
 		"}");
 }

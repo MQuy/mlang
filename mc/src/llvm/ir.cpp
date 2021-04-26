@@ -526,7 +526,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 void* IR::visit_unary_expr(UnaryExprAST* expr)
 {
 	UnaryOperator unaryop = expr->op;
-	llvm::Value* expr1 = expr->expr ? (llvm::Value*)expr->expr->accept(this) : nullptr;
+	llvm::Value* expr1 = (llvm::Value*)expr->expr->accept(this);
 	llvm::Value* result = nullptr;
 
 	switch (unaryop)
@@ -591,6 +591,15 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 {
 	throw std::runtime_error("not implemented yet");
+}
+
+void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
+{
+	std::shared_ptr<TypeAST> type = expr->expr ? expr->expr->type : expr->size_of_type;
+	auto ty = get_type(type);
+	auto typesize = module->getDataLayout().getTypeAllocSize(ty);
+
+	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, typesize, true));
 }
 
 void* IR::visit_initializer_expr(InitializerExprAST* expr)

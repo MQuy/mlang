@@ -155,6 +155,21 @@ public:
 	std::shared_ptr<ExprAST> expr;
 };
 
+class SizeOfExprAST : public ExprAST
+{
+public:
+	SizeOfExprAST(std::shared_ptr<TypeAST> size_of_type, std::shared_ptr<ExprAST> expr)
+		: ExprAST(ASTNodeType::expr_sizeof, nullptr)
+		, expr(expr)
+		, size_of_type(size_of_type)
+	{
+	}
+	void *accept(NodeVisitor *visitor) { return visitor->visit_sizeof_expr(this); }
+
+	std::shared_ptr<ExprAST> expr;
+	std::shared_ptr<TypeAST> size_of_type;
+};
+
 class InitializerExprAST : public ExprAST
 {
 public:
