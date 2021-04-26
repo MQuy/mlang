@@ -1350,6 +1350,27 @@ TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierExpr)
 	ASSERT_EQ(identifier->name->lexeme, "x");
 }
 
+TEST(ASTExtern, FunctionDefinition_AlignOfTypeExpr)
+{
+	auto program = parse(
+		"void foo() {\n"
+		"	_Alignof(int);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto expr1 = std::static_pointer_cast<AlignOfExprAST>(stmt1->expr);
+	ASSERT_EQ(expr1->node_type, ASTNodeType::expr_alignof);
+
+	auto expr1_type = std::static_pointer_cast<BuiltinTypeAST>(expr1->align_of_type);
+	ASSERT_EQ(expr1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(expr1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(expr1_type->qualifiers.size(), 0);
+	ASSERT_EQ(expr1_type->storage, StorageSpecifier::auto_);
+}
+
 TEST(ASTExtern, FunctionDefinition_OperatorPrecedence)
 {
 	auto program = parse(

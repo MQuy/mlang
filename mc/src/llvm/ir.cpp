@@ -602,6 +602,14 @@ void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, typesize, true));
 }
 
+void* IR::visit_alignof_expr(AlignOfExprAST* expr)
+{
+	auto ty = get_type(expr->align_of_type);
+	auto alignsize = module->getDataLayout().getABITypeAlignment(ty);
+
+	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, alignsize, true));
+}
+
 void* IR::visit_initializer_expr(InitializerExprAST* expr)
 {
 	throw std::runtime_error("not implemented yet");

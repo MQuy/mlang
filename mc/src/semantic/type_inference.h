@@ -36,6 +36,7 @@ public:
 	void *visit_function_call_expr(FunctionCallExprAST *expr);
 	void *visit_typecast_expr(TypeCastExprAST *expr);
 	void *visit_sizeof_expr(SizeOfExprAST *expr);
+	void *visit_alignof_expr(AlignOfExprAST *expr);
 	void *visit_initializer_expr(InitializerExprAST *expr);
 
 	void *visit_label_stmt(LabelStmtAST *stmt);

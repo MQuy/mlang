@@ -40,6 +40,7 @@ enum class TokenName
 	tk_short,
 	tk_signed,
 	tk_sizeof,
+	tk_alignof,
 	tk_static,
 	tk_struct,
 	tk_switch,

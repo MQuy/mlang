@@ -42,6 +42,7 @@ void init_keywords()
 	keywords["volatile"] = TokenName::tk_volatile;
 	keywords["while"] = TokenName::tk_while;
 	keywords["_Bool"] = TokenName::tk_bool;
+	keywords["_Alignof"] = TokenName::tk_alignof;
 
 	for (auto kw : keywords)
 		token_name_str[kw.second] = kw.first;

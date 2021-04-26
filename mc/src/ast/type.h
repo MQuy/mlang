@@ -274,6 +274,7 @@ enum ASTNodeType
 	expr_function_call,
 	expr_typecast,
 	expr_sizeof,
+	expr_alignof,
 	expr_initializer,
 	stmt_label,
 	stmt_case,
@@ -303,6 +304,7 @@ class MemberAccessExprAST;
 class FunctionCallExprAST;
 class TypeCastExprAST;
 class SizeOfExprAST;
+class AlignOfExprAST;
 class InitializerExprAST;
 class LabelStmtAST;
 class CaseStmtAST;
@@ -343,6 +345,7 @@ public:
 	virtual void *visit_function_call_expr(FunctionCallExprAST *expr) = 0;
 	virtual void *visit_typecast_expr(TypeCastExprAST *expr) = 0;
 	virtual void *visit_sizeof_expr(SizeOfExprAST *expr) = 0;
+	virtual void *visit_alignof_expr(AlignOfExprAST *expr) = 0;
 	virtual void *visit_initializer_expr(InitializerExprAST *expr) = 0;
 
 	virtual void *visit_label_stmt(LabelStmtAST *stmt) = 0;

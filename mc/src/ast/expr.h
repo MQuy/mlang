@@ -170,6 +170,19 @@ public:
 	std::shared_ptr<TypeAST> size_of_type;
 };
 
+class AlignOfExprAST : public ExprAST
+{
+public:
+	AlignOfExprAST(std::shared_ptr<TypeAST> align_of_type)
+		: ExprAST(ASTNodeType::expr_alignof, nullptr)
+		, align_of_type(align_of_type)
+	{
+	}
+	void *accept(NodeVisitor *visitor) { return visitor->visit_alignof_expr(this); }
+
+	std::shared_ptr<TypeAST> align_of_type;
+};
+
 class InitializerExprAST : public ExprAST
 {
 public:

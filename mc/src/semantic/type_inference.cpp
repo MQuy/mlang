@@ -414,6 +414,12 @@ void* SemanticTypeInference::visit_sizeof_expr(SizeOfExprAST* expr)
 	return nullptr;
 }
 
+void* SemanticTypeInference::visit_alignof_expr(AlignOfExprAST* expr)
+{
+	expr->type = translation_unit.get_type("unsigned int");
+	return nullptr;
+}
+
 void* SemanticTypeInference::visit_initializer_expr(InitializerExprAST* expr)
 {
 	throw std::runtime_error("not implemented");

@@ -36,6 +36,6 @@ TEST(IR, demo)
 	std::string text = generate(
 		"int main() {\n"
 		"	double x = 10;\n"
-		"	int y = sizeof(x);\n"
+		"	int y = _Alignof(double);\n"
 		"}");
 }

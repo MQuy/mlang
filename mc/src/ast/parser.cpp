@@ -996,6 +996,17 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 		auto expr1 = parse_unary_expr();
 		expr = std::make_shared<SizeOfExprAST>(SizeOfExprAST(nullptr, expr1));
 	}
+	else if (match(TokenName::tk_alignof))
+	{
+		match(TokenName::tk_left_paren, true);
+		auto type = parse_declaration_specifiers(false);
+		assert(type);
+
+		expr = std::make_shared<AlignOfExprAST>(AlignOfExprAST(type));
+		match(TokenName::tk_right_paren, true);
+		expr->type = type;
+		return expr;
+	}
 	else
 		expr = parse_postfix_expr();
 
