@@ -12,12 +12,22 @@ llvm::Value* ValueEnvironment::lookup(std::string name)
 	return nullptr;
 }
 
+llvm::Value* ValueEnvironment::lookup(std::shared_ptr<TokenIdentifier> identifier)
+{
+	return lookup(identifier->name);
+}
+
 void ValueEnvironment::define(std::string name, llvm::Value* value)
 {
 	if (symbols[name])
 		throw std::runtime_error(name + " already exist");
 
 	symbols[name] = value;
+}
+
+void ValueEnvironment::define(std::shared_ptr<TokenIdentifier> identifier, llvm::Value* value)
+{
+	return define(identifier->name, value);
 }
 
 ValueEnvironment* ValueEnvironment::get_enclosing()

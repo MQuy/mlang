@@ -267,6 +267,15 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 	return result;
 }
 
+llvm::Function* IR::create_function_prototype(std::string name, std::shared_ptr<TypeAST> type)
+{
+	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(type);
+	llvm::FunctionType* ftype = (llvm::FunctionType*)get_type(ftype_ast);
+	auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
+	auto linkage = get_linkage_type(storage);
+	return llvm::Function::Create(ftype, linkage, name, &*module);
+}
+
 llvm::Value* IR::load_value(llvm::Value* source)
 {
 	if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
@@ -452,7 +461,7 @@ void* IR::visit_literal_expr(LiteralExprAST<std::string>* expr)
 
 void* IR::visit_identifier_expr(IdentifierExprAST* expr)
 {
-	llvm::Value* value = environment->lookup(expr->name->name);
+	llvm::Value* value = environment->lookup(expr->name);
 	if (!value)
 		throw std::runtime_error(expr->name->name + " doesn't exist");
 	return value;
@@ -585,7 +594,16 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 
 void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	llvm::Function* func = (llvm::Function*)expr->callee->accept(this);
+
+	if (expr->arguments.size() != func->arg_size())
+		throw std::runtime_error("arguments are mismatched");
+
+	std::vector<llvm::Value*> args;
+	for (auto arg : expr->arguments)
+		args.push_back((llvm::Value*)arg->accept(this));
+
+	return builder->CreateCall(func, args);
 }
 
 void* IR::visit_typecast_expr(TypeCastExprAST* expr)
@@ -843,17 +861,11 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 
 	llvm::Function* func = nullptr;
 	if (!(func = module->getFunction(stmt->name->name)))
-	{
-		auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
-		llvm::FunctionType* ftype = (llvm::FunctionType*)get_type(ftype_ast);
-		auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
-		auto linkage = get_linkage_type(storage);
-		func = llvm::Function::Create(ftype, linkage, stmt->name->name, &*module);
+		func = create_function_prototype(stmt->name->name, stmt->type);
 
-		unsigned idx = 0;
-		for (auto& arg : func->args())
-			arg.setName(std::get<0>(ftype_ast->parameters[idx++])->name);
-	}
+	unsigned idx = 0;
+	for (auto& arg : func->args())
+		arg.setName(std::get<0>(std::static_pointer_cast<FunctionTypeAST>(stmt->type)->parameters[idx++])->name);
 
 	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry", func);
 	builder->SetInsertPoint(entrybb);
@@ -903,7 +915,7 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			llvm::Function* func = builder->GetInsertBlock()->getParent();
 			auto ty = get_type(type);
 			auto alloca = create_entry_block_alloca(func, ty, token->name);
-			environment->define(token->name, alloca);
+			environment->define(token, alloca);
 
 			if (expr)
 			{
@@ -914,23 +926,29 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 		}
 		else
 		{
-			auto qualifiers = translation_unit.get_type_qualifiers(type);
-			bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier) {
-				return qualifier == TypeQualifier::const_;
-			});
-			auto storage = translation_unit.get_storage_specifier(type);
-			auto linkage = get_linkage_type(storage);
 			llvm::Type* ty = get_type(type);
+			llvm::Value* declarator;
 
-			llvm::Constant* constant = nullptr;
-			if (expr)
+			if (ty->isFunctionTy())
+				declarator = create_function_prototype(token->name, type);
+			else
 			{
-				auto value = (llvm::Constant*)expr->accept(this);
-				constant = (llvm::Constant*)cast_value(value, expr->type, type);
-			}
+				auto qualifiers = translation_unit.get_type_qualifiers(type);
+				bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier) {
+					return qualifier == TypeQualifier::const_;
+				});
+				auto storage = translation_unit.get_storage_specifier(type);
+				auto linkage = get_linkage_type(storage);
+				llvm::Constant* constant = nullptr;
+				if (expr)
+				{
+					auto value = (llvm::Constant*)expr->accept(this);
+					constant = (llvm::Constant*)cast_value(value, expr->type, type);
+				}
 
-			auto global_variable = new llvm::GlobalVariable(*module, ty, is_constant, linkage, constant, token->name);
-			environment->define(token->name, global_variable);
+				declarator = new llvm::GlobalVariable(*module, ty, is_constant, linkage, constant, token->name);
+			}
+			environment->define(token, declarator);
 		}
 	}
 	return nullptr;

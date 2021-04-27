@@ -103,6 +103,7 @@ public:
 	void enter_scope();
 	void leave_scope();
 	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value *left, llvm::Value *right);
+	llvm::Function *create_function_prototype(std::string name, std::shared_ptr<TypeAST> type);
 
 private:
 	TranslationUnit translation_unit;
