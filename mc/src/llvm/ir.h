@@ -104,6 +104,7 @@ public:
 	void leave_scope();
 	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value *left, llvm::Value *right);
 	llvm::Function *create_function_prototype(std::string name, std::shared_ptr<TypeAST> type);
+	llvm::Value *get_or_insert_global_string(std::string content);
 
 private:
 	TranslationUnit translation_unit;
@@ -113,6 +114,7 @@ private:
 	std::unique_ptr<llvm::IRBuilder<>> builder;
 	std::unique_ptr<llvm::legacy::FunctionPassManager> func_pass_manager;
 	std::vector<std::shared_ptr<StmtBranch>> stmts_branch;
+	std::unordered_map<std::string, llvm::Value *> global_strings;	// use for string
 	bool in_func_scope;
 };
 

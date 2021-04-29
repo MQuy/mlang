@@ -276,6 +276,15 @@ llvm::Function* IR::create_function_prototype(std::string name, std::shared_ptr<
 	return llvm::Function::Create(ftype, linkage, name, &*module);
 }
 
+llvm::Value* IR::get_or_insert_global_string(std::string content)
+{
+	llvm::Value* value = global_strings[content];
+	if (!value)
+		global_strings[content] = value = builder->CreateGlobalStringPtr(content);
+
+	return value;
+}
+
 llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
 	// skip if current expression is address of
@@ -469,7 +478,7 @@ void* IR::visit_literal_expr(LiteralExprAST<unsigned char>* expr)
 
 void* IR::visit_literal_expr(LiteralExprAST<std::string>* expr)
 {
-	return builder->CreateGlobalString(llvm::StringRef(expr->value->value));
+	return get_or_insert_global_string(expr->value->value);
 }
 
 void* IR::visit_identifier_expr(IdentifierExprAST* expr)
