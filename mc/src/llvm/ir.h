@@ -89,7 +89,7 @@ public:
 
 	void emit_object_file();
 	void init_pass_maanger();
-	llvm::Value *load_value(llvm::Value *source);
+	llvm::Value *load_value(llvm::Value *source, std::shared_ptr<ExprAST> expr);
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *create_bool_branch(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);

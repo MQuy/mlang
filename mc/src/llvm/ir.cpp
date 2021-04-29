@@ -276,10 +276,14 @@ llvm::Function* IR::create_function_prototype(std::string name, std::shared_ptr<
 	return llvm::Function::Create(ftype, linkage, name, &*module);
 }
 
-llvm::Value* IR::load_value(llvm::Value* source)
+llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
-	if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
-		|| source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca)
+	// skip if current expression is address of
+	if (expr->node_type == ASTNodeType::expr_unary
+		&& std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+		return source;
+	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
+			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca)
 		return builder->CreateLoad(source);
 	else
 		return source;
@@ -302,6 +306,8 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 			else
 				inst = translation_unit.is_signed_integer_type(src_type_ast) ? llvm::Instruction::SExt : llvm::Instruction::ZExt;
 		}
+		else if (translation_unit.is_pointer_type(dest_type_ast))
+			inst = llvm::Instruction::IntToPtr;
 	}
 	else if (translation_unit.is_float_type(src_type_ast))
 	{
@@ -318,12 +324,19 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 	{
 		if (translation_unit.is_double_type(dest_type_ast))
 			return source;
-		if (translation_unit.is_float_type(dest_type_ast))
+		else if (translation_unit.is_float_type(dest_type_ast))
 			inst = llvm::Instruction::FPTrunc;
 		else if (translation_unit.is_signed_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToSI;
 		else if (translation_unit.is_unsigned_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToUI;
+	}
+	else if (translation_unit.is_pointer_type(src_type_ast))
+	{
+		if (translation_unit.is_pointer_type(dest_type_ast))
+			return source;
+		else if (translation_unit.is_integer_type(dest_type_ast))
+			inst = llvm::Instruction::PtrToInt;
 	}
 	else
 		assert_not_reached();
@@ -478,7 +491,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	{
 	case BinaryOperator::assignment:
 	{
-		auto rvalue_right = load_value(right);
+		auto rvalue_right = load_value(right, expr->right);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->left->type);
 
 		builder->CreateStore(casted_rvalue_right, left);
@@ -497,9 +510,9 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::shift_left_assignment:
 	case BinaryOperator::shift_right_assignment:
 	{
-		auto rvalue_right = load_value(right);
+		auto rvalue_right = load_value(right, expr->right);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->left->type);
-		auto rvalue_left = load_value(left);
+		auto rvalue_left = load_value(left, expr->left);
 
 		result = execute_binop(binop, expr->type, rvalue_left, casted_rvalue_right);
 		builder->CreateStore(result, left);
@@ -519,9 +532,9 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::equal:
 	case BinaryOperator::not_equal:
 	{
-		auto rvalue_left = load_value(left);
+		auto rvalue_left = load_value(left, expr->left);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
-		auto rvalue_right = load_value(right);
+		auto rvalue_right = load_value(right, expr->right);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->type);
 		result = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
 		break;
@@ -541,7 +554,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 	switch (unaryop)
 	{
 	case UnaryOperator::plus:
-		result = load_value(expr1);
+		result = load_value(expr1, expr->expr);
 		break;
 
 	case UnaryOperator::minus:
@@ -549,7 +562,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 		auto rvalue_left = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0, true)),
 									  translation_unit.get_type("int"),
 									  expr->type);
-		auto rvalue_right = load_value(expr1);
+		auto rvalue_right = load_value(expr1, expr->expr);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->expr->type, expr->type);
 		result = execute_binop(BinaryOperator::subtraction, expr->type, rvalue_left, casted_rvalue_right);
 		break;
@@ -557,7 +570,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 
 	case UnaryOperator::complement:
 	{
-		auto rvalue_left = load_value(expr1);
+		auto rvalue_left = load_value(expr1, expr->expr);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr->type);
 		auto rvalue_right = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, -1, true)),
 									   translation_unit.get_type("int"),
@@ -568,7 +581,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 
 	case UnaryOperator::not_:
 	{
-		auto rvalue_left = load_value(expr1);
+		auto rvalue_left = load_value(expr1, expr->expr);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr->type);
 		auto rvalue_right = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0, true)),
 									   translation_unit.get_type("int"),
@@ -576,6 +589,13 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 		result = execute_binop(BinaryOperator::equal, expr->type, casted_rvalue_left, rvalue_right);
 		break;
 	}
+
+	case UnaryOperator::dereference:
+		result = load_value(expr1, expr->expr);
+		break;
+
+	case UnaryOperator::address_of:
+		result = expr1;
 	}
 
 	assert(result);
