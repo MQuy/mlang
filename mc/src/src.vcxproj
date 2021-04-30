@@ -184,6 +184,7 @@
     <ClCompile Include="semantic\type_environment.cpp" />
     <ClCompile Include="semantic\translation_unit.cpp" />
     <ClCompile Include="semantic\type_inference.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\llvm\build\lib\IR\LLVMCore.vcxproj">

@@ -120,5 +120,6 @@
     <ClCompile Include="semantic\type_environment.cpp">
       <Filter>semantic</Filter>
     </ClCompile>
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
 </Project>
