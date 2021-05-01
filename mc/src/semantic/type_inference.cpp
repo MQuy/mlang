@@ -565,10 +565,12 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 		{
 			environment->define_variable(name, type);
 			if (expr)
+			{
 				expr->accept(this);
-			// cannot inference initializer's type since its type have to depend on declaration
-			if (expr->node_type == ASTNodeType::expr_initializer)
-				expr->type = type;
+				// cannot inference initializer's type since its type have to depend on declaration
+				if (expr->node_type == ASTNodeType::expr_initializer)
+					expr->type = type;
+			}
 		}
 		resolve_type(type);
 	}

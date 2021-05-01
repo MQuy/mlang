@@ -5,6 +5,7 @@
   - [x] Combine two physical lines when blashslash appears at the end of line
   - [x] Tokenize
   - [x] Comments are replace by whitespace
+  - [ ] IEEE Standard
 - [-] Preprocessor
   - [x] Preprocess ([Dave Prosser Algorithm](https://www.spinellis.gr/blog/20060626/))
   - [x] Concatenate adjacent string literals
@@ -14,7 +15,9 @@
   - [x] Abstract Syntax Tree
   - [ ] Semantic Analyzer
 - [ ] LLVM
-  - [ ] Support unknown array size
+  - [ ] Unknown array size
+  - [ ] Enum values
+  - [ ] Nested flat array initializer
 
 ✍🏼 mc is C99-compliant
 

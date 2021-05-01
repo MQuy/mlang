@@ -291,6 +291,25 @@ unsigned IR::get_alignof_type(std::shared_ptr<TypeAST> type)
 	return module->getDataLayout().getABITypeAlignment(ty);
 }
 
+void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type, llvm::Value* src, std::shared_ptr<TypeAST> src_type)
+{
+	auto src_ty = get_type(src_type);
+
+	if (translation_unit.is_array_type(dest_type) && translation_unit.is_pointer_type(src_type))
+	{
+		auto dest_atype = std::static_pointer_cast<ArrayTypeAST>(dest_type);
+		auto dest_ty = get_type(std::make_shared<PointerTypeAST>(dest_atype->underlay));
+		auto casted_dest = builder->CreateBitCast(dest, dest_ty);
+		auto size = ConstExprEval(this, dest_atype->expr).eval();
+		builder->CreateMemCpy(casted_dest, llvm::MaybeAlign(1), src, llvm::MaybeAlign(1), size);
+	}
+	else
+	{
+		auto cvalue = cast_value(src, src_type, dest_type);
+		builder->CreateStore(cvalue, dest);
+	}
+}
+
 unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type)
 {
 	auto ty = get_type(type);
@@ -314,7 +333,9 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 {
 	llvm::Instruction::CastOps inst = llvm::Instruction::BitCast;
 
-	if (translation_unit.is_integer_type(src_type_ast))
+	if (translation_unit.is_same_types(src_type_ast, dest_type_ast))
+		return source;
+	else if (translation_unit.is_integer_type(src_type_ast))
 	{
 		if (translation_unit.is_real_float_type(dest_type_ast))
 			inst = translation_unit.is_signed_integer_type(src_type_ast) ? llvm::Instruction::SIToFP : llvm::Instruction::UIToFP;
@@ -355,7 +376,7 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 	else if (translation_unit.is_pointer_type(src_type_ast))
 	{
 		if (translation_unit.is_pointer_type(dest_type_ast))
-			return source;
+			inst = llvm::Instruction::BitCast;
 		else if (translation_unit.is_integer_type(dest_type_ast))
 			inst = llvm::Instruction::PtrToInt;
 	}
@@ -363,6 +384,12 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 	{
 		if (translation_unit.is_array_type(dest_type_ast) && translation_unit.is_same_types(src_type_ast, dest_type_ast))
 			return source;
+		else if (translation_unit.is_pointer_type(dest_type_ast))
+		{
+			llvm::Constant* zeroth = llvm::ConstantInt::get(builder->getInt32Ty(), 0);
+			llvm::ArrayRef<llvm::Value*> indices = {zeroth, zeroth};
+			return builder->CreateGEP(source, indices);
+		}
 		else
 			assert_not_reached();
 	}
@@ -373,10 +400,12 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 	return builder->CreateCast(inst, source, dest_type);
 }
 
-llvm::AllocaInst* IR::create_entry_block_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
+llvm::AllocaInst* IR::create_alloca(llvm::Function* func, llvm::Type* type, llvm::StringRef name)
 {
 	llvm::IRBuilder<> tmp_block(&func->getEntryBlock(), func->getEntryBlock().begin());
-	return tmp_block.CreateAlloca(type, nullptr, name);
+	auto inst = tmp_block.CreateAlloca(type, nullptr, name);
+	environment->define(name.str(), inst);
+	return inst;
 }
 
 void IR::init_pass_maanger()
@@ -934,14 +963,12 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 
 	if (!func->getReturnType()->isVoidTy())
 	{
-		llvm::AllocaInst* alloca = create_entry_block_alloca(func, func->getReturnType());
-		environment->define(LLVM_RETURN_NAME, alloca);
+		llvm::AllocaInst* alloca = create_alloca(func, func->getReturnType(), LLVM_RETURN_NAME);
 	}
 	for (auto& arg : func->args())
 	{
-		llvm::AllocaInst* alloca = create_entry_block_alloca(func, arg.getType(), arg.getName());
+		llvm::AllocaInst* alloca = create_alloca(func, arg.getType(), arg.getName());
 		builder->CreateStore(&arg, alloca);
-		environment->define(arg.getName().str(), alloca);
 	}
 
 	stmt->body->accept(this);
@@ -972,14 +999,12 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 		{
 			llvm::Function* func = builder->GetInsertBlock()->getParent();
 			auto ty = get_type(type);
-			auto alloca = create_entry_block_alloca(func, ty, token->name);
-			environment->define(token, alloca);
+			auto alloca = create_alloca(func, ty, token->name);
 
 			if (expr)
 			{
 				auto value = (llvm::Value*)expr->accept(this);
-				auto cvalue = cast_value(value, expr->type, type);
-				builder->CreateStore(cvalue, alloca);
+				store_inst(alloca, type, value, expr->type);
 			}
 		}
 		else

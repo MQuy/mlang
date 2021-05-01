@@ -93,7 +93,7 @@ public:
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *create_bool_branch(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
-	llvm::AllocaInst *create_entry_block_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");
+	llvm::AllocaInst *create_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");
 	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
 	void complete_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *nextbb);
 	void branch_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *truebb, llvm::BasicBlock *falsebb);
@@ -107,6 +107,7 @@ public:
 	llvm::Value *get_or_insert_global_string(std::string content);
 	unsigned get_sizeof_type(std::shared_ptr<TypeAST> type);
 	unsigned get_alignof_type(std::shared_ptr<TypeAST> type);
+	void store_inst(llvm::Value *dest, std::shared_ptr<TypeAST> dest_type, llvm::Value *src, std::shared_ptr<TypeAST> src_type);
 
 private:
 	TranslationUnit translation_unit;
