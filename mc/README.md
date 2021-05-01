@@ -14,6 +14,7 @@
   - [x] Abstract Syntax Tree
   - [ ] Semantic Analyzer
 - [ ] LLVM
+  - [ ] Support unknown array size
 
 ✍🏼 mc is C99-compliant
 

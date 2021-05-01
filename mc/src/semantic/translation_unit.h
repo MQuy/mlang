@@ -51,6 +51,7 @@ public:
 	bool is_scalar_type(std::shared_ptr<TypeAST> type);
 	bool is_array_type(std::shared_ptr<TypeAST> type);
 	bool is_aggregate_type(std::shared_ptr<TypeAST> type);
+	bool is_struct_type(std::shared_ptr<TypeAST> type);
 	bool is_function_type(std::shared_ptr<TypeAST> type);
 	bool is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	bool is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);

@@ -35,8 +35,7 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	char *x = \"minh\";\n"
-		"	char *y = \"minh\";\n"
+		"	int x[2] = {1, 2};\n"
 		"}"
 	);
 }

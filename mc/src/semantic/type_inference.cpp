@@ -393,6 +393,11 @@ void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
 void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)
 {
 	resolve_type(expr->type);
+	expr->expr->accept(this);
+
+	if (expr->expr->node_type == ASTNodeType::expr_initializer)
+		expr->expr->type = expr->type;
+
 	return nullptr;
 }
 
@@ -422,7 +427,9 @@ void* SemanticTypeInference::visit_alignof_expr(AlignOfExprAST* expr)
 
 void* SemanticTypeInference::visit_initializer_expr(InitializerExprAST* expr)
 {
-	throw std::runtime_error("not implemented");
+	for (auto e : expr->exprs)
+		e->accept(this);
+	return nullptr;
 }
 
 void* SemanticTypeInference::visit_label_stmt(LabelStmtAST* stmt)
@@ -559,6 +566,9 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 			environment->define_variable(name, type);
 			if (expr)
 				expr->accept(this);
+			// cannot inference initializer's type since its type have to depend on declaration
+			if (expr->node_type == ASTNodeType::expr_initializer)
+				expr->type = type;
 		}
 		resolve_type(type);
 	}
@@ -636,7 +646,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 	}
 	else if (type->kind == TypeKind::enum_)
 	{
-		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		auto atype = std::static_pointer_cast<EnumTypeAST>(type);
 		atype->name->name = environment->get_type_name(atype->name->name);
 	}
 	else if (type->kind == TypeKind::array)

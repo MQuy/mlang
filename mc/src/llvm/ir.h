@@ -105,6 +105,8 @@ public:
 	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value *left, llvm::Value *right);
 	llvm::Function *create_function_prototype(std::string name, std::shared_ptr<TypeAST> type);
 	llvm::Value *get_or_insert_global_string(std::string content);
+	unsigned get_sizeof_type(std::shared_ptr<TypeAST> type);
+	unsigned get_alignof_type(std::shared_ptr<TypeAST> type);
 
 private:
 	TranslationUnit translation_unit;

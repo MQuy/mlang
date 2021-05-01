@@ -462,6 +462,21 @@ bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
+bool TranslationUnit::is_struct_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::aggregate
+		&& std::static_pointer_cast<AggregateTypeAST>(type)->aggregate_kind == AggregateKind::struct_)
+		return true;
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_struct_type(original_type);
+	}
+	else
+		return false;
+}
+
 bool TranslationUnit::is_function_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::alias)

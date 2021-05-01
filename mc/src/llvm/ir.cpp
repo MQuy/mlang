@@ -63,7 +63,7 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	{
 		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(type_ast);
 		auto element = get_type(atype_ast->underlay);
-		auto number_of_elements = ConstExprEval(translation_unit, atype_ast->expr).eval();
+		auto number_of_elements = ConstExprEval(this, atype_ast->expr).eval();
 		type = llvm::ArrayType::get(element, number_of_elements);
 	}
 	else if (type_ast->kind == TypeKind::alias)
@@ -285,6 +285,18 @@ llvm::Value* IR::get_or_insert_global_string(std::string content)
 	return value;
 }
 
+unsigned IR::get_alignof_type(std::shared_ptr<TypeAST> type)
+{
+	auto ty = get_type(type);
+	return module->getDataLayout().getABITypeAlignment(ty);
+}
+
+unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type)
+{
+	auto ty = get_type(type);
+	return module->getDataLayout().getTypeAllocSize(ty);
+}
+
 llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
 	// skip if current expression is address of
@@ -346,6 +358,13 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 			return source;
 		else if (translation_unit.is_integer_type(dest_type_ast))
 			inst = llvm::Instruction::PtrToInt;
+	}
+	else if (translation_unit.is_array_type(src_type_ast))
+	{
+		if (translation_unit.is_array_type(dest_type_ast) && translation_unit.is_same_types(src_type_ast, dest_type_ast))
+			return source;
+		else
+			assert_not_reached();
 	}
 	else
 		assert_not_reached();
@@ -643,23 +662,33 @@ void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
 {
 	std::shared_ptr<TypeAST> type = expr->expr ? expr->expr->type : expr->size_of_type;
-	auto ty = get_type(type);
-	auto typesize = module->getDataLayout().getTypeAllocSize(ty);
+	auto typesize = get_sizeof_type(type);
 
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, typesize, true));
 }
 
 void* IR::visit_alignof_expr(AlignOfExprAST* expr)
 {
-	auto ty = get_type(expr->align_of_type);
-	auto alignsize = module->getDataLayout().getABITypeAlignment(ty);
+	auto alignsize = get_alignof_type(expr->align_of_type);
 
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, alignsize, true));
 }
 
 void* IR::visit_initializer_expr(InitializerExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	if (translation_unit.is_scalar_type(expr->type))
+		return expr->exprs.front()->accept(this);
+	else if (translation_unit.is_array_type(expr->type))
+	{
+		auto atype = get_type(expr->type);
+		std::vector<llvm::Constant*> values;
+		for (auto e : expr->exprs)
+			values.push_back((llvm::Constant*)e->accept(this));
+		return llvm::ConstantArray::get((llvm::ArrayType*)atype, values);
+	}
+	else if (translation_unit.is_struct_type(expr->type))
+	{
+	}
 }
 
 void* IR::visit_label_stmt(LabelStmtAST* stmt)
