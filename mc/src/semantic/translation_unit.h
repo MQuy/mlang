@@ -68,6 +68,8 @@ public:
 	std::shared_ptr<TypeAST> convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	std::shared_ptr<TypeAST> promote_integer(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
+	std::shared_ptr<TypeAST> convert_array_to_pointer(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<TypeAST> convert_function_to_pointer(std::shared_ptr<TypeAST> type);
 
 	// struct or union -> aggregate::xxx
 	// alias -> same

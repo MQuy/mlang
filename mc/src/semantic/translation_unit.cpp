@@ -266,7 +266,20 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
 	assert_not_implemented();
-	return nullptr;
+}
+
+std::shared_ptr<TypeAST> TranslationUnit::convert_array_to_pointer(std::shared_ptr<TypeAST> type)
+{
+	assert(type->kind == TypeKind::array);
+	auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
+	return std::make_shared<PointerTypeAST>(atype->underlay);
+}
+
+std::shared_ptr<TypeAST> TranslationUnit::convert_function_to_pointer(std::shared_ptr<TypeAST> type)
+{
+	assert(type->kind == TypeKind::function);
+	auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
+	return std::make_shared<PointerTypeAST>(ftype);
 }
 
 bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
@@ -504,7 +517,6 @@ bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
 bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
 	assert_not_implemented();
-	return false;
 }
 
 bool TranslationUnit::is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)

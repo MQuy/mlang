@@ -35,8 +35,8 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	char x[3];\n"
-		"	char *y = &x;\n"
+		"	void *x;\n"
+		"	int *y = x;\n"
 		"}"
 	);
 }

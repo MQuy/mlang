@@ -56,8 +56,13 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	else if (type_ast->kind == TypeKind::pointer)
 	{
 		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(type_ast);
-		auto underlay_type = get_type(ptype_ast->underlay);
-		type = llvm::PointerType::get(underlay_type, 0);
+		if (translation_unit.is_void_type(ptype_ast->underlay))
+			return builder->getInt8PtrTy();
+		else
+		{
+			auto underlay_type = get_type(ptype_ast->underlay);
+			type = llvm::PointerType::get(underlay_type, 0);
+		}
 	}
 	else if (type_ast->kind == TypeKind::array)
 	{
@@ -271,9 +276,13 @@ llvm::Function* IR::create_function_prototype(std::string name, std::shared_ptr<
 {
 	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(type);
 	llvm::FunctionType* ftype = (llvm::FunctionType*)get_type(ftype_ast);
+
 	auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
 	auto linkage = get_linkage_type(storage);
-	return llvm::Function::Create(ftype, linkage, name, &*module);
+	auto func = llvm::Function::Create(ftype, linkage, name, &*module);
+	environment->define(name, func);
+
+	return func;
 }
 
 llvm::Value* IR::get_or_insert_global_string(std::string content)
@@ -298,7 +307,8 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type, llvm:
 	if (translation_unit.is_array_type(dest_type) && translation_unit.is_pointer_type(src_type))
 	{
 		auto dest_atype = std::static_pointer_cast<ArrayTypeAST>(dest_type);
-		auto dest_ty = get_type(std::make_shared<PointerTypeAST>(dest_atype->underlay));
+		auto dest_ptype = translation_unit.convert_array_to_pointer(dest_type);
+		auto dest_ty = get_type(dest_ptype);
 		auto casted_dest = builder->CreateBitCast(dest, dest_ty);
 		auto size = ConstExprEval(this, dest_atype->expr).eval();
 		builder->CreateMemCpy(casted_dest, llvm::MaybeAlign(1), src, llvm::MaybeAlign(1), size);
@@ -350,6 +360,8 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 		}
 		else if (translation_unit.is_pointer_type(dest_type_ast))
 			inst = llvm::Instruction::IntToPtr;
+		else
+			assert_not_reached();
 	}
 	else if (translation_unit.is_float_type(src_type_ast))
 	{
@@ -361,6 +373,8 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 			inst = llvm::Instruction::FPToSI;
 		else if (translation_unit.is_unsigned_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToUI;
+		else
+			assert_not_reached();
 	}
 	else if (translation_unit.is_double_type(src_type_ast))
 	{
@@ -372,6 +386,8 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 			inst = llvm::Instruction::FPToSI;
 		else if (translation_unit.is_unsigned_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToUI;
+		else
+			assert_not_reached();
 	}
 	else if (translation_unit.is_pointer_type(src_type_ast))
 	{
@@ -379,17 +395,29 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 			inst = llvm::Instruction::BitCast;
 		else if (translation_unit.is_integer_type(dest_type_ast))
 			inst = llvm::Instruction::PtrToInt;
+		else
+			assert_not_reached();
 	}
 	else if (translation_unit.is_array_type(src_type_ast))
 	{
-		if (translation_unit.is_array_type(dest_type_ast) && translation_unit.is_same_types(src_type_ast, dest_type_ast))
-			return source;
+		llvm::Constant* zeroth = llvm::ConstantInt::get(builder->getInt32Ty(), 0);
+		llvm::ArrayRef<llvm::Value*> indices = {zeroth, zeroth};
+		auto value = builder->CreateGEP(source, indices);
+		auto dest_type = get_type(dest_type_ast);
+
+		if (translation_unit.is_integer_type(dest_type_ast))
+			return builder->CreateCast(llvm::Instruction::PtrToInt, value, dest_type);
 		else if (translation_unit.is_pointer_type(dest_type_ast))
-		{
-			llvm::Constant* zeroth = llvm::ConstantInt::get(builder->getInt32Ty(), 0);
-			llvm::ArrayRef<llvm::Value*> indices = {zeroth, zeroth};
-			return builder->CreateGEP(source, indices);
-		}
+			return value;
+		else
+			assert_not_reached();
+	}
+	else if (translation_unit.is_function_type(src_type_ast))
+	{
+		if (translation_unit.is_integer_type(dest_type_ast))
+			inst = llvm::Instruction::PtrToInt;
+		else if (translation_unit.is_pointer_type(dest_type_ast))
+			inst = llvm::Instruction::BitCast;
 		else
 			assert_not_reached();
 	}
@@ -942,13 +970,13 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 {
-	enter_scope();
-	stmts_branch.clear();
-	in_func_scope = true;
-
 	llvm::Function* func = nullptr;
 	if (!(func = module->getFunction(stmt->name->name)))
 		func = create_function_prototype(stmt->name->name, stmt->type);
+
+	enter_scope();
+	stmts_branch.clear();
+	in_func_scope = true;
 
 	unsigned idx = 0;
 	for (auto& arg : func->args())
