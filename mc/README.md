@@ -18,6 +18,7 @@
   - [ ] Unknown array size
   - [ ] Enum values
   - [ ] Nested flat array initializer
+  - [ ] Forward declaration
 
 ✍🏼 mc is C99-compliant
 
@@ -27,11 +28,7 @@
 
 ### Semantic Analyzer
 
-- replace const expressions (like initializer for static or file scope variables) with literals
 - throw exceptions if there is any invalid expression
 - validate syntax, semantic and flatten anonymous struct
-- type inference for every expression and add types to translation unit
 
 ### LLVM
-
-- [ ] Support forward declaration

@@ -598,6 +598,8 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 		if (atype->members.size() > 0)
 		{
 			define_type(atype->name->name, type);
+			for (auto [mname, _] : atype->members)
+				environment->define_variable(mname, translation_unit.get_type("int"));
 			return true;
 		}
 	}

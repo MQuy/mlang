@@ -122,7 +122,22 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 		type = llvm::FunctionType::get(return_type, parameters, false);
 	}
 	else if (type_ast->kind == TypeKind::enum_)
+	{
+		auto etype_ast = std::static_pointer_cast<EnumTypeAST>(type_ast);
+		auto prev_constant = llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, -1, true));
+		for (auto [mname, mexpr] : etype_ast->members)
+		{
+			llvm::ConstantInt* mvalue = nullptr;
+			if (mexpr)
+				mvalue = (llvm::ConstantInt*)mexpr->accept(this);
+			else
+				mvalue = llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, prev_constant->getValue().getSExtValue() + 1, true));
+			prev_constant = mvalue;
+			environment->define(mname, mvalue);
+		}
+
 		type = builder->getInt32Ty();
+	}
 	else
 		assert_not_reached();
 
@@ -1021,6 +1036,8 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 
 void* IR::visit_declaration(DeclarationAST* stmt)
 {
+	get_type(stmt->type);
+
 	for (auto [token, type, expr] : stmt->declarators)
 	{
 		if (in_func_scope)
