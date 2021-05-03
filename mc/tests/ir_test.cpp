@@ -36,7 +36,7 @@ TEST(IR, demo)
 	std::string text = generate(
 		"int main() {\n"
 		"	int x, y;\n"
-		"	int z = x == y ? x : y;\n"
+		"	int z = (x, y);\n"
 		"}"
 	);
 }

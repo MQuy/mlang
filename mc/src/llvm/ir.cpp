@@ -158,11 +158,12 @@ void IR::complete_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llv
 	builder->CreateBr(nextbb);
 }
 
-void IR::branch_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llvm::BasicBlock* truebb, llvm::BasicBlock* falsebb)
+void IR::branch_block(llvm::Function* func, std::shared_ptr<ExprAST> expr, llvm::BasicBlock* truebb, llvm::BasicBlock* falsebb)
 {
-	auto cond = (llvm::Value*)node->accept(this);
-	cond = create_bool_branch(cond, "cond");
-	builder->CreateCondBr(cond, truebb, falsebb);
+	auto cond = (llvm::Value*)expr->accept(this);
+	auto rvalue_cond = load_value(cond, expr);
+	auto bool_cond = convert_to_bool(rvalue_cond, "cond");
+	builder->CreateCondBr(bool_cond, truebb, falsebb);
 }
 
 void IR::activate_block(llvm::Function* func, llvm::BasicBlock* endbb)
@@ -189,7 +190,7 @@ void IR::unwind_stmt_branch(std::shared_ptr<StmtBranch> target, bool self_includ
 	stmts_branch.erase(self_included ? iterator : iterator++, stmts_branch.end());
 }
 
-llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
+llvm::Value* IR::convert_to_bool(llvm::Value* source, std::string name)
 {
 	auto type = source->getType();
 	if (type->isIntegerTy())
@@ -198,7 +199,7 @@ llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 		return builder->CreateICmpNE(source, llvm::ConstantInt::get(*context, llvm::APInt(nbits, 0)), name);
 	}
 	else if (type->isFloatTy())
-		return builder->CreateFCmpUNE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
+		return builder->CreateFCmpONE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
 	else if (type->isPointerTy())
 		return builder->CreateIsNull(source);
 	else
@@ -283,7 +284,43 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 		if (translation_unit.is_integer_type(type) || translation_unit.is_pointer_type(type))
 			result = builder->CreateICmpNE(left, right);
 		else if (translation_unit.is_real_float_type(type))
-			result = builder->CreateFCmpUNE(left, right);
+			result = builder->CreateFCmpONE(left, right);
+	}
+	else if (op == BinaryOperator::less)
+	{
+		if (translation_unit.is_integer_type(type))
+			result = translation_unit.is_signed_integer_type(type)
+						 ? builder->CreateICmpSLT(left, right)
+						 : builder->CreateICmpULT(left, right);
+		else if (translation_unit.is_real_float_type(type))
+			result = builder->CreateFCmpOLT(left, right);
+	}
+	else if (op == BinaryOperator::greater_than)
+	{
+		if (translation_unit.is_integer_type(type))
+			result = translation_unit.is_signed_integer_type(type)
+						 ? builder->CreateICmpSGT(left, right)
+						 : builder->CreateICmpUGT(left, right);
+		else if (translation_unit.is_real_float_type(type))
+			result = builder->CreateFCmpOGT(left, right);
+	}
+	else if (op == BinaryOperator::less_or_equal)
+	{
+		if (translation_unit.is_integer_type(type))
+			result = translation_unit.is_signed_integer_type(type)
+						 ? builder->CreateICmpSLE(left, right)
+						 : builder->CreateICmpULE(left, right);
+		else if (translation_unit.is_real_float_type(type))
+			result = builder->CreateFCmpOLE(left, right);
+	}
+	else if (op == BinaryOperator::greater_or_equal)
+	{
+		if (translation_unit.is_integer_type(type))
+			result = translation_unit.is_signed_integer_type(type)
+						 ? builder->CreateICmpSGE(left, right)
+						 : builder->CreateICmpUGE(left, right);
+		else if (translation_unit.is_real_float_type(type))
+			result = builder->CreateFCmpOGE(left, right);
 	}
 
 	assert(result);
@@ -346,9 +383,11 @@ unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type)
 
 llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
+	if (expr == nullptr)
+		return builder->CreateLoad(source);
 	// skip if current expression is address of
-	if (expr->node_type == ASTNodeType::expr_unary
-		&& std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+	else if (expr->node_type == ASTNodeType::expr_unary
+			 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 		return source;
 	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
 			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca)
@@ -634,7 +673,12 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::shift_right:
 	case BinaryOperator::equal:
 	case BinaryOperator::not_equal:
+	case BinaryOperator::less:
+	case BinaryOperator::greater_than:
+	case BinaryOperator::less_or_equal:
+	case BinaryOperator::greater_or_equal:
 	{
+		// FIXME: MQ 2021-05-03 cast before binop or after
 		auto rvalue_left = load_value(left, expr->left);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
 		auto rvalue_right = load_value(right, expr->right);
@@ -643,15 +687,61 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		break;
 	}
 
-	case BinaryOperator::and_:
-	case BinaryOperator::or_:
-	case BinaryOperator::less:
-	case BinaryOperator::greater_than:
-	case BinaryOperator::less_or_equal:
-	case BinaryOperator::greater_or_equal:
 	case BinaryOperator::comma:
-		assert_not_implemented();
+	{
+		auto rvalue_left = load_value(left, expr->left);
+		auto rvalue_right = load_value(right, expr->right);
+		result = cast_value(rvalue_right, expr->right->type, expr->type);
 		break;
+	}
+
+	case BinaryOperator::and_:
+	{
+		auto func = builder->GetInsertBlock()->getParent();
+		auto thenbb = llvm::BasicBlock::Create(*context, "and.then");
+		auto elsebb = llvm::BasicBlock::Create(*context, "and.else");
+		auto endbb = llvm::BasicBlock::Create(*context, "and.end");
+
+		auto tmpvar = create_alloca(func, get_type(expr->type));
+		branch_block(func, expr->left, thenbb, elsebb);
+
+		activate_block(func, elsebb);
+		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0, false)), expr->type);
+		builder->CreateBr(endbb);
+
+		activate_block(func, thenbb);
+		auto rvalue_right = load_value(right, expr->right);
+		store_inst(tmpvar, expr->type, convert_to_bool(rvalue_right, ""), translation_unit.get_type("_Bool"));
+		builder->CreateBr(endbb);
+
+		activate_block(func, endbb);
+		result = load_value(tmpvar, nullptr);
+		break;
+	}
+
+	case BinaryOperator::or_:
+	{
+		auto func = builder->GetInsertBlock()->getParent();
+		auto thenbb = llvm::BasicBlock::Create(*context, "or.then");
+		auto elsebb = llvm::BasicBlock::Create(*context, "or.else");
+		auto endbb = llvm::BasicBlock::Create(*context, "or.end");
+
+		auto tmpvar = create_alloca(func, get_type(expr->type));
+		branch_block(func, expr->left, thenbb, elsebb);
+
+		activate_block(func, thenbb);
+		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 1, false)), expr->type);
+		builder->CreateBr(endbb);
+
+		activate_block(func, elsebb);
+		auto rvalue_right = load_value(right, expr->right);
+		store_inst(tmpvar, expr->type, convert_to_bool(rvalue_right, ""), translation_unit.get_type("_Bool"));
+		builder->CreateBr(endbb);
+
+		activate_block(func, endbb);
+		result = load_value(tmpvar, nullptr);
+		break;
+	}
 	}
 
 	assert(result);
@@ -1101,7 +1191,8 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			if (expr)
 			{
 				auto value = (llvm::Value*)expr->accept(this);
-				store_inst(alloca, type, value, expr->type);
+				auto rvalue = load_value(value, expr);
+				store_inst(alloca, type, rvalue, expr->type);
 			}
 		}
 		else
