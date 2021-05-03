@@ -8,8 +8,8 @@
 #include "ast/type.h"
 #include "gtest/gtest.h"
 #include "preprocesssor/preprocessor.h"
-#include "semantic/type_inference.h"
 #include "scan/lexer.h"
+#include "semantic/type_inference.h"
 
 std::string generate(std::string content)
 {
@@ -35,8 +35,7 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	int x, y;\n"
-		"	int z = x == y;\n"
-		"}"
-	);
+		"	int x;\n"
+		"	int z = x++ + 1;\n"
+		"}");
 }

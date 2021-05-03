@@ -225,15 +225,19 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 	{
 		if (translation_unit.is_integer_type(type))
 			result = builder->CreateAdd(left, right, "", false, translation_unit.is_signed_integer_type(type));
-		else
+		else if (translation_unit.is_real_float_type(type))
 			result = builder->CreateFAdd(left, right);
+		else
+			assert_not_implemented();
 	}
 	else if (op == BinaryOperator::subtraction)
 	{
 		if (translation_unit.is_integer_type(type))
 			result = builder->CreateSub(left, right, "", false, translation_unit.is_signed_integer_type(type));
-		else
+		else if (translation_unit.is_real_float_type(type))
 			result = builder->CreateFSub(left, right);
+		else
+			assert_not_implemented();
 	}
 	else if (op == BinaryOperator::multiplication)
 	{
@@ -768,10 +772,32 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 	{
 	case UnaryOperator::prefix_increment:
 	case UnaryOperator::prefix_decrement:
+	{
+		auto rvalue_right = load_value(expr1, expr->expr);
+		auto sign = unaryop == UnaryOperator::prefix_increment ? 1 : -1;
+		auto one = translation_unit.is_real_float_type(expr->type)
+					   ? (llvm::Constant*)llvm::ConstantFP::get(*context, llvm::APFloat(1.0 * sign))
+					   : (llvm::Constant*)llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 1 * sign, true));
+		auto value = execute_binop(BinaryOperator::addition, expr->expr->type, rvalue_right, one);
+
+		store_inst(expr1, expr->type, value, expr->type);
+		result = value;
+		break;
+	}
 	case UnaryOperator::postfix_increment:
 	case UnaryOperator::postfix_decrement:
-		assert_not_implemented();
+	{
+		auto rvalue_right = load_value(expr1, expr->expr);
+		auto sign = unaryop == UnaryOperator::postfix_increment ? 1 : -1;
+		auto one = translation_unit.is_real_float_type(expr->type)
+					   ? (llvm::Constant*)llvm::ConstantFP::get(*context, llvm::APFloat(1.0 * sign))
+					   : (llvm::Constant*)llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 1 * sign, true));
+		auto value = execute_binop(BinaryOperator::addition, expr->expr->type, rvalue_right, one);
+
+		store_inst(expr1, expr->type, value, expr->type);
+		result = rvalue_right;
 		break;
+	}
 
 	case UnaryOperator::plus:
 		result = load_value(expr1, expr->expr);

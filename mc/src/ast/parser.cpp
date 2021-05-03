@@ -1017,6 +1017,7 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 {
 	auto expr = parse_primary_expr();
 
+	auto token = tokens.at(runner);
 	if (match(TokenName::tk_left_bracket))
 	{
 		auto expr1 = parse_expr();
@@ -1055,7 +1056,7 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 				 return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
 			 }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(advance());
+		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		assert(token_symbol);
 		auto op = token_symbol->name == TokenName::tk_plus_plus ? UnaryOperator::postfix_increment : UnaryOperator::postfix_decrement;
 		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr, op));
