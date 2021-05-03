@@ -152,7 +152,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 		else if (translation_unit.is_pointer_type(expr1_type)
 				 && translation_unit.is_pointer_type(expr2_type)
 				 && translation_unit.is_compatible_types(expr1_type, expr2_type))
-			expr_type = translation_unit.get_type("long long");
+			expr_type = translation_unit.get_type("long");
 		else
 			throw std::runtime_error("subtraction only supports both arithmetic types, both pointers or pointer/integer");
 		break;
@@ -194,14 +194,14 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::and_:
 	case BinaryOperator::or_:
 		assert(translation_unit.is_scalar_type(expr1_type) && translation_unit.is_scalar_type(expr2_type));
-		expr_type = translation_unit.get_type("int");
+		expr_type = translation_unit.get_type("_Bool");
 		break;
 
 	case BinaryOperator::equal:
 	case BinaryOperator::not_equal:
 		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type)));
-		expr_type = translation_unit.get_type("int");
+		expr_type = translation_unit.get_type("_Bool");
 		break;
 
 	case BinaryOperator::greater_than:
@@ -210,7 +210,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::less_or_equal:
 		assert((translation_unit.is_real_type(expr1_type) && translation_unit.is_real_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type)));
-		expr_type = translation_unit.get_type("int");
+		expr_type = translation_unit.get_type("_Bool");
 		break;
 
 	case BinaryOperator::array_subscript:

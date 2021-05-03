@@ -671,6 +671,15 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::bitwise_xor:
 	case BinaryOperator::shift_left:
 	case BinaryOperator::shift_right:
+	{
+		auto rvalue_left = load_value(left, expr->left);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
+		auto rvalue_right = load_value(right, expr->right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->type);
+		result = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
+		break;
+	}
+
 	case BinaryOperator::equal:
 	case BinaryOperator::not_equal:
 	case BinaryOperator::less:
@@ -678,12 +687,13 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::less_or_equal:
 	case BinaryOperator::greater_or_equal:
 	{
-		// FIXME: MQ 2021-05-03 cast before binop or after
+		auto type = translation_unit.convert_arithmetic_type(expr->left->type, expr->right->type);
 		auto rvalue_left = load_value(left, expr->left);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, type);
 		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->type);
-		result = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, type);
+		auto value = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
+		result = cast_value(value, type, expr->type);
 		break;
 	}
 
@@ -706,7 +716,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		branch_block(func, expr->left, thenbb, elsebb);
 
 		activate_block(func, elsebb);
-		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0, false)), expr->type);
+		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt1Ty(), llvm::APInt(NBITS_BOOL, 0, false)), expr->type);
 		builder->CreateBr(endbb);
 
 		activate_block(func, thenbb);
@@ -730,7 +740,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		branch_block(func, expr->left, thenbb, elsebb);
 
 		activate_block(func, thenbb);
-		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 1, false)), expr->type);
+		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt1Ty(), llvm::APInt(NBITS_BOOL, 1, false)), expr->type);
 		builder->CreateBr(endbb);
 
 		activate_block(func, elsebb);
