@@ -208,7 +208,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::greater_or_equal:
 	case BinaryOperator::less:
 	case BinaryOperator::less_or_equal:
-		assert((translation_unit.is_real_float_type(expr1_type) && translation_unit.is_real_float_type(expr2_type))
+		assert((translation_unit.is_real_type(expr1_type) && translation_unit.is_real_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type)));
 		expr_type = translation_unit.get_type("int");
 		break;

@@ -161,7 +161,7 @@ void IR::complete_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llv
 void IR::branch_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llvm::BasicBlock* truebb, llvm::BasicBlock* falsebb)
 {
 	auto cond = (llvm::Value*)node->accept(this);
-	cond = create_bool_branch(cond, "loopcond");
+	cond = create_bool_branch(cond, "cond");
 	builder->CreateCondBr(cond, truebb, falsebb);
 }
 
@@ -193,7 +193,10 @@ llvm::Value* IR::create_bool_branch(llvm::Value* source, std::string name)
 {
 	auto type = source->getType();
 	if (type->isIntegerTy())
-		return builder->CreateICmpNE(source, llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0)), name);
+	{
+		auto nbits = source->getType()->getScalarSizeInBits();
+		return builder->CreateICmpNE(source, llvm::ConstantInt::get(*context, llvm::APInt(nbits, 0)), name);
+	}
 	else if (type->isFloatTy())
 		return builder->CreateFCmpUNE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
 	else if (type->isPointerTy())
@@ -639,6 +642,16 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		result = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
 		break;
 	}
+
+	case BinaryOperator::and_:
+	case BinaryOperator::or_:
+	case BinaryOperator::less:
+	case BinaryOperator::greater_than:
+	case BinaryOperator::less_or_equal:
+	case BinaryOperator::greater_or_equal:
+	case BinaryOperator::comma:
+		assert_not_implemented();
+		break;
 	}
 
 	assert(result);
@@ -653,6 +666,13 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 
 	switch (unaryop)
 	{
+	case UnaryOperator::prefix_increment:
+	case UnaryOperator::prefix_decrement:
+	case UnaryOperator::postfix_increment:
+	case UnaryOperator::postfix_decrement:
+		assert_not_implemented();
+		break;
+
 	case UnaryOperator::plus:
 		result = load_value(expr1, expr->expr);
 		break;
@@ -704,12 +724,33 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 
 void* IR::visit_tenary_expr(TenaryExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	auto func = builder->GetInsertBlock()->getParent();
+	auto thenbb = llvm::BasicBlock::Create(*context, "tenary.then");
+	auto elsebb = llvm::BasicBlock::Create(*context, "tenary.else");
+	auto endbb = llvm::BasicBlock::Create(*context, "tenary.end");
+
+	auto tmpvar = create_alloca(func, get_type(expr->type));
+	branch_block(func, expr->cond, thenbb, elsebb);
+
+	activate_block(func, thenbb);
+	auto then_value = (llvm::Value*)expr->expr1->accept(this);
+	auto then_rvalue = load_value(then_value, expr->expr1);
+	store_inst(tmpvar, expr->type, then_rvalue, expr->expr1->type);
+	builder->CreateBr(endbb);
+
+	activate_block(func, elsebb);
+	auto else_value = (llvm::Value*)expr->expr2->accept(this);
+	auto else_rvalue = load_value(else_value, expr->expr2);
+	store_inst(tmpvar, expr->type, else_rvalue, expr->expr2->type);
+	builder->CreateBr(endbb);
+
+	activate_block(func, endbb);
+	return builder->CreateLoad(tmpvar);
 }
 
 void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	assert_not_implemented();
 }
 
 void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
@@ -720,15 +761,26 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 		throw std::runtime_error("arguments are mismatched");
 
 	std::vector<llvm::Value*> args;
-	for (auto arg : expr->arguments)
-		args.push_back((llvm::Value*)arg->accept(this));
+	auto ftype = std::static_pointer_cast<FunctionTypeAST>(expr->type);
+	for (auto i = 0; i < expr->arguments.size(); ++i)
+	{
+		auto [_, ptype] = ftype->parameters[i];
+		auto arg = expr->arguments[i];
+		auto arg_value = (llvm::Value*)arg->accept(this);
+		auto casted_arg_value = cast_value(arg_value, arg->type, ptype);
+		args.push_back(casted_arg_value);
+	}
 
 	return builder->CreateCall(func, args);
 }
 
 void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 {
-	throw std::runtime_error("not implemented yet");
+	if (translation_unit.is_void_type(expr->type))
+		return nullptr;
+
+	auto value = (llvm::Value*)expr->expr->accept(this);
+	return cast_value(value, expr->expr->type, expr->type);
 }
 
 void* IR::visit_sizeof_expr(SizeOfExprAST* expr)

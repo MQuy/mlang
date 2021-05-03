@@ -35,8 +35,8 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	enum foo { RED, GREEN = 100, BLUE };\n"
-		"	int y = RED + BLUE;\n"
+		"	int x, y;\n"
+		"	int z = x == y ? x : y;\n"
 		"}"
 	);
 }

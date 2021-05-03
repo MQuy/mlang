@@ -13,12 +13,17 @@
   - [ ] Support #pragma
 - [x] Parser
   - [x] Abstract Syntax Tree
-  - [ ] Semantic Analyzer
+  - [ ] Anonymous struct and union
+- [ ] Semantic Analyzer
+  - [ ] Syntax and semantic validation
+  - [x] Type inference
 - [ ] LLVM
   - [ ] Unknown array size
   - [ ] Enum values
   - [ ] Nested flat array initializer
   - [ ] Forward declaration
+  - [ ] Function without a prototype
+  - [x] Codegen
 
 ✍🏼 mc is C99-compliant
 
