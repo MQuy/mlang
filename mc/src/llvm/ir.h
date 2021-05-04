@@ -109,6 +109,7 @@ public:
 	unsigned get_sizeof_type(std::shared_ptr<TypeAST> type);
 	unsigned get_alignof_type(std::shared_ptr<TypeAST> type);
 	void store_inst(llvm::Value *dest, std::shared_ptr<TypeAST> dest_type, llvm::Value *src, std::shared_ptr<TypeAST> src_type);
+	BinaryOperator convert_assignment_to_arithmetic_binop(BinaryOperator binop);
 
 private:
 	TranslationUnit translation_unit;

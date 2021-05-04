@@ -35,7 +35,7 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	int x;\n"
-		"	int z = x++ + 1;\n"
+		"	int *x, *y;\n"
+		"	int z = x - 1;\n"
 		"}");
 }

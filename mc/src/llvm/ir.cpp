@@ -227,8 +227,11 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 			result = builder->CreateAdd(left, right, "", false, translation_unit.is_signed_integer_type(type));
 		else if (translation_unit.is_real_float_type(type))
 			result = builder->CreateFAdd(left, right);
-		else
-			assert_not_implemented();
+		else if (translation_unit.is_pointer_type(type))
+		{
+			llvm::ArrayRef<llvm::Value*> indices = {(llvm::Constant*)right};
+			result = builder->CreateInBoundsGEP(left, indices);
+		}
 	}
 	else if (op == BinaryOperator::subtraction)
 	{
@@ -236,8 +239,13 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 			result = builder->CreateSub(left, right, "", false, translation_unit.is_signed_integer_type(type));
 		else if (translation_unit.is_real_float_type(type))
 			result = builder->CreateFSub(left, right);
-		else
-			assert_not_implemented();
+		else if (translation_unit.is_pointer_type(type))
+		{
+			llvm::ConstantInt* constant = (llvm::ConstantInt*)right;
+			auto value = constant->getValue().getSExtValue() * -1;
+			llvm::ArrayRef<llvm::Value*> indices = {llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, value, true))};
+			result = builder->CreateInBoundsGEP(left, indices);
+		}
 	}
 	else if (op == BinaryOperator::multiplication)
 	{
@@ -377,6 +385,32 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type, llvm:
 		auto cvalue = cast_value(src, src_type, dest_type);
 		builder->CreateStore(cvalue, dest);
 	}
+}
+
+BinaryOperator IR::convert_assignment_to_arithmetic_binop(BinaryOperator binop)
+{
+	if (binop == BinaryOperator::addition_assigment)
+		return BinaryOperator::addition;
+	else if (binop == BinaryOperator::subtraction_assignment)
+		return BinaryOperator::subtraction;
+	else if (binop == BinaryOperator::multiplication_assigment)
+		return BinaryOperator::multiplication;
+	else if (binop == BinaryOperator::division_assignment)
+		return BinaryOperator::division;
+	else if (binop == BinaryOperator::remainder_assignment)
+		return BinaryOperator::remainder;
+	else if (binop == BinaryOperator::bitwise_and_assigment)
+		return BinaryOperator::bitwise_and;
+	else if (binop == BinaryOperator::bitwise_or_assigment)
+		return BinaryOperator::bitwise_or;
+	else if (binop == BinaryOperator::bitwise_xor_assigment)
+		return BinaryOperator::bitwise_xor;
+	else if (binop == BinaryOperator::shift_left_assignment)
+		return BinaryOperator::shift_left;
+	else if (binop == BinaryOperator::shift_right_assignment)
+		return BinaryOperator::shift_right;
+
+	assert_not_reached();
 }
 
 unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type)
@@ -647,6 +681,32 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 
 	case BinaryOperator::addition_assigment:
 	case BinaryOperator::subtraction_assignment:
+	case BinaryOperator::addition:
+	case BinaryOperator::subtraction:
+	{
+		auto rvalue_left = load_value(left, expr->left);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
+		auto rvalue_right = load_value(right, expr->right);
+		auto casted_rvalue_right = translation_unit.is_pointer_type(expr->left->type) && translation_unit.is_integer_type(expr->right->type)
+									   ? cast_value(rvalue_right, expr->right->type, translation_unit.get_type("int"))
+									   : cast_value(rvalue_right, expr->right->type, expr->type);
+		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr->type, casted_rvalue_left, casted_rvalue_right);
+
+		if (translation_unit.is_pointer_type(expr->left->type)
+			&& translation_unit.is_pointer_type(expr->right->type)
+			&& binop == BinaryOperator::subtraction)
+		{
+			auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->left->type);
+			auto ty = get_type(ptype->underlay);
+			auto size = module->getDataLayout().getTypeSizeInBits(ty);
+			result = builder->CreateExactSDiv(result, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, size, true)));
+		}
+
+		if (binop == BinaryOperator::addition_assigment
+			|| binop == BinaryOperator::subtraction_assignment)
+			builder->CreateStore(result, left);
+		break;
+	}
 	case BinaryOperator::multiplication_assigment:
 	case BinaryOperator::division_assignment:
 	case BinaryOperator::remainder_assignment:
@@ -655,18 +715,6 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::bitwise_xor_assigment:
 	case BinaryOperator::shift_left_assignment:
 	case BinaryOperator::shift_right_assignment:
-	{
-		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->left->type);
-		auto rvalue_left = load_value(left, expr->left);
-
-		result = execute_binop(binop, expr->type, rvalue_left, casted_rvalue_right);
-		builder->CreateStore(result, left);
-		break;
-	}
-
-	case BinaryOperator::addition:
-	case BinaryOperator::subtraction:
 	case BinaryOperator::multiplication:
 	case BinaryOperator::division:
 	case BinaryOperator::remainder:
@@ -680,7 +728,17 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
 		auto rvalue_right = load_value(right, expr->right);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->type);
-		result = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
+		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr->type, casted_rvalue_left, casted_rvalue_right);
+
+		if (binop == BinaryOperator::multiplication_assigment
+			|| binop == BinaryOperator::division_assignment
+			|| binop == BinaryOperator::remainder_assignment
+			|| binop == BinaryOperator::bitwise_and_assigment
+			|| binop == BinaryOperator::bitwise_or_assigment
+			|| binop == BinaryOperator::bitwise_xor_assigment
+			|| binop == BinaryOperator::shift_left_assignment
+			|| binop == BinaryOperator::shift_right_assignment)
+			builder->CreateStore(result, left);
 		break;
 	}
 
@@ -691,6 +749,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::less_or_equal:
 	case BinaryOperator::greater_or_equal:
 	{
+		// TODO: MQ 2021-05-05 Support pointer comparation
 		auto type = translation_unit.convert_arithmetic_type(expr->left->type, expr->right->type);
 		auto rvalue_left = load_value(left, expr->left);
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, type);

@@ -439,6 +439,7 @@ bool TranslationUnit::is_real_type(std::shared_ptr<TypeAST> type)
 
 bool TranslationUnit::is_arithmetic_type(std::shared_ptr<TypeAST> type)
 {
+	// TODO: MQ 2021-05-05 Include complex and imaginary types
 	return is_integer_type(type) || is_real_float_type(type);
 }
 
