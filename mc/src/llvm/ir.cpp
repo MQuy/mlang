@@ -379,6 +379,14 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type, llvm:
 		auto size = ConstExprEval(this, dest_atype->expr).eval();
 		builder->CreateMemCpy(casted_dest, llvm::MaybeAlign(1), src, llvm::MaybeAlign(1), size);
 	}
+	else if (translation_unit.is_aggregate_type(dest_type) && translation_unit.is_aggregate_type(src_type) && translation_unit.is_same_types(dest_type, src_type))
+	{
+		auto size = get_sizeof_type(dest_type);
+		auto ty = llvm::PointerType::get(builder->getInt8Ty(), 0);
+		auto casted_src = builder->CreateBitCast(src, ty);
+		auto casted_dest = builder->CreateBitCast(dest, ty);
+		builder->CreateMemCpy(casted_dest, llvm::MaybeAlign(1), casted_src, llvm::MaybeAlign(1), size);
+	}
 	else
 	{
 		auto cvalue = cast_value(src, src_type, dest_type);
@@ -423,8 +431,9 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 	if (expr == nullptr)
 		return builder->CreateLoad(source);
 	// skip if current expression is address of
-	else if (expr->node_type == ASTNodeType::expr_unary
-			 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+	else if ((expr->node_type == ASTNodeType::expr_unary
+			  && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+			 || expr->node_type == ASTNodeType::expr_initializer)
 		return source;
 	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
 			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
@@ -527,7 +536,9 @@ llvm::AllocaInst* IR::create_alloca(llvm::Function* func, llvm::Type* type, llvm
 {
 	llvm::IRBuilder<> tmp_block(&func->getEntryBlock(), func->getEntryBlock().begin());
 	auto inst = tmp_block.CreateAlloca(type, nullptr, name);
-	environment->define(name.str(), inst);
+	// temporary variable don't need to put into environment
+	if (!name.empty())
+		environment->define(name.str(), inst);
 	return inst;
 }
 
@@ -749,12 +760,17 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::less_or_equal:
 	case BinaryOperator::greater_or_equal:
 	{
-		// TODO: MQ 2021-05-05 Support pointer comparation
-		auto type = translation_unit.convert_arithmetic_type(expr->left->type, expr->right->type);
+		auto left_type = translation_unit.is_pointer_type(expr->left->type)
+							 ? translation_unit.get_type("unsigned int")
+							 : expr->left->type;
+		auto right_type = translation_unit.is_pointer_type(expr->right->type)
+							  ? translation_unit.get_type("unsigned int")
+							  : expr->right->type;
+		auto type = translation_unit.convert_arithmetic_type(left_type, right_type);
 		auto rvalue_left = load_value(left, expr->left);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, type);
+		auto casted_rvalue_left = cast_value(rvalue_left, left_type, type);
 		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, type);
+		auto casted_rvalue_right = cast_value(rvalue_right, right_type, type);
 		auto value = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
 		result = cast_value(value, type, expr->type);
 		break;
@@ -1024,7 +1040,24 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 	}
 	else if (translation_unit.is_struct_type(expr->type))
 	{
-		assert_not_implemented();
+		auto stype = std::static_pointer_cast<AggregateTypeAST>(expr->type);
+		auto sty = get_type(stype);
+		llvm::Function* func = builder->GetInsertBlock()->getParent();
+		auto tmp = create_alloca(func, sty);
+
+		for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+		{
+			auto iexpr = expr->exprs[idx];
+			auto value = (llvm::Value*)iexpr->accept(this);
+			llvm::ArrayRef<llvm::Value*> indices = {
+				llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
+				llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
+			};
+			auto member = builder->CreateInBoundsGEP(tmp, indices);
+			auto [_, member_type] = stype->members[idx];
+			store_inst(member, member_type, value, iexpr->type);
+		}
+		return tmp;
 	}
 }
 

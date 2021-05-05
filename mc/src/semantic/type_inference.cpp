@@ -200,7 +200,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::equal:
 	case BinaryOperator::not_equal:
 		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
-			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type)));
+			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type)));
 		expr_type = translation_unit.get_type("_Bool");
 		break;
 
@@ -582,7 +582,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 				expr->accept(this);
 				// cannot inference initializer's type since its type have to depend on declaration
 				if (expr->node_type == ASTNodeType::expr_initializer)
-					expr->type = type;
+					fill_initializer_type(std::static_pointer_cast<InitializerExprAST>(expr), type);
 			}
 		}
 		resolve_type(type);
@@ -682,5 +682,23 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 		resolve_type(ftype->returning);
 		for (auto [pname, ptype] : ftype->parameters)
 			resolve_type(ptype);
+	}
+}
+
+void SemanticTypeInference::fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, std::shared_ptr<TypeAST> type)
+{
+	assert(expr->node_type == ASTNodeType::expr_initializer);
+	expr->type = type;
+
+	if (translation_unit.is_aggregate_type(type))
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+		{
+			auto iexpr = expr->exprs[idx];
+			auto [_, mtype] = atype->members[idx];
+			if (!iexpr->type)
+				fill_initializer_type(std::static_pointer_cast<InitializerExprAST>(iexpr), mtype);
+		}
 	}
 }

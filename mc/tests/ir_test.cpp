@@ -35,7 +35,6 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int main() {\n"
-		"	struct foo { int x, y; } x;\n"
-		"	int y = x.x;\n"
+		"	struct foo { int x; struct baz { int a, b; } y; } x = {1, {2, 3}};\n"
 		"}");
 }

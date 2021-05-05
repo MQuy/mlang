@@ -656,7 +656,15 @@ bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
 	if (type->kind == TypeKind::pointer)
 	{
 		auto ptype = std::static_pointer_cast<PointerTypeAST>(type);
-		return is_void_type(ptype->underlay);
+		auto utype = ptype->underlay;
+		return utype->kind == TypeKind::builtin && std::static_pointer_cast<BuiltinTypeAST>(utype)->name == BuiltinTypeName::void_;
 	}
-	return false;
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_void_pointer(original_type);
+	}
+	else
+		return false;
 }

@@ -62,6 +62,7 @@ public:
 	bool add_type_declaration(std::shared_ptr<TypeAST> type);
 	void define_type(std::string name, std::shared_ptr<TypeAST> type);
 	void resolve_type(std::shared_ptr<TypeAST> type);
+	void fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, std::shared_ptr<TypeAST> type);
 
 private:
 	TranslationUnit translation_unit;
