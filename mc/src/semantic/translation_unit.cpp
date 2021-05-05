@@ -501,6 +501,20 @@ bool TranslationUnit::is_function_type(std::shared_ptr<TypeAST> type)
 	return type->kind == TypeKind::function;
 }
 
+bool TranslationUnit::is_enum_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::enum_)
+		return true;
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = types[atype->name->name];
+		return is_enum_type(original_type);
+	}
+	else
+		return false;
+}
+
 bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::array)
@@ -517,7 +531,52 @@ bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
 
 bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	assert_not_implemented();
+	if (is_same_types(type1, type2))
+		return true;
+	else if (is_pointer_type(type1) && is_pointer_type(type2))
+	{
+		auto ptype1 = std::static_pointer_cast<PointerTypeAST>(type1);
+		auto ptype2 = std::static_pointer_cast<PointerTypeAST>(type2);
+		return is_compatible_types(ptype1->underlay, ptype2->underlay);
+	}
+	else if (is_array_type(type1) && is_array_type(type2))
+	{
+		auto atype1 = std::static_pointer_cast<ArrayTypeAST>(type1);
+		auto atype2 = std::static_pointer_cast<ArrayTypeAST>(type2);
+		// TODO: MQ 2021-05-05 If both have constant size, only if that size is the same
+		return is_compatible_types(atype1->underlay, atype2->underlay);
+	}
+	else if (is_aggregate_type(type1) && is_aggregate_type(type2))
+	{
+		auto atype1 = std::static_pointer_cast<AggregateTypeAST>(type1);
+		auto atype2 = std::static_pointer_cast<AggregateTypeAST>(type2);
+
+		if (atype1->aggregate_kind != atype2->aggregate_kind
+			|| atype1->name->name != atype2->name->name
+			|| atype1->members.size() != atype2->members.size())
+			return false;
+
+		// NOTE: MQ 2021-05-05 Only support compatible union with the same order members
+		for (auto idx = 0; atype1->members.size(); ++idx)
+		{
+			auto [mname1, mtype1] = atype1->members[idx];
+			auto [mname2, mtype2] = atype2->members[idx];
+
+			if (mname1->name != mname2->name || !is_compatible_types(mtype1, mtype2))
+				return false;
+		}
+		return true;
+	}
+	else if (is_enum_type(type1) && is_enum_type(type2))
+	{
+		auto etype1 = std::static_pointer_cast<EnumTypeAST>(type1);
+		auto etype2 = std::static_pointer_cast<EnumTypeAST>(type2);
+
+		if (etype1->name->name != etype2->name->name || etype1->members.size() != etype2->members.size())
+			return false;
+	}
+
+	return false;
 }
 
 bool TranslationUnit::is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)

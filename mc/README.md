@@ -32,6 +32,8 @@
 
 ![diagram](https://i.imgur.com/tqpvDdb.png)
 
+- Not support old-style function definition
+
 ### Semantic Analyzer
 
 - throw exceptions if there is any invalid expression

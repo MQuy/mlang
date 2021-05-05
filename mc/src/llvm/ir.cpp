@@ -220,7 +220,6 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 {
 	llvm::Value* result = nullptr;
 
-	// TODO: MQ 2021-04-25 Support pointer addition and substraction
 	if (op == BinaryOperator::addition)
 	{
 		if (translation_unit.is_integer_type(type))

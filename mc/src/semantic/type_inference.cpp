@@ -360,9 +360,13 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 
 	std::shared_ptr<AggregateTypeAST> object_type = nullptr;
 	if (translation_unit.is_aggregate_type(expr->object->type))
+	{
+		assert(expr->access_type == MemberAccessType::dot);
 		object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+	}
 	else if (translation_unit.is_pointer_type(expr->object->type))
 	{
+		assert(expr->access_type == MemberAccessType::arrow);
 		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
 		assert(translation_unit.is_aggregate_type(ptype->underlay));
 		object_type = std::static_pointer_cast<AggregateTypeAST>(ptype->underlay);
