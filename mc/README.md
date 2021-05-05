@@ -23,6 +23,7 @@
   - [ ] Nested flat array initializer
   - [ ] Forward declaration
   - [ ] Function without a prototype
+  - [ ] Union member access
   - [x] Codegen
 
 ✍🏼 mc is C99-compliant

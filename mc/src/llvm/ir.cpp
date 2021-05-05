@@ -428,7 +428,8 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 			 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 		return source;
 	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
-			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca)
+			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
+			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr)
 		return builder->CreateLoad(source);
 	else
 		return source;
@@ -935,7 +936,34 @@ void* IR::visit_tenary_expr(TenaryExprAST* expr)
 
 void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 {
-	assert_not_implemented();
+	auto expr_obj = (llvm::Value*)expr->object->accept(this);
+	llvm::Value* object = nullptr;
+
+	std::shared_ptr<AggregateTypeAST> object_type;
+	if (translation_unit.is_aggregate_type(expr->object->type))
+	{
+		object = expr_obj;
+		object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+	}
+	else if (translation_unit.is_pointer_type(expr->object->type))
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
+		object_type = std::static_pointer_cast<AggregateTypeAST>(ptype->underlay);
+		object = load_value(expr_obj, expr->object);
+	}
+
+	auto idx = 0;
+	for (auto [mname, _] : object_type->members)
+	{
+		if (mname->name == expr->member->name)
+			break;
+		idx++;
+	}
+
+	llvm::ArrayRef<llvm::Value*> indices = {
+		llvm::ConstantInt::get(builder->getInt32Ty(), 0),
+		llvm::ConstantInt::get(builder->getInt32Ty(), idx)};
+	return builder->CreateGEP(object, indices);
 }
 
 void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
@@ -997,6 +1025,7 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 	}
 	else if (translation_unit.is_struct_type(expr->type))
 	{
+		assert_not_implemented();
 	}
 }
 

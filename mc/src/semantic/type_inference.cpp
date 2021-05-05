@@ -358,8 +358,17 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 {
 	expr->object->accept(this);
 
-	assert(translation_unit.is_aggregate_type(expr->object->type));
-	auto object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+	std::shared_ptr<AggregateTypeAST> object_type = nullptr;
+	if (translation_unit.is_aggregate_type(expr->object->type))
+		object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+	else if (translation_unit.is_pointer_type(expr->object->type))
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
+		assert(translation_unit.is_aggregate_type(ptype->underlay));
+		object_type = std::static_pointer_cast<AggregateTypeAST>(ptype->underlay);
+	}
+	assert(object_type);
+
 	std::shared_ptr<TypeAST> expr_type = nullptr;
 	for (auto [mname, mtype] : object_type->members)
 	{
