@@ -34,7 +34,13 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
-		"int main() {\n"
-		"	struct foo { int x; struct baz { int a, b; } y; } x = {1, {2, 3}};\n"
-		"}");
+		"struct foo { int x, y; };\n"
+		"struct foo hello() {\n"
+		"	struct foo x = {12345, 11111};\n"
+		"	return x;\n"
+		"}\n"
+		"int mc() {\n"
+		"	struct foo x = hello();\n"
+		"	return x.x;\n"
+		"}\n");
 }

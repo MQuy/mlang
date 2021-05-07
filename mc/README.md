@@ -24,6 +24,7 @@
   - [ ] Forward declaration
   - [ ] Function without a prototype
   - [ ] Union member access
+  - [ ] CVR qualified
   - [x] Codegen
 
 ✍🏼 mc is C99-compliant

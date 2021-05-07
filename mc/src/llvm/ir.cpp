@@ -366,30 +366,46 @@ unsigned IR::get_alignof_type(std::shared_ptr<TypeAST> type)
 	return module->getDataLayout().getABITypeAlignment(ty);
 }
 
-void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type, llvm::Value* src, std::shared_ptr<TypeAST> src_type)
+void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, llvm::Value* src, std::shared_ptr<TypeAST> src_type_ast)
 {
-	auto src_ty = get_type(src_type);
+	auto src_type = get_type(src_type_ast);
 
-	if (translation_unit.is_array_type(dest_type) && translation_unit.is_pointer_type(src_type))
+	if (translation_unit.is_array_type(dest_type_ast) && translation_unit.is_pointer_type(src_type_ast))
 	{
-		auto dest_atype = std::static_pointer_cast<ArrayTypeAST>(dest_type);
-		auto dest_ptype = translation_unit.convert_array_to_pointer(dest_type);
-		auto dest_ty = get_type(dest_ptype);
-		auto casted_dest = builder->CreateBitCast(dest, dest_ty);
-		auto size = ConstExprEval(this, dest_atype->expr).eval();
-		builder->CreateMemCpy(casted_dest, llvm::MaybeAlign(1), src, llvm::MaybeAlign(1), size);
+		auto dest_atype_ast = std::static_pointer_cast<ArrayTypeAST>(dest_type_ast);
+		auto dest_ptype_ast = translation_unit.convert_array_to_pointer(dest_type_ast);
+		auto dest_type = get_type(dest_ptype_ast);
+		auto casted_dest = builder->CreateBitCast(dest, dest_type);
+		auto size = ConstExprEval(this, dest_atype_ast->expr).eval();
+		builder->CreateMemCpy(casted_dest,
+							  llvm::MaybeAlign(get_alignof_type(dest_type_ast)),
+							  src,
+							  llvm::MaybeAlign(get_alignof_type(src_type_ast)),
+							  size);
 	}
-	else if (translation_unit.is_aggregate_type(dest_type) && translation_unit.is_aggregate_type(src_type) && translation_unit.is_same_types(dest_type, src_type))
+	// struct/union can be from allocation (underhood is pointer) or literal
+	// both are have same ast type
+	// - allocation: we have to use memcpy
+	// - literal: usual store
+	else if (src->getType()->isPointerTy()
+			 && dest->getType()->isPointerTy()
+			 && translation_unit.is_aggregate_type(dest_type_ast)
+			 && translation_unit.is_aggregate_type(src_type_ast)
+			 && translation_unit.is_compatible_types(dest_type_ast, src_type_ast))
 	{
-		auto size = get_sizeof_type(dest_type);
-		auto ty = llvm::PointerType::get(builder->getInt8Ty(), 0);
-		auto casted_src = builder->CreateBitCast(src, ty);
-		auto casted_dest = builder->CreateBitCast(dest, ty);
-		builder->CreateMemCpy(casted_dest, llvm::MaybeAlign(1), casted_src, llvm::MaybeAlign(1), size);
+		auto size = get_sizeof_type(dest_type_ast);
+		auto type = llvm::PointerType::get(builder->getInt8Ty(), 0);
+		auto casted_src = builder->CreateBitCast(src, type);
+		auto casted_dest = builder->CreateBitCast(dest, type);
+		builder->CreateMemCpy(casted_dest,
+							  llvm::MaybeAlign(get_alignof_type(dest_type_ast)),
+							  casted_src,
+							  llvm::MaybeAlign(get_alignof_type(src_type_ast)),
+							  size);
 	}
 	else
 	{
-		auto cvalue = cast_value(src, src_type, dest_type);
+		auto cvalue = cast_value(src, src_type_ast, dest_type_ast);
 		builder->CreateStore(cvalue, dest);
 	}
 }
@@ -430,10 +446,11 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
 	if (expr == nullptr)
 		return builder->CreateLoad(source);
-	// skip if current expression is address of
+	// skip if current expression is address of, initializer and aggregate (struct, union)
 	else if ((expr->node_type == ASTNodeType::expr_unary
 			  && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
-			 || expr->node_type == ASTNodeType::expr_initializer)
+			 || expr->node_type == ASTNodeType::expr_initializer
+			 || expr->type->kind == TypeKind::aggregate)
 		return source;
 	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
 			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
@@ -600,7 +617,7 @@ std::string IR::generate()
 
 	std::string str;
 	llvm::raw_string_ostream ros(str);
-	module->print(ros, nullptr);
+	module->print(ros, nullptr, false, true);
 
 	emit_object_file();
 
@@ -685,7 +702,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		auto rvalue_right = load_value(right, expr->right);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->left->type);
 
-		builder->CreateStore(casted_rvalue_right, left);
+		store_inst(left, expr->type, casted_rvalue_right, expr->right->type);
 		result = casted_rvalue_right;
 		break;
 	}
@@ -958,12 +975,12 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 	if (translation_unit.is_aggregate_type(expr->object->type))
 	{
 		object = expr_obj;
-		object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->object->type));
 	}
 	else if (translation_unit.is_pointer_type(expr->object->type))
 	{
 		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
-		object_type = std::static_pointer_cast<AggregateTypeAST>(ptype->underlay);
+		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(ptype->underlay));
 		object = load_value(expr_obj, expr->object);
 	}
 
@@ -1040,7 +1057,7 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 	}
 	else if (translation_unit.is_struct_type(expr->type))
 	{
-		auto stype = std::static_pointer_cast<AggregateTypeAST>(expr->type);
+		auto stype = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->type));
 		auto sty = get_type(stype);
 		llvm::Function* func = builder->GetInsertBlock()->getParent();
 		auto tmp = create_alloca(func, sty);
@@ -1272,8 +1289,8 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 	{
 		auto ret = environment->lookup(LLVM_RETURN_NAME);
 		auto value = (llvm::Value*)stmt->expr->accept(this);
-
-		builder->CreateStore(value, ret);
+		auto rvalue = load_value(value, stmt->expr);
+		store_inst(ret, stmt->expr->type, rvalue, stmt->expr->type);
 	}
 	auto rstmt = find_stmt_branch(StmtBranchType::function);
 	builder->CreateBr(rstmt->endbb);
@@ -1284,6 +1301,7 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 {
 	llvm::Function* func = nullptr;
+	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
 	if (!(func = module->getFunction(stmt->name->name)))
 		func = create_function_prototype(stmt->name->name, stmt->type);
 
@@ -1293,7 +1311,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 
 	unsigned idx = 0;
 	for (auto& arg : func->args())
-		arg.setName(std::get<0>(std::static_pointer_cast<FunctionTypeAST>(stmt->type)->parameters[idx++])->name);
+		arg.setName(std::get<0>(ftype->parameters[idx++])->name);
 
 	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry", func);
 	builder->SetInsertPoint(entrybb);
@@ -1303,9 +1321,8 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	stmts_branch.push_back(estmt);
 
 	if (!func->getReturnType()->isVoidTy())
-	{
-		llvm::AllocaInst* alloca = create_alloca(func, func->getReturnType(), LLVM_RETURN_NAME);
-	}
+		create_alloca(func, func->getReturnType(), LLVM_RETURN_NAME);
+
 	for (auto& arg : func->args())
 	{
 		llvm::AllocaInst* alloca = create_alloca(func, arg.getType(), arg.getName());

@@ -362,14 +362,14 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 	if (translation_unit.is_aggregate_type(expr->object->type))
 	{
 		assert(expr->access_type == MemberAccessType::dot);
-		object_type = std::static_pointer_cast<AggregateTypeAST>(expr->object->type);
+		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->object->type));
 	}
 	else if (translation_unit.is_pointer_type(expr->object->type))
 	{
 		assert(expr->access_type == MemberAccessType::arrow);
 		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
 		assert(translation_unit.is_aggregate_type(ptype->underlay));
-		object_type = std::static_pointer_cast<AggregateTypeAST>(ptype->underlay);
+		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(ptype->underlay));
 	}
 	assert(object_type);
 
@@ -692,7 +692,7 @@ void SemanticTypeInference::fill_initializer_type(std::shared_ptr<InitializerExp
 
 	if (translation_unit.is_aggregate_type(type))
 	{
-		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(type));
 		for (auto idx = 0; idx < expr->exprs.size(); ++idx)
 		{
 			auto iexpr = expr->exprs[idx];
