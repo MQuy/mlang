@@ -216,17 +216,17 @@ void IR::leave_scope()
 	environment = environment->get_enclosing();
 }
 
-llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value* left, llvm::Value* right)
+llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type_ast, llvm::Value* left, llvm::Value* right)
 {
 	llvm::Value* result = nullptr;
 
 	if (op == BinaryOperator::addition)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = builder->CreateAdd(left, right, "", false, translation_unit.is_signed_integer_type(type));
-		else if (translation_unit.is_real_float_type(type))
+		if (translation_unit.is_integer_type(type_ast))
+			result = builder->CreateAdd(left, right, "", false, translation_unit.is_signed_integer_type(type_ast));
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFAdd(left, right);
-		else if (translation_unit.is_pointer_type(type))
+		else if (translation_unit.is_pointer_type(type_ast))
 		{
 			llvm::ArrayRef<llvm::Value*> indices = {(llvm::Constant*)right};
 			result = builder->CreateInBoundsGEP(left, indices);
@@ -234,11 +234,11 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 	}
 	else if (op == BinaryOperator::subtraction)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = builder->CreateSub(left, right, "", false, translation_unit.is_signed_integer_type(type));
-		else if (translation_unit.is_real_float_type(type))
+		if (translation_unit.is_integer_type(type_ast))
+			result = builder->CreateSub(left, right, "", false, translation_unit.is_signed_integer_type(type_ast));
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFSub(left, right);
-		else if (translation_unit.is_pointer_type(type))
+		else if (translation_unit.is_pointer_type(type_ast))
 		{
 			llvm::ConstantInt* constant = (llvm::ConstantInt*)right;
 			auto value = constant->getValue().getSExtValue() * -1;
@@ -248,15 +248,15 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 	}
 	else if (op == BinaryOperator::multiplication)
 	{
-		if (translation_unit.is_integer_type(type))
+		if (translation_unit.is_integer_type(type_ast))
 			result = builder->CreateMul(left, right);
 		else
 			result = builder->CreateFMul(left, right);
 	}
 	else if (op == BinaryOperator::division)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = translation_unit.is_unsigned_integer_type(type)
+		if (translation_unit.is_integer_type(type_ast))
+			result = translation_unit.is_unsigned_integer_type(type_ast)
 						 ? builder->CreateUDiv(left, right)
 						 : builder->CreateSDiv(left, right);
 		else
@@ -264,8 +264,8 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 	}
 	else if (op == BinaryOperator::remainder)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = translation_unit.is_unsigned_integer_type(type)
+		if (translation_unit.is_integer_type(type_ast))
+			result = translation_unit.is_unsigned_integer_type(type_ast)
 						 ? builder->CreateURem(left, right)
 						 : builder->CreateSRem(left, right);
 		else
@@ -280,57 +280,57 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type,
 	else if (op == BinaryOperator::shift_left)
 		result = builder->CreateShl(left, right);
 	else if (op == BinaryOperator::shift_right)
-		result = translation_unit.is_signed_integer_type(type)
+		result = translation_unit.is_signed_integer_type(type_ast)
 					 ? builder->CreateAShr(left, right)
 					 : builder->CreateLShr(left, right);
 	else if (op == BinaryOperator::equal)
 	{
-		if (translation_unit.is_integer_type(type) || translation_unit.is_pointer_type(type))
+		if (translation_unit.is_integer_type(type_ast) || translation_unit.is_pointer_type(type_ast))
 			result = builder->CreateICmpEQ(left, right);
-		else if (translation_unit.is_real_float_type(type))
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFCmpUEQ(left, right);
 	}
 	else if (op == BinaryOperator::not_equal)
 	{
-		if (translation_unit.is_integer_type(type) || translation_unit.is_pointer_type(type))
+		if (translation_unit.is_integer_type(type_ast) || translation_unit.is_pointer_type(type_ast))
 			result = builder->CreateICmpNE(left, right);
-		else if (translation_unit.is_real_float_type(type))
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFCmpONE(left, right);
 	}
 	else if (op == BinaryOperator::less)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = translation_unit.is_signed_integer_type(type)
+		if (translation_unit.is_integer_type(type_ast))
+			result = translation_unit.is_signed_integer_type(type_ast)
 						 ? builder->CreateICmpSLT(left, right)
 						 : builder->CreateICmpULT(left, right);
-		else if (translation_unit.is_real_float_type(type))
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFCmpOLT(left, right);
 	}
 	else if (op == BinaryOperator::greater_than)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = translation_unit.is_signed_integer_type(type)
+		if (translation_unit.is_integer_type(type_ast))
+			result = translation_unit.is_signed_integer_type(type_ast)
 						 ? builder->CreateICmpSGT(left, right)
 						 : builder->CreateICmpUGT(left, right);
-		else if (translation_unit.is_real_float_type(type))
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFCmpOGT(left, right);
 	}
 	else if (op == BinaryOperator::less_or_equal)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = translation_unit.is_signed_integer_type(type)
+		if (translation_unit.is_integer_type(type_ast))
+			result = translation_unit.is_signed_integer_type(type_ast)
 						 ? builder->CreateICmpSLE(left, right)
 						 : builder->CreateICmpULE(left, right);
-		else if (translation_unit.is_real_float_type(type))
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFCmpOLE(left, right);
 	}
 	else if (op == BinaryOperator::greater_or_equal)
 	{
-		if (translation_unit.is_integer_type(type))
-			result = translation_unit.is_signed_integer_type(type)
+		if (translation_unit.is_integer_type(type_ast))
+			result = translation_unit.is_signed_integer_type(type_ast)
 						 ? builder->CreateICmpSGE(left, right)
 						 : builder->CreateICmpUGE(left, right);
-		else if (translation_unit.is_real_float_type(type))
+		else if (translation_unit.is_real_float_type(type_ast))
 			result = builder->CreateFCmpOGE(left, right);
 	}
 
@@ -360,10 +360,10 @@ llvm::Value* IR::get_or_insert_global_string(std::string content)
 	return value;
 }
 
-unsigned IR::get_alignof_type(std::shared_ptr<TypeAST> type)
+unsigned IR::get_alignof_type(std::shared_ptr<TypeAST> type_ast)
 {
-	auto ty = get_type(type);
-	return module->getDataLayout().getABITypeAlignment(ty);
+	auto type = get_type(type_ast);
+	return module->getDataLayout().getABITypeAlignment(type);
 }
 
 void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, llvm::Value* src, std::shared_ptr<TypeAST> src_type_ast)
@@ -436,10 +436,10 @@ BinaryOperator IR::convert_assignment_to_arithmetic_binop(BinaryOperator binop)
 	assert_not_reached();
 }
 
-unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type)
+unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type_ast)
 {
-	auto ty = get_type(type);
-	return module->getDataLayout().getTypeAllocSize(ty);
+	auto type = get_type(type_ast);
+	return module->getDataLayout().getTypeAllocSize(type);
 }
 
 llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
@@ -724,9 +724,9 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 			&& translation_unit.is_pointer_type(expr->right->type)
 			&& binop == BinaryOperator::subtraction)
 		{
-			auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->left->type);
-			auto ty = get_type(ptype->underlay);
-			auto size = module->getDataLayout().getTypeSizeInBits(ty);
+			auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(expr->left->type);
+			auto ptype = get_type(ptype_ast->underlay);
+			auto size = module->getDataLayout().getTypeSizeInBits(ptype);
 			result = builder->CreateExactSDiv(result, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, size, true)));
 		}
 
@@ -783,13 +783,13 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		auto right_type = translation_unit.is_pointer_type(expr->right->type)
 							  ? translation_unit.get_type("unsigned int")
 							  : expr->right->type;
-		auto type = translation_unit.convert_arithmetic_type(left_type, right_type);
+		auto type_ast = translation_unit.convert_arithmetic_type(left_type, right_type);
 		auto rvalue_left = load_value(left, expr->left);
-		auto casted_rvalue_left = cast_value(rvalue_left, left_type, type);
+		auto casted_rvalue_left = cast_value(rvalue_left, left_type, type_ast);
 		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = cast_value(rvalue_right, right_type, type);
+		auto casted_rvalue_right = cast_value(rvalue_right, right_type, type_ast);
 		auto value = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
-		result = cast_value(value, type, expr->type);
+		result = cast_value(value, type_ast, expr->type);
 		break;
 	}
 
@@ -971,21 +971,21 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 	auto expr_obj = (llvm::Value*)expr->object->accept(this);
 	llvm::Value* object = nullptr;
 
-	std::shared_ptr<AggregateTypeAST> object_type;
+	std::shared_ptr<AggregateTypeAST> object_type_ast;
 	if (translation_unit.is_aggregate_type(expr->object->type))
 	{
 		object = expr_obj;
-		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->object->type));
+		object_type_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->object->type));
 	}
 	else if (translation_unit.is_pointer_type(expr->object->type))
 	{
-		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
-		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(ptype->underlay));
+		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
+		object_type_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(ptype_ast->underlay));
 		object = load_value(expr_obj, expr->object);
 	}
 
 	auto idx = 0;
-	for (auto [mname, _] : object_type->members)
+	for (auto [mname, _] : object_type_ast->members)
 	{
 		if (mname->name == expr->member->name)
 			break;
@@ -1006,13 +1006,13 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 		throw std::runtime_error("arguments are mismatched");
 
 	std::vector<llvm::Value*> args;
-	auto ftype = std::static_pointer_cast<FunctionTypeAST>(expr->type);
+	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(translation_unit.get_type(expr->type));
 	for (auto i = 0; i < expr->arguments.size(); ++i)
 	{
-		auto [_, ptype] = ftype->parameters[i];
+		auto [_, ptype_ast] = ftype_ast->parameters[i];
 		auto arg = expr->arguments[i];
 		auto arg_value = (llvm::Value*)arg->accept(this);
-		auto casted_arg_value = cast_value(arg_value, arg->type, ptype);
+		auto casted_arg_value = cast_value(arg_value, arg->type, ptype_ast);
 		args.push_back(casted_arg_value);
 	}
 
@@ -1030,8 +1030,8 @@ void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 
 void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
 {
-	std::shared_ptr<TypeAST> type = expr->expr ? expr->expr->type : expr->size_of_type;
-	auto typesize = get_sizeof_type(type);
+	std::shared_ptr<TypeAST> type_ast = expr->expr ? expr->expr->type : expr->size_of_type;
+	auto typesize = get_sizeof_type(type_ast);
 
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, typesize, true));
 }
@@ -1057,10 +1057,10 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 	}
 	else if (translation_unit.is_struct_type(expr->type))
 	{
-		auto stype = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->type));
-		auto sty = get_type(stype);
+		auto stype_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->type));
+		auto stype = get_type(stype_ast);
 		llvm::Function* func = builder->GetInsertBlock()->getParent();
-		auto tmp = create_alloca(func, sty);
+		auto tmp = create_alloca(func, stype);
 
 		for (auto idx = 0; idx < expr->exprs.size(); ++idx)
 		{
@@ -1071,7 +1071,7 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 				llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
 			};
 			auto member = builder->CreateInBoundsGEP(tmp, indices);
-			auto [_, member_type] = stype->members[idx];
+			auto [_, member_type] = stype_ast->members[idx];
 			store_inst(member, member_type, value, iexpr->type);
 		}
 		return tmp;
@@ -1353,44 +1353,43 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 {
 	get_type(stmt->type);
 
-	for (auto [token, type, expr] : stmt->declarators)
+	for (auto [token, type_ast, expr] : stmt->declarators)
 	{
+		auto type = get_type(type_ast);
 		if (in_func_scope)
 		{
 			llvm::Function* func = builder->GetInsertBlock()->getParent();
-			auto ty = get_type(type);
-			auto alloca = create_alloca(func, ty, token->name);
+			auto alloca = create_alloca(func, type, token->name);
 
 			if (expr)
 			{
 				auto value = (llvm::Value*)expr->accept(this);
 				auto rvalue = load_value(value, expr);
-				store_inst(alloca, type, rvalue, expr->type);
+				store_inst(alloca, type_ast, rvalue, expr->type);
 			}
 		}
 		else
 		{
-			llvm::Type* ty = get_type(type);
 			llvm::Value* declarator;
 
-			if (ty->isFunctionTy())
-				declarator = create_function_prototype(token->name, type);
+			if (type->isFunctionTy())
+				declarator = create_function_prototype(token->name, type_ast);
 			else
 			{
-				auto qualifiers = translation_unit.get_type_qualifiers(type);
+				auto qualifiers = translation_unit.get_type_qualifiers(type_ast);
 				bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier) {
 					return qualifier == TypeQualifier::const_;
 				});
-				auto storage = translation_unit.get_storage_specifier(type);
+				auto storage = translation_unit.get_storage_specifier(type_ast);
 				auto linkage = get_linkage_type(storage);
 				llvm::Constant* constant = nullptr;
 				if (expr)
 				{
 					auto value = (llvm::Constant*)expr->accept(this);
-					constant = (llvm::Constant*)cast_value(value, expr->type, type);
+					constant = (llvm::Constant*)cast_value(value, expr->type, type_ast);
 				}
 
-				declarator = new llvm::GlobalVariable(*module, ty, is_constant, linkage, constant, token->name);
+				declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, constant, token->name);
 			}
 			environment->define(token, declarator);
 		}

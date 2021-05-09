@@ -237,7 +237,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::member_access:
 	{
 		assert(translation_unit.is_aggregate_type(expr1_type));
-		auto atype = std::static_pointer_cast<AggregateTypeAST>(expr1_type);
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr1_type));
 		auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr->right);
 
 		for (auto [mname, mtype] : atype->members)
