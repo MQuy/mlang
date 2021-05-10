@@ -35,12 +35,12 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"struct foo { int x, y; };\n"
-		"struct foo hello() {\n"
-		"	struct foo x = {11, 22};\n"
+		"struct foo hello(struct foo x) {\n"
 		"	return x;\n"
 		"}\n"
 		"int mc() {\n"
-		"	struct foo x = hello();\n"
-		"	return x.y;\n"
+		"	struct foo x = {55, 66};\n"
+		"	struct foo y = hello(x);\n"
+		"	return y.y;\n"
 		"}\n");
 }
