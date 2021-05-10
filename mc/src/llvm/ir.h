@@ -25,6 +25,7 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Utils.h"
 #include "semantic/translation_unit.h"
 #include "stmt_branch.h"
 #include "value_environment.h"
@@ -37,7 +38,7 @@ public:
 	IR(TranslationUnit translation_unit)
 		: translation_unit(translation_unit)
 		, environment(new ValueEnvironment(nullptr))
-		, in_func_scope(false)
+		, in_func_scope(nullptr)
 	{
 		context = std::make_unique<llvm::LLVMContext>();
 		module = std::make_unique<llvm::Module>("mc", *context);
@@ -90,7 +91,7 @@ public:
 	void emit_object_file();
 	void init_pass_maanger();
 	llvm::Value *create_constant_value(std::shared_ptr<TypeAST> type, int);
-	llvm::Value *load_value(llvm::Value *source, std::shared_ptr<ExprAST> expr);
+	llvm::Value *load_value(llvm::Value *source, std::shared_ptr<ExprAST> expr, bool load_aggregate = true);
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *convert_to_bool(llvm::Value *source, std::string name);
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
@@ -110,6 +111,7 @@ public:
 	unsigned get_alignof_type(std::shared_ptr<TypeAST> type);
 	void store_inst(llvm::Value *dest, std::shared_ptr<TypeAST> dest_type, llvm::Value *src, std::shared_ptr<TypeAST> src_type);
 	BinaryOperator convert_assignment_to_arithmetic_binop(BinaryOperator binop);
+	std::string get_aggregate_name(std::shared_ptr<TypeAST> type);
 
 private:
 	TranslationUnit translation_unit;
@@ -120,7 +122,7 @@ private:
 	std::unique_ptr<llvm::legacy::FunctionPassManager> func_pass_manager;
 	std::vector<std::shared_ptr<StmtBranch>> stmts_branch;
 	std::unordered_map<std::string, llvm::Value *> global_strings;	// use for string
-	bool in_func_scope;
+	FunctionDefinitionAST *in_func_scope;
 };
 
 #endif

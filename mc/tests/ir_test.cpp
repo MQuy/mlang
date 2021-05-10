@@ -36,11 +36,11 @@ TEST(IR, demo)
 	std::string text = generate(
 		"struct foo { int x, y; };\n"
 		"struct foo hello() {\n"
-		"	struct foo x = {12345, 11111};\n"
+		"	struct foo x = {11, 22};\n"
 		"	return x;\n"
 		"}\n"
 		"int mc() {\n"
 		"	struct foo x = hello();\n"
-		"	return x.x;\n"
+		"	return x.y;\n"
 		"}\n");
 }

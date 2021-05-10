@@ -79,7 +79,8 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	else if (type_ast->kind == TypeKind::aggregate)
 	{
 		auto atype_ast = std::static_pointer_cast<AggregateTypeAST>(type_ast);
-		if (auto ty = module->getTypeByName(atype_ast->name->name))
+		auto type_name = get_aggregate_name(type_ast);
+		if (auto ty = module->getTypeByName(type_name))
 			type = ty;
 		else
 		{
@@ -103,22 +104,31 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 						mtype = member;
 					}
 				}
-				type = llvm::StructType::create(*context, {mtype}, atype_ast->name->name);
+				type = llvm::StructType::create(*context, {mtype}, type_name);
 			}
 			else
-				type = llvm::StructType::create(*context, members, atype_ast->name->name);
+				type = llvm::StructType::create(*context, members, type_name);
 		}
 	}
 	else if (type_ast->kind == TypeKind::function)
 	{
 		auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(type_ast);
-		auto return_type = get_type(ftype_ast->returning);
 		std::vector<llvm::Type*> parameters;
 		for (auto [pname, ptype_ast] : ftype_ast->parameters)
 		{
 			auto ptype = get_type(ptype_ast);
 			parameters.push_back(ptype);
 		}
+
+		llvm::Type* return_type = nullptr;
+		if (translation_unit.is_aggregate_type(ftype_ast->returning))
+		{
+			return_type = builder->getVoidTy();
+			parameters.insert(parameters.begin(), 1, llvm::PointerType::get(get_type(ftype_ast->returning), 0));
+		}
+		else
+			return_type = get_type(ftype_ast->returning);
+
 		type = llvm::FunctionType::get(return_type, parameters, false);
 	}
 	else if (type_ast->kind == TypeKind::enum_)
@@ -436,21 +446,28 @@ BinaryOperator IR::convert_assignment_to_arithmetic_binop(BinaryOperator binop)
 	assert_not_reached();
 }
 
+std::string IR::get_aggregate_name(std::shared_ptr<TypeAST> type)
+{
+	assert(type->kind == TypeKind::aggregate);
+	auto atype_ast = std::static_pointer_cast<AggregateTypeAST>(type);
+	auto prefix = atype_ast->aggregate_kind == AggregateKind::struct_ ? "struct." : "union.";
+	return prefix + atype_ast->name->name;
+}
+
 unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type_ast)
 {
 	auto type = get_type(type_ast);
 	return module->getDataLayout().getTypeAllocSize(type);
 }
 
-llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
+llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr, bool load_aggregate)
 {
 	if (expr == nullptr)
 		return builder->CreateLoad(source);
-	// skip if current expression is address of, initializer and aggregate (struct, union)
+	// skip if current expression is address of and aggregate (struct, union)
 	else if ((expr->node_type == ASTNodeType::expr_unary
 			  && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
-			 || expr->node_type == ASTNodeType::expr_initializer
-			 || expr->type->kind == TypeKind::aggregate)
+			 || (expr->type->kind == TypeKind::aggregate && load_aggregate))
 		return source;
 	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
 			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
@@ -562,6 +579,7 @@ llvm::AllocaInst* IR::create_alloca(llvm::Function* func, llvm::Type* type, llvm
 void IR::init_pass_maanger()
 {
 	func_pass_manager->add(new UnreachableBlockInstructionPass());
+	func_pass_manager->add(llvm::createPromoteMemoryToRegisterPass());
 	func_pass_manager->add(llvm::createCFGSimplificationPass());
 	func_pass_manager->doInitialization();
 }
@@ -1000,23 +1018,38 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 
 void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 {
-	llvm::Function* func = (llvm::Function*)expr->callee->accept(this);
+	llvm::Function* callee = (llvm::Function*)expr->callee->accept(this);
+	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(expr->callee->type);
 
-	if (expr->arguments.size() != func->arg_size())
+	auto nargs = callee->arg_size() - translation_unit.is_aggregate_type(ftype_ast->returning) ? 1 : 0;
+	if (expr->arguments.size() != nargs)
 		throw std::runtime_error("arguments are mismatched");
 
 	std::vector<llvm::Value*> args;
-	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(translation_unit.get_type(expr->type));
+
+	llvm::AllocaInst* fret = nullptr;
+	if (translation_unit.is_aggregate_type(ftype_ast->returning))
+	{
+		auto return_type = get_type(ftype_ast->returning);
+		auto func = builder->GetInsertBlock()->getParent();
+		fret = create_alloca(func, return_type);
+		args.push_back(fret);
+	}
+
 	for (auto i = 0; i < expr->arguments.size(); ++i)
 	{
 		auto [_, ptype_ast] = ftype_ast->parameters[i];
 		auto arg = expr->arguments[i];
 		auto arg_value = (llvm::Value*)arg->accept(this);
-		auto casted_arg_value = cast_value(arg_value, arg->type, ptype_ast);
+		auto arg_rvalue = load_value(arg_value, arg, false);
+		auto casted_arg_value = cast_value(arg_rvalue, arg->type, ptype_ast);
 		args.push_back(casted_arg_value);
 	}
 
-	return builder->CreateCall(func, args);
+	llvm::Value* rvalue = builder->CreateCall(callee, args);
+	if (fret)
+		rvalue = fret;
+	return rvalue;
 }
 
 void* IR::visit_typecast_expr(TypeCastExprAST* expr)
@@ -1046,7 +1079,11 @@ void* IR::visit_alignof_expr(AlignOfExprAST* expr)
 void* IR::visit_initializer_expr(InitializerExprAST* expr)
 {
 	if (translation_unit.is_scalar_type(expr->type))
-		return expr->exprs.front()->accept(this);
+	{
+		auto fexpr = expr->exprs.front();
+		auto value = (llvm::Value*)fexpr->accept(this);
+		return load_value(value, fexpr);
+	}
 	else if (translation_unit.is_array_type(expr->type))
 	{
 		auto atype = get_type(expr->type);
@@ -1287,9 +1324,11 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 {
 	if (stmt->expr)
 	{
-		auto ret = environment->lookup(LLVM_RETURN_NAME);
 		auto value = (llvm::Value*)stmt->expr->accept(this);
 		auto rvalue = load_value(value, stmt->expr);
+		auto ret = environment->lookup(LLVM_RETURN_NAME);
+		if (translation_unit.is_aggregate_type(std::static_pointer_cast<FunctionTypeAST>(in_func_scope->type)->returning))
+			ret = builder->CreateLoad(ret);
 		store_inst(ret, stmt->expr->type, rvalue, stmt->expr->type);
 	}
 	auto rstmt = find_stmt_branch(StmtBranchType::function);
@@ -1307,14 +1346,19 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 
 	enter_scope();
 	stmts_branch.clear();
-	in_func_scope = true;
+	in_func_scope = stmt;
 
-	unsigned idx = 0;
-	for (auto& arg : func->args())
-		arg.setName(std::get<0>(ftype->parameters[idx++])->name);
+	auto arg = func->args().begin();
+	if (translation_unit.is_aggregate_type(ftype->returning))
+	{
+		arg->setName(LLVM_RETURN_NAME);
+		arg = std::next(arg);
+	}
+	for (auto idx = 0; arg != func->args().end(); arg = std::next(arg))
+		arg->setName(std::get<0>(ftype->parameters[idx++])->name);
 
-	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry", func);
-	builder->SetInsertPoint(entrybb);
+	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry");
+	activate_block(func, entrybb);
 
 	llvm::BasicBlock* exitbb = llvm::BasicBlock::Create(*context, "exit");
 	auto estmt = std::make_shared<StmtBranch>(StmtBranch(StmtBranchType::function, exitbb));
@@ -1339,11 +1383,13 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		auto retval = builder->CreateLoad(environment->lookup(LLVM_RETURN_NAME));
 		builder->CreateRet(retval);
 	}
+	else
+		builder->CreateRetVoid();
 
 	llvm::verifyFunction(*func);
 	func_pass_manager->run(*func);
 
-	in_func_scope = false;
+	in_func_scope = nullptr;
 	stmts_branch.clear();
 	leave_scope();
 	return func;
@@ -1390,8 +1436,8 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 				}
 
 				declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, constant, token->name);
+				environment->define(token, declarator);
 			}
-			environment->define(token, declarator);
 		}
 	}
 	return nullptr;
