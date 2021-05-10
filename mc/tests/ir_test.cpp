@@ -39,8 +39,10 @@ TEST(IR, demo)
 		"	return x;\n"
 		"}\n"
 		"int mc() {\n"
+		"	typedef int hello;\n"
 		"	struct foo x = {55, 66};\n"
-		"	struct foo y = hello(x);\n"
-		"	return y.y;\n"
+		"	hello(y);\n"
+		"	y = 10;\n"
+		"	return y;\n"
 		"}\n");
 }

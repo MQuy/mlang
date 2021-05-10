@@ -114,6 +114,16 @@ std::shared_ptr<TypeAST> TranslationUnit::unbox_type(std::shared_ptr<TypeAST> ty
 		assert_not_reached();
 }
 
+std::shared_ptr<TypeAST> TranslationUnit::unalias_type(std::shared_ptr<TypeAST> type)
+{
+	if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		return unalias_type(get_type(atype->name));
+	}
+	return type;
+}
+
 std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TypeAST> type_ast)
 {
 	std::string name;
@@ -284,21 +294,29 @@ std::shared_ptr<TypeAST> TranslationUnit::convert_function_to_pointer(std::share
 
 bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
 {
-	if (type->kind != TypeKind::builtin)
-		return false;
-	auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
-	return builtin_type->name == BuiltinTypeName::_Bool
-		   || builtin_type->name == BuiltinTypeName::char_
-		   || builtin_type->name == BuiltinTypeName::unsigned_char
-		   || builtin_type->name == BuiltinTypeName::signed_char
-		   || builtin_type->name == BuiltinTypeName::short_
-		   || builtin_type->name == BuiltinTypeName::unsigned_short
-		   || builtin_type->name == BuiltinTypeName::int_
-		   || builtin_type->name == BuiltinTypeName::unsigned_int
-		   || builtin_type->name == BuiltinTypeName::long_
-		   || builtin_type->name == BuiltinTypeName::unsigned_long
-		   || builtin_type->name == BuiltinTypeName::long_long
-		   || builtin_type->name == BuiltinTypeName::unsigned_long_long;
+	if (type->kind == TypeKind::builtin)
+	{
+		auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
+		return builtin_type->name == BuiltinTypeName::_Bool
+			   || builtin_type->name == BuiltinTypeName::char_
+			   || builtin_type->name == BuiltinTypeName::unsigned_char
+			   || builtin_type->name == BuiltinTypeName::signed_char
+			   || builtin_type->name == BuiltinTypeName::short_
+			   || builtin_type->name == BuiltinTypeName::unsigned_short
+			   || builtin_type->name == BuiltinTypeName::int_
+			   || builtin_type->name == BuiltinTypeName::unsigned_int
+			   || builtin_type->name == BuiltinTypeName::long_
+			   || builtin_type->name == BuiltinTypeName::unsigned_long
+			   || builtin_type->name == BuiltinTypeName::long_long
+			   || builtin_type->name == BuiltinTypeName::unsigned_long_long;
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto original_type = get_type(atype->name);
+		return is_integer_type(original_type);
+	}
+	return false;
 }
 
 bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
@@ -316,7 +334,7 @@ bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_signed_integer_type(original_type);
 	}
 	else
@@ -338,7 +356,7 @@ bool TranslationUnit::is_unsigned_integer_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_unsigned_integer_type(original_type);
 	}
 	else
@@ -357,7 +375,7 @@ bool TranslationUnit::is_real_float_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_real_float_type(original_type);
 	}
 	else
@@ -374,7 +392,7 @@ bool TranslationUnit::is_float_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_float_type(original_type);
 	}
 	else
@@ -391,7 +409,7 @@ bool TranslationUnit::is_double_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_double_type(original_type);
 	}
 	else
@@ -408,7 +426,7 @@ bool TranslationUnit::is_long_double_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_long_double_type(original_type);
 	}
 	else
@@ -425,7 +443,7 @@ bool TranslationUnit::is_void_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_void_type(original_type);
 	}
 	else
@@ -450,7 +468,7 @@ bool TranslationUnit::is_pointer_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_pointer_type(original_type);
 	}
 	else
@@ -469,7 +487,7 @@ bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_aggregate_type(original_type);
 	}
 	else
@@ -484,7 +502,7 @@ bool TranslationUnit::is_struct_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_struct_type(original_type);
 	}
 	else
@@ -508,7 +526,7 @@ bool TranslationUnit::is_enum_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_enum_type(original_type);
 	}
 	else
@@ -522,7 +540,7 @@ bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_array_type(original_type);
 	}
 	else
@@ -662,7 +680,7 @@ bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
-		auto original_type = types[atype->name->name];
+		auto original_type = get_type(atype->name);
 		return is_void_pointer(original_type);
 	}
 	else

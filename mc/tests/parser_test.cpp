@@ -1288,6 +1288,69 @@ TEST(ASTExtern, FunctionDefinition_ArraySubscriptExpr)
 	ASSERT_EQ(expr1_right->value->value, 0);
 }
 
+TEST(ASTExtern, FunctionDefinition_FunctionCall)
+{
+	auto program = parse(
+		"void hello(int x);\n"
+		"void foo() {\n"
+		"	hello(x);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program[1]);
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
+
+	auto callee_expr = std::static_pointer_cast<FunctionCallExprAST>(stmt1->expr);
+	ASSERT_EQ(callee_expr->node_type, ASTNodeType::expr_function_call);
+	ASSERT_EQ(callee_expr->arguments.size(), 1);
+
+	auto callee = std::static_pointer_cast<IdentifierExprAST>(callee_expr->callee);
+	ASSERT_EQ(callee->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(callee->name->name, "hello");
+
+	auto identifier = std::static_pointer_cast<IdentifierExprAST>(callee_expr->arguments.front());
+	ASSERT_EQ(identifier->node_type, ASTNodeType::expr_identifier);
+	ASSERT_EQ(identifier->name->lexeme, "x");
+}
+
+TEST(ASTExtern, FunctionDefinition_TypedefOverrideDeclarator)
+{
+	auto program = parse(
+		"void hello(int x);\n"
+		"void foo() {\n"
+		"	typedef int hello;\n"
+		"	hello(x);\n"
+		"}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program[1]);
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+
+	auto stmt1 = std::static_pointer_cast<DeclarationAST>(func->body->stmts[0]);
+	ASSERT_EQ(stmt1->node_type, ASTNodeType::extern_declaration);
+	ASSERT_EQ(stmt1->declarators.size(), 1);
+
+	auto decl1 = stmt1->declarators.front();
+	ASSERT_EQ(std::get<0>(decl1)->name, "hello");
+	ASSERT_EQ(std::get<2>(decl1), nullptr);
+
+	auto decl1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(decl1));
+	ASSERT_EQ(decl1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(decl1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(decl1_type->storage, StorageSpecifier::typedef_);
+	ASSERT_EQ(decl1_type->qualifiers.size(), 0);
+
+	auto stmt2 = std::static_pointer_cast<DeclarationAST>(func->body->stmts[1]);
+	ASSERT_EQ(stmt2->node_type, ASTNodeType::extern_declaration);
+	ASSERT_EQ(stmt2->declarators.size(), 1);
+
+	auto decl2 = stmt2->declarators.front();
+	ASSERT_EQ(std::get<0>(decl2)->name, "x");
+	ASSERT_EQ(std::get<2>(decl2), nullptr);
+
+	auto decl2_type = std::static_pointer_cast<AliasTypeAST>(std::get<1>(decl2));
+	ASSERT_EQ(decl2_type->kind, TypeKind::alias);
+	ASSERT_EQ(decl2_type->name->name, "hello");
+}
+
 TEST(ASTExtern, FunctionDefinition_SizeOfTypeExpr)
 {
 	auto program = parse(

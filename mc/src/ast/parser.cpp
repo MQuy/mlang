@@ -109,8 +109,16 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 		return parse_not_match();
 	match(TokenName::tk_left_brace, true);
 
+	environment->define(declarator_name, SymbolType::declarator);
+
 	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
+	for (auto [pname, ptype] : func_type->parameters)
+		environment->define(pname, SymbolType::declarator);
+
+	enter_scope();
 	auto body = parse_compound_stmt();
+	leave_scope();
+
 	return std::make_shared<FunctionDefinitionAST>(FunctionDefinitionAST(func_type, declarator_name, body));
 }
 
@@ -123,14 +131,22 @@ std::shared_ptr<ExternAST> Parser::parse_declaration(bool global_scope)
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 
 	if (!match(TokenName::tk_semicolon))
-
 		while (true)
 		{
 			auto init_declarator = parse_init_declarator(type);
 			if (!std::get<0>(init_declarator))
 				return nullptr;
 
+			if (type->kind == TypeKind::alias)
+			{
+				auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+				if (environment->lookup(atype->name) == SymbolType::declarator)
+					return parse_not_match();
+			}
+
+			auto symbol_type = environment->is_typedef(type) ? SymbolType::type : SymbolType::declarator;
 			declarators.push_back(init_declarator);
+			environment->define(std::get<0>(init_declarator), symbol_type);
 
 			if (match(TokenName::tk_semicolon))
 				break;
@@ -422,7 +438,8 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 		auto declarator = parse_declarator(nullptr);
 		identifier = declarator.first;
 		inner_type = declarator.second;
-		match(TokenName::tk_right_paren, true);
+		// NOTE: allow to rollback for function call like $ foo(1);
+		match(TokenName::tk_right_paren);
 	}
 	else if (match(TokenType::tk_identifier, false, false))
 	{
@@ -487,6 +504,16 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 	}
 
 	return std::make_shared<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>>(parameters);
+}
+
+void Parser::enter_scope()
+{
+	environment = new NameEnvironment(environment);
+}
+
+void Parser::leave_scope()
+{
+	environment = environment->get_enclosing();
 }
 
 std::shared_ptr<StmtAST> Parser::parse_stmt()
@@ -565,6 +592,7 @@ std::shared_ptr<CompoundStmtAST> Parser::parse_compound_stmt()
 {
 	std::vector<std::shared_ptr<FragmentAST>> stmts;
 
+	enter_scope();
 	while (!match(TokenName::tk_right_brace))
 	{
 		auto pos = runner;
@@ -575,6 +603,7 @@ std::shared_ptr<CompoundStmtAST> Parser::parse_compound_stmt()
 		else
 			assert_not_reached();
 	}
+	leave_scope();
 
 	return std::make_shared<CompoundStmtAST>(CompoundStmtAST(stmts));
 }

@@ -36,6 +36,7 @@ public:
 	std::set<TypeQualifier> get_type_qualifiers(std::shared_ptr<TypeAST> type);
 	StorageSpecifier get_storage_specifier(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> unbox_type(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<TypeAST> unalias_type(std::shared_ptr<TypeAST> type);
 
 	bool is_integer_type(std::shared_ptr<TypeAST> type);
 	bool is_signed_integer_type(std::shared_ptr<TypeAST> type);

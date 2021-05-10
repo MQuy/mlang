@@ -77,6 +77,9 @@
     <ClInclude Include="semantic\type_environment.h">
       <Filter>semantic</Filter>
     </ClInclude>
+    <ClInclude Include="ast\name_environment.h">
+      <Filter>ast</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scan\lexer.cpp">
@@ -121,5 +124,8 @@
       <Filter>semantic</Filter>
     </ClCompile>
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="ast\name_environment.cpp">
+      <Filter>ast</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

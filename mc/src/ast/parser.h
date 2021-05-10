@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "expr.h"
+#include "name_environment.h"
 #include "scan/token.h"
 #include "stmt.h"
 
@@ -18,6 +19,7 @@ public:
 		, declarations()
 		, current(0)
 		, runner(0)
+		, environment(new NameEnvironment(nullptr))
 	{
 	}
 
@@ -72,6 +74,8 @@ private:
 	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> parse_declarator_parameters();
 
+	void enter_scope();
+	void leave_scope();
 	void reset();
 	std::shared_ptr<Token> advance();
 	std::nullptr_t parse_not_match();
@@ -86,6 +90,7 @@ private:
 	long tokens_length;
 	std::vector<std::shared_ptr<Token>> tokens;
 	std::vector<std::shared_ptr<ExternAST>> declarations;
+	NameEnvironment *environment;
 };
 
 class ParserError : public std::runtime_error
