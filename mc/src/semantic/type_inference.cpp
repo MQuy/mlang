@@ -416,15 +416,6 @@ void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)
 
 void* SemanticTypeInference::visit_sizeof_expr(SizeOfExprAST* expr)
 {
-	// at parsing phase, we cannot differentiate between identifier or alias type
-	// if size of type exists but not alias -> it is a identifier
-	if (expr->size_of_type && !translation_unit.get_type(expr->size_of_type))
-	{
-		auto atype = std::static_pointer_cast<AliasTypeAST>(expr->size_of_type);
-		expr->expr = std::make_shared<IdentifierExprAST>(atype->name);
-		expr->size_of_type = nullptr;
-	}
-
 	if (expr->expr)
 		expr->expr->accept(this);
 

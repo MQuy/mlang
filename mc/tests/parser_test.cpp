@@ -1377,11 +1377,12 @@ TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierGroupExpr)
 {
 	auto program = parse(
 		"void foo() {\n"
+		"	typedef int x;\n"
 		"	sizeof(x);\n"
 		"}");
-	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program.front());
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program[0]);
 	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
-	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts[1]);
 	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
 
 	auto expr1 = std::static_pointer_cast<SizeOfExprAST>(stmt1->expr);
@@ -1397,11 +1398,12 @@ TEST(ASTExtern, FunctionDefinition_SizeOfIdentifierExpr)
 {
 	auto program = parse(
 		"void foo() {\n"
+		"	int x;\n"
 		"	sizeof x;\n"
 		"}");
 	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program.front());
 	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
-	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	auto stmt1 = std::static_pointer_cast<ExprStmtAST>(func->body->stmts[1]);
 	ASSERT_EQ(stmt1->node_type, ASTNodeType::stmt_expr);
 
 	auto expr1 = std::static_pointer_cast<SizeOfExprAST>(stmt1->expr);

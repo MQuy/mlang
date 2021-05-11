@@ -1011,7 +1011,15 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 		if (match(TokenName::tk_left_paren))
 		{
 			auto type = parse_declaration_specifiers(false);
-			if (type != nullptr)
+            auto is_type = type != nullptr;
+
+			if (type->kind == TypeKind::alias)
+			{
+				auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+				is_type = is_type && environment->lookup(atype->name) == SymbolType::type;
+			}
+
+			if (is_type)
 			{
 				expr = std::make_shared<SizeOfExprAST>(SizeOfExprAST(type, nullptr));
 				match(TokenName::tk_right_paren, true);
