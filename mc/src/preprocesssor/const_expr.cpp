@@ -159,12 +159,13 @@ int PreprocessorConstExpr::eval_relation()
 {
 	int expr = eval_shift();
 
-	if (match([](TokenName name) {
-			return name == TokenName::tk_less
-				   || name == TokenName::tk_greater
-				   || name == TokenName::tk_less_equal
-				   || name == TokenName::tk_greater_equal;
-		}),
+	if (match([](TokenName name)
+			  {
+				  return name == TokenName::tk_less
+						 || name == TokenName::tk_greater
+						 || name == TokenName::tk_less_equal
+						 || name == TokenName::tk_greater_equal;
+			  }),
 		false,
 		false)
 	{
@@ -273,9 +274,10 @@ int PreprocessorConstExpr::eval_primary()
 
 bool PreprocessorConstExpr::match(TokenName name, bool strict, bool advance)
 {
-	return match([&name](TokenName tk_name) {
-		return tk_name == name;
-	},
+	return match([&name](TokenName tk_name)
+				 {
+					 return tk_name == name;
+				 },
 				 strict,
 				 advance);
 }

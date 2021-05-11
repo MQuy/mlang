@@ -1446,9 +1446,10 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 			else
 			{
 				auto qualifiers = translation_unit.get_type_qualifiers(type_ast);
-				bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier) {
-					return qualifier == TypeQualifier::const_;
-				});
+				bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier)
+											   {
+												   return qualifier == TypeQualifier::const_;
+											   });
 				auto storage = translation_unit.get_storage_specifier(type_ast);
 				auto linkage = get_linkage_type(storage);
 				llvm::Constant* constant = nullptr;

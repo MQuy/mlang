@@ -10,9 +10,10 @@
 
 inline bool is_whitespace_token(std::shared_ptr<Token> token)
 {
-	return token->match([](TokenName name) {
-		return name == TokenName::tk_space || name == TokenName::tk_tab;
-	});
+	return token->match([](TokenName name)
+						{
+							return name == TokenName::tk_space || name == TokenName::tk_tab;
+						});
 }
 
 inline int skip_whitespaces_tokens(std::vector<std::shared_ptr<Token>>& tokens, int index, int length, bool include_newline = false, bool forward = true)
@@ -137,21 +138,24 @@ std::vector<std::shared_ptr<Token>> parse_macro_argument(std::vector<std::shared
 	for (int number_of_bracket = 0; index < length; ++index)
 	{
 		auto token = tokens.at(index);
-		if (token->match([](TokenName name) {
-				return name == TokenName::tk_comma || name == TokenName::tk_right_paren;
-			})
+		if (token->match([](TokenName name)
+						 {
+							 return name == TokenName::tk_comma || name == TokenName::tk_right_paren;
+						 })
 			&& number_of_bracket == 0)
 		{
 			--index;
 			break;
 		}
-		else if (token->match([](TokenName name) {
-					 return name == TokenName::tk_left_paren || name == TokenName::tk_left_bracket;
-				 }))
+		else if (token->match([](TokenName name)
+							  {
+								  return name == TokenName::tk_left_paren || name == TokenName::tk_left_bracket;
+							  }))
 			number_of_bracket++;
-		else if (token->match([](TokenName name) {
-					 return name == TokenName::tk_right_paren || name == TokenName::tk_right_bracket;
-				 }))
+		else if (token->match([](TokenName name)
+							  {
+								  return name == TokenName::tk_right_paren || name == TokenName::tk_right_bracket;
+							  }))
 			number_of_bracket--;
 
 		argument.push_back(token);
@@ -512,9 +516,10 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std:
 			assert(i < length);
 			auto after_token = macro->replacement.at(i);
 
-			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk) {
-				return tk->lexeme == after_token->lexeme;
-			});
+			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk)
+										 {
+											 return tk->lexeme == after_token->lexeme;
+										 });
 			if (iterator == fmacro->parameters.end())
 				throw std::runtime_error("doesn't support #" + after_token->lexeme + " if xxx is not macro agrument");
 
@@ -539,9 +544,10 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std:
 			assert(i < length);
 			auto after_token = macro->replacement.at(i);
 
-			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk) {
-				return tk->lexeme == after_token->lexeme;
-			});
+			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&after_token](std::shared_ptr<Token> tk)
+										 {
+											 return tk->lexeme == after_token->lexeme;
+										 });
 
 			if (iterator == fmacro->parameters.end())
 			{
@@ -585,9 +591,10 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std:
 		}
 		else
 		{
-			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&token](std::shared_ptr<Token> tk) {
-				return tk->lexeme == token->lexeme;
-			});
+			auto iterator = std::find_if(fmacro->parameters.begin(), fmacro->parameters.end(), [&token](std::shared_ptr<Token> tk)
+										 {
+											 return tk->lexeme == token->lexeme;
+										 });
 			if (iterator != fmacro->parameters.end())
 			{
 				auto parameter_index = std::distance(fmacro->parameters.begin(), iterator);

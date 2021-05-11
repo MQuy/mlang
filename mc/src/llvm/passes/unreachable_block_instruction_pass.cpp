@@ -39,6 +39,7 @@ static RegisterPass<UnreachableBlockInstructionPass> X("Unreachable block instru
 static RegisterStandardPasses Y(
 	PassManagerBuilder::EP_EarlyAsPossible,
 	[](const PassManagerBuilder& Builder,
-	   legacy::PassManagerBase& PM) {
+	   legacy::PassManagerBase& PM)
+	{
 		PM.add(new UnreachableBlockInstructionPass());
 	});

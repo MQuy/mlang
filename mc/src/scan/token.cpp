@@ -106,9 +106,10 @@ void Token::set_position(SourcePosition start_, SourcePosition end_)
 
 bool Token::match(TokenName name, bool strict)
 {
-	return match([&name](TokenName nxt_name) {
-		return nxt_name == name;
-	},
+	return match([&name](TokenName nxt_name)
+				 {
+					 return nxt_name == name;
+				 },
 				 strict);
 }
 

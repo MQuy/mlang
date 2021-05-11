@@ -162,16 +162,18 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 	StorageSpecifier storage_specifier(global_scope ? StorageSpecifier::extern_ : StorageSpecifier::auto_);
 	std::set<TypeQualifier> type_qualifiers;
 
-	auto parse_storage_or_qualifier = [&storage_specifier, &type_qualifiers, &include_storage, &include_qualifier, this]() {
+	auto parse_storage_or_qualifier = [&storage_specifier, &type_qualifiers, &include_storage, &include_qualifier, this]()
+	{
 		std::vector<TokenName> tokenNames;
 		if (include_storage)
 			tokenNames.insert(tokenNames.end(), {TokenName::tk_auto, TokenName::tk_register, TokenName::tk_static, TokenName::tk_extern, TokenName::tk_typedef});
 		if (include_qualifier)
 			tokenNames.insert(tokenNames.end(), {TokenName::tk_const, TokenName::tk_volatile, TokenName::tk_static, TokenName::tk_restrict});
 
-		while (tokens[runner]->match([&tokenNames](TokenName name) {
-			return std::find(tokenNames.begin(), tokenNames.end(), name) != tokenNames.end();
-		}))
+		while (tokens[runner]->match([&tokenNames](TokenName name)
+									 {
+										 return std::find(tokenNames.begin(), tokenNames.end(), name) != tokenNames.end();
+									 }))
 		{
 			if (include_storage)
 				parse_storage_specifier(storage_specifier);
@@ -179,7 +181,8 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 				parse_type_qualifier(type_qualifiers);
 		}
 	};
-	auto make_builtin_ast = [&parse_storage_or_qualifier, &type_qualifiers, &storage_specifier](BuiltinTypeName name, unsigned size) {
+	auto make_builtin_ast = [&parse_storage_or_qualifier, &type_qualifiers, &storage_specifier](BuiltinTypeName name, unsigned size)
+	{
 		parse_storage_or_qualifier();
 		return std::make_shared<BuiltinTypeAST>(BuiltinTypeAST(name, size, size, type_qualifiers, storage_specifier));
 	};
@@ -765,19 +768,20 @@ std::shared_ptr<ExprAST> Parser::parse_assignment_expr()
 	auto expr = parse_tenary_expr();
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_name) {
-			return nxt_name == TokenName::tk_equal
-				   || nxt_name == TokenName::tk_asterisk_equal
-				   || nxt_name == TokenName::tk_slash_equal
-				   || nxt_name == TokenName::tk_percent_equal
-				   || nxt_name == TokenName::tk_plus_equal
-				   || nxt_name == TokenName::tk_minus_equal
-				   || nxt_name == TokenName::tk_much_less_equal
-				   || nxt_name == TokenName::tk_much_greater_equal
-				   || nxt_name == TokenName::tk_ampersand_equal
-				   || nxt_name == TokenName::tk_vertical_equal
-				   || nxt_name == TokenName::tk_caret_equal;
-		}))
+	if (match([](TokenName nxt_name)
+			  {
+				  return nxt_name == TokenName::tk_equal
+						 || nxt_name == TokenName::tk_asterisk_equal
+						 || nxt_name == TokenName::tk_slash_equal
+						 || nxt_name == TokenName::tk_percent_equal
+						 || nxt_name == TokenName::tk_plus_equal
+						 || nxt_name == TokenName::tk_minus_equal
+						 || nxt_name == TokenName::tk_much_less_equal
+						 || nxt_name == TokenName::tk_much_greater_equal
+						 || nxt_name == TokenName::tk_ampersand_equal
+						 || nxt_name == TokenName::tk_vertical_equal
+						 || nxt_name == TokenName::tk_caret_equal;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto right_expr = parse_assignment_expr();
@@ -873,9 +877,10 @@ std::shared_ptr<ExprAST> Parser::parse_equality_expr()
 	auto expr = parse_relational_expr();
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_equal_equal || nxt_tk == TokenName::tk_bang_equal;
-		}))
+	if (match([](TokenName nxt_tk)
+			  {
+				  return nxt_tk == TokenName::tk_equal_equal || nxt_tk == TokenName::tk_bang_equal;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_relational_expr();
@@ -890,12 +895,13 @@ std::shared_ptr<ExprAST> Parser::parse_relational_expr()
 	auto expr = parse_shift_expr();
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_less
-				   || nxt_tk == TokenName::tk_less_equal
-				   || nxt_tk == TokenName::tk_greater
-				   || nxt_tk == TokenName::tk_greater_equal;
-		}))
+	if (match([](TokenName nxt_tk)
+			  {
+				  return nxt_tk == TokenName::tk_less
+						 || nxt_tk == TokenName::tk_less_equal
+						 || nxt_tk == TokenName::tk_greater
+						 || nxt_tk == TokenName::tk_greater_equal;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_shift_expr();
@@ -910,10 +916,11 @@ std::shared_ptr<ExprAST> Parser::parse_shift_expr()
 	auto expr = parse_additive_expr();
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_much_less
-				   || nxt_tk == TokenName::tk_much_greater;
-		}))
+	if (match([](TokenName nxt_tk)
+			  {
+				  return nxt_tk == TokenName::tk_much_less
+						 || nxt_tk == TokenName::tk_much_greater;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_additive_expr();
@@ -928,10 +935,11 @@ std::shared_ptr<ExprAST> Parser::parse_additive_expr()
 	auto expr = parse_multiplice_expr();
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_plus
-				   || nxt_tk == TokenName::tk_minus;
-		}))
+	if (match([](TokenName nxt_tk)
+			  {
+				  return nxt_tk == TokenName::tk_plus
+						 || nxt_tk == TokenName::tk_minus;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_multiplice_expr();
@@ -946,11 +954,12 @@ std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
 	auto expr = parse_cast_expr();
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_asterisk
-				   || nxt_tk == TokenName::tk_slash
-				   || nxt_tk == TokenName::tk_percent;
-		}))
+	if (match([](TokenName nxt_tk)
+			  {
+				  return nxt_tk == TokenName::tk_asterisk
+						 || nxt_tk == TokenName::tk_slash
+						 || nxt_tk == TokenName::tk_percent;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_cast_expr();
@@ -983,23 +992,25 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 	std::shared_ptr<ExprAST> expr;
 
 	auto token = tokens.at(runner);
-	if (match([](TokenName nxt_tk) {
-			return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
-		}))
+	if (match([](TokenName nxt_tk)
+			  {
+				  return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
+			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_unary_expr();
 		auto op = token_symbol->name == TokenName::tk_plus_plus ? UnaryOperator::prefix_increment : UnaryOperator::prefix_decrement;
 		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, op));
 	}
-	else if (match([](TokenName nxt_tk) {
-				 return nxt_tk == TokenName::tk_ampersand
-						|| nxt_tk == TokenName::tk_asterisk
-						|| nxt_tk == TokenName::tk_plus
-						|| nxt_tk == TokenName::tk_minus
-						|| nxt_tk == TokenName::tk_tilde
-						|| nxt_tk == TokenName::tk_bang;
-			 }))
+	else if (match([](TokenName nxt_tk)
+				   {
+					   return nxt_tk == TokenName::tk_ampersand
+							  || nxt_tk == TokenName::tk_asterisk
+							  || nxt_tk == TokenName::tk_plus
+							  || nxt_tk == TokenName::tk_minus
+							  || nxt_tk == TokenName::tk_tilde
+							  || nxt_tk == TokenName::tk_bang;
+				   }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_cast_expr();
@@ -1011,7 +1022,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 		if (match(TokenName::tk_left_paren))
 		{
 			auto type = parse_declaration_specifiers(false);
-            auto is_type = type != nullptr;
+			auto is_type = type != nullptr;
 
 			if (type->kind == TypeKind::alias)
 			{
@@ -1089,9 +1100,10 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 		assert(token_identifier);
 		expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier, MemberAccessType::arrow));
 	}
-	else if (match([](TokenName nxt_tk) {
-				 return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
-			 }))
+	else if (match([](TokenName nxt_tk)
+				   {
+					   return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
+				   }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
 		assert(token_symbol);
@@ -1112,9 +1124,10 @@ std::shared_ptr<ExprAST> Parser::parse_primary_expr()
 		expr = parse_expr();
 		match(TokenName::tk_right_paren, true);
 	}
-	else if (match([](TokenType nxt_type) {
-				 return nxt_type == TokenType::tk_identifier || nxt_type == TokenType::tk_literal;
-			 }))
+	else if (match([](TokenType nxt_type)
+				   {
+					   return nxt_type == TokenType::tk_identifier || nxt_type == TokenType::tk_literal;
+				   }))
 		expr = token->create_ast();
 	else
 		assert_not_reached();
@@ -1124,9 +1137,10 @@ std::shared_ptr<ExprAST> Parser::parse_primary_expr()
 
 bool Parser::match(TokenName name, bool strict, bool advance)
 {
-	return match([&name](TokenName nxt_name) {
-		return nxt_name == name;
-	},
+	return match([&name](TokenName nxt_name)
+				 {
+					 return nxt_name == name;
+				 },
 				 strict,
 				 advance);
 }
@@ -1179,9 +1193,10 @@ bool Parser::match(std::string name, bool strict, bool advance)
 
 bool Parser::match(TokenType type, bool strict, bool advance)
 {
-	return match([&type](TokenType nxt_type) {
-		return nxt_type == type;
-	},
+	return match([&type](TokenType nxt_type)
+				 {
+					 return nxt_type == type;
+				 },
 				 strict,
 				 advance);
 }

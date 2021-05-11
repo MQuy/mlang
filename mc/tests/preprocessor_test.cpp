@@ -45,9 +45,10 @@ TEST(Preprocessor, NewlineAndSpaceAreRemoved)
 		if (token->match(TokenType::tk_symbol))
 		{
 			auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-			ASSERT_TRUE(token_symbol->match([](TokenName name) {
-				return name != TokenName::tk_space && name != TokenName::tk_tab && name != TokenName::tk_newline;
-			}));
+			ASSERT_TRUE(token_symbol->match([](TokenName name)
+											{
+												return name != TokenName::tk_space && name != TokenName::tk_tab && name != TokenName::tk_newline;
+											}));
 		}
 }
 

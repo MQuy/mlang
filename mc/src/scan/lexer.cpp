@@ -218,9 +218,10 @@ std::shared_ptr<Token> Lexer::scan_token()
 		return std::make_shared<TokenSymbol>(TokenName::tk_greater);
 
 	case '.':
-		if (look_ahead([](char nxt_ch) {
-				return '0' <= nxt_ch && nxt_ch <= '9';
-			}))
+		if (look_ahead([](char nxt_ch)
+					   {
+						   return '0' <= nxt_ch && nxt_ch <= '9';
+					   }))
 		{
 			move_cursor(-1);
 			return scan_decimal();
@@ -269,9 +270,10 @@ unsigned char Lexer::scan_escape_sequences()
 {
 	if (look_ahead_and_match('\\'))
 	{
-		if (look_ahead_and_match([](char nxt_ch) {
-				return nxt_ch == '\'' || nxt_ch == '"' || nxt_ch == '?' || nxt_ch == '\\';
-			}))
+		if (look_ahead_and_match([](char nxt_ch)
+								 {
+									 return nxt_ch == '\'' || nxt_ch == '"' || nxt_ch == '?' || nxt_ch == '\\';
+								 }))
 			return source[runner];
 		else if (look_ahead_and_match('a'))
 			return '\a';
@@ -287,14 +289,16 @@ unsigned char Lexer::scan_escape_sequences()
 			return '\t';
 		else if (look_ahead_and_match('v'))
 			return '\v';
-		else if (look_ahead_and_match([](char nxt_ch) {
-					 return '0' <= nxt_ch && nxt_ch <= '7';
-				 }))
+		else if (look_ahead_and_match([](char nxt_ch)
+									  {
+										  return '0' <= nxt_ch && nxt_ch <= '7';
+									  }))
 		{
 			long start = runner;
-			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch) {
-								return '0' <= nxt_ch && nxt_ch <= '7';
-							});
+			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch)
+														  {
+															  return '0' <= nxt_ch && nxt_ch <= '7';
+														  });
 				 ++i)
 				;
 			std::string octal = source.substr(start, runner - start + 1);
@@ -303,9 +307,10 @@ unsigned char Lexer::scan_escape_sequences()
 		else if (look_ahead_and_match('x'))
 		{
 			long start = runner + 1;
-			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch) {
-								return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
-							});
+			for (int i = 0; i < 2 && look_ahead_and_match([](char nxt_ch)
+														  {
+															  return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
+														  });
 				 ++i)
 				;
 			auto hex = source.substr(start, runner - start + 1);
@@ -327,9 +332,10 @@ std::shared_ptr<Token> Lexer::scan_number()
 	char ch = source.at(current);
 	if (ch == '0' && !look_ahead('.'))
 	{
-		if (look_ahead_and_match([](char nxt_ch) {
-				return nxt_ch == 'x' || nxt_ch == 'X';
-			}))
+		if (look_ahead_and_match([](char nxt_ch)
+								 {
+									 return nxt_ch == 'x' || nxt_ch == 'X';
+								 }))
 			return scan_hexadecimal();
 		else if (look_ahead_and_match('b'))
 			return scan_binary();
@@ -342,7 +348,8 @@ std::shared_ptr<Token> Lexer::scan_number()
 std::shared_ptr<Token> Lexer::scan_binary()
 {
 	return scan_binary_or_octal(
-		[](char nxt_ch) {
+		[](char nxt_ch)
+		{
 			return '0' <= nxt_ch && nxt_ch <= '1';
 		},
 		runner + 1,	 // NOTE: MQ  2021-03-11 we skip 0b since it is not recognized by strtol
@@ -352,7 +359,8 @@ std::shared_ptr<Token> Lexer::scan_binary()
 std::shared_ptr<Token> Lexer::scan_octal()
 {
 	return scan_binary_or_octal(
-		[](char nxt_ch) {
+		[](char nxt_ch)
+		{
 			return '0' <= nxt_ch && nxt_ch <= '7';
 		},
 		current,
@@ -362,7 +370,8 @@ std::shared_ptr<Token> Lexer::scan_octal()
 std::shared_ptr<Token> Lexer::scan_hexadecimal()
 {
 	return scan_decimal_or_hexa(
-		[](char nxt_ch) {
+		[](char nxt_ch)
+		{
 			return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
 		},
 		'p',
@@ -372,7 +381,8 @@ std::shared_ptr<Token> Lexer::scan_hexadecimal()
 std::shared_ptr<Token> Lexer::scan_decimal()
 {
 	return scan_decimal_or_hexa(
-		[](char nxt_ch) {
+		[](char nxt_ch)
+		{
 			return '0' <= nxt_ch && nxt_ch <= '9';
 		},
 		'e',
@@ -401,15 +411,17 @@ std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> com
 				throw LexerError("exponent cannot appear twice");
 			e_counter++;
 
-			look_ahead_and_match([](char nxt_ch) {
-				return nxt_ch == '+' || nxt_ch == '-';
-			});
+			look_ahead_and_match([](char nxt_ch)
+								 {
+									 return nxt_ch == '+' || nxt_ch == '-';
+								 });
 
 			while (runner < source_length)
 			{
-				if (!look_ahead_and_match([](char nxt_ch) {
-						return '0' <= nxt_ch && nxt_ch <= '9';
-					}))
+				if (!look_ahead_and_match([](char nxt_ch)
+										  {
+											  return '0' <= nxt_ch && nxt_ch <= '9';
+										  }))
 				{
 					is_number_ended = true;
 					break;
@@ -445,17 +457,19 @@ std::shared_ptr<Token> Lexer::scan_whole_number_suffix(std::string number, unsig
 	unsigned l_counter = 0;
 	while (runner < source_length)
 	{
-		if (look_ahead_and_match([](char nxt_ch) {
-				return nxt_ch == 'u' || nxt_ch == 'U';
-			}))
+		if (look_ahead_and_match([](char nxt_ch)
+								 {
+									 return nxt_ch == 'u' || nxt_ch == 'U';
+								 }))
 		{
 			if (u_counter)
 				throw UnexpectedToken("unsigned suffix U appears more than one time");
 			u_counter++;
 		}
-		else if (look_ahead_and_match([](char nxt_ch) {
-					 return nxt_ch == 'l' || nxt_ch == 'L';
-				 }))
+		else if (look_ahead_and_match([](char nxt_ch)
+									  {
+										  return nxt_ch == 'l' || nxt_ch == 'L';
+									  }))
 		{
 			if (l_counter > 1)
 				throw UnexpectedToken("long suffix L appears more than two times");
@@ -497,9 +511,10 @@ std::shared_ptr<Token> Lexer::scan_fractional_number_suffix(std::string number, 
 	unsigned l_counter = 0;
 	while (runner < source_length)
 	{
-		if (look_ahead_and_match([](char nxt_ch) {
-				return nxt_ch == 'f' || nxt_ch == 'F';
-			}))
+		if (look_ahead_and_match([](char nxt_ch)
+								 {
+									 return nxt_ch == 'f' || nxt_ch == 'F';
+								 }))
 		{
 			if (l_counter)
 				throw LexerError("both suffix f and l appear");
@@ -507,9 +522,10 @@ std::shared_ptr<Token> Lexer::scan_fractional_number_suffix(std::string number, 
 				throw UnexpectedToken("float suffix f appears more than one time");
 			f_counter++;
 		}
-		else if (look_ahead_and_match([](char nxt_ch) {
-					 return nxt_ch == 'l' || nxt_ch == 'L';
-				 }))
+		else if (look_ahead_and_match([](char nxt_ch)
+									  {
+										  return nxt_ch == 'l' || nxt_ch == 'L';
+									  }))
 		{
 			if (f_counter)
 				throw LexerError("both suffix f and l appear");
@@ -533,12 +549,13 @@ std::shared_ptr<Token> Lexer::scan_word()
 {
 	while (runner < source_length)
 	{
-		if (!look_ahead_and_match([](char nxt_ch) {
-				return ('0' <= nxt_ch && nxt_ch <= '9')
-					   || ('A' <= nxt_ch && nxt_ch <= 'Z')
-					   || ('a' <= nxt_ch && nxt_ch <= 'z')
-					   || nxt_ch == '_';
-			}))
+		if (!look_ahead_and_match([](char nxt_ch)
+								  {
+									  return ('0' <= nxt_ch && nxt_ch <= '9')
+											 || ('A' <= nxt_ch && nxt_ch <= 'Z')
+											 || ('a' <= nxt_ch && nxt_ch <= 'z')
+											 || nxt_ch == '_';
+								  }))
 			break;
 	};
 
@@ -552,9 +569,10 @@ std::shared_ptr<Token> Lexer::scan_word()
 
 std::nullptr_t Lexer::scan_comment()
 {
-	while (look_ahead_and_match([](char nxt_ch) {
-			   return nxt_ch != '\n';
-		   })
+	while (look_ahead_and_match([](char nxt_ch)
+								{
+									return nxt_ch != '\n';
+								})
 		   && runner < source_length)
 		;
 	return nullptr;
@@ -575,9 +593,10 @@ std::nullptr_t Lexer::scan_comments()
 
 bool Lexer::look_ahead_and_match(char target)
 {
-	return look_ahead_and_match([&target](char nxt_ch) {
-		return nxt_ch == target;
-	});
+	return look_ahead_and_match([&target](char nxt_ch)
+								{
+									return nxt_ch == target;
+								});
 }
 
 bool Lexer::look_ahead_and_match(std::function<bool(char)> comparator)
@@ -591,9 +610,10 @@ bool Lexer::look_ahead_and_match(std::function<bool(char)> comparator)
 
 bool Lexer::look_ahead(char target)
 {
-	return look_ahead([&target](char nxt_ch) {
-		return nxt_ch == target;
-	});
+	return look_ahead([&target](char nxt_ch)
+					  {
+						  return nxt_ch == target;
+					  });
 }
 
 bool Lexer::look_ahead(std::function<bool(char)> comparator)
