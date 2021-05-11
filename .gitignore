@@ -3,7 +3,7 @@
 *.swp
 **/.cabal-sandbox
 **/cabal.sandbox.config
-.vscode/
+.vscode/c_cpp_properties.json
 samples/core/dist/
 mhaskell/dist/
 .vs
