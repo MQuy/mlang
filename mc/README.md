@@ -19,7 +19,6 @@
   - [x] Type inference
 - [ ] LLVM
   - [ ] Unknown array size
-  - [ ] Enum values
   - [ ] Nested flat array initializer
   - [ ] Forward declaration
   - [ ] Function without a prototype

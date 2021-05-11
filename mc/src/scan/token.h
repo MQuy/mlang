@@ -101,6 +101,7 @@ enum class TokenName
 	tk_hash_hash,	   // ##
 	tk_tilde,		   // ~
 	tk_question_mark,  // ?
+	tk_ellipsis,	   // ...
 
 	tk_newline,	 // \n
 	tk_space,	 //

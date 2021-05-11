@@ -94,7 +94,7 @@ public:
 	llvm::Value *load_value(llvm::Value *source, std::shared_ptr<ExprAST> expr);
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *convert_to_bool(llvm::Value *source, std::string name);
-	llvm::Type *get_type(std::shared_ptr<TypeAST> type);
+	llvm::Type *get_type(std::shared_ptr<TypeAST> type_ast);
 	llvm::AllocaInst *create_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");
 	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
 	void complete_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *nextbb);

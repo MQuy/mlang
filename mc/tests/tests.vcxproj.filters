@@ -15,7 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="fixtures\basic_include.h">
+    <ClInclude Include="fixtures\stdio.h">
+      <Filter>fixtures</Filter>
+    </ClInclude>
+    <ClInclude Include="fixtures\string.h">
       <Filter>fixtures</Filter>
     </ClInclude>
   </ItemGroup>

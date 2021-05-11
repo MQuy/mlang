@@ -737,6 +737,35 @@ TEST(ASTExtern, FunctionDefinition_WithEmptyBody)
 	ASSERT_EQ(return_type->storage, StorageSpecifier::extern_);
 }
 
+TEST(ASTExtern, FunctionDefinition_WithVariadicArgsAndEmptyBody)
+{
+	auto program = parse("int foo(int x, ...) {}");
+	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program.front());
+	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
+	ASSERT_EQ(func->name->lexeme, "foo");
+	ASSERT_EQ(func->body->stmts.size(), 0);
+
+	auto type = std::static_pointer_cast<FunctionTypeAST>(func->type);
+	ASSERT_EQ(type->kind, TypeKind::function);
+	ASSERT_EQ(type->is_variadic_args, true);
+	ASSERT_EQ(type->parameters.size(), 1);
+
+	auto parameter1 = type->parameters.front();
+	ASSERT_EQ(std::get<0>(parameter1)->name, "x");
+
+	auto parameter1_type = std::static_pointer_cast<BuiltinTypeAST>(std::get<1>(parameter1));
+	ASSERT_EQ(parameter1_type->kind, TypeKind::builtin);
+	ASSERT_EQ(parameter1_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(parameter1_type->storage, StorageSpecifier::auto_);
+	ASSERT_EQ(parameter1_type->qualifiers.size(), 0);
+
+	auto return_type = std::static_pointer_cast<BuiltinTypeAST>(type->returning);
+	ASSERT_EQ(return_type->kind, TypeKind::builtin);
+	ASSERT_EQ(return_type->name, BuiltinTypeName::int_);
+	ASSERT_EQ(return_type->qualifiers.size(), 0);
+	ASSERT_EQ(return_type->storage, StorageSpecifier::extern_);
+}
+
 TEST(ASTExtern, FunctionDefinition_ContainIntDeclaration)
 {
 	auto program = parse(

@@ -450,8 +450,11 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 		identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
 	}
 
-	if (auto parameters_type = parse_declarator_parameters())
-		outer_type = std::make_shared<FunctionTypeAST>(FunctionTypeAST(*parameters_type, type));
+	if (auto parameters = parse_declarator_parameters())
+	{
+		auto [parameters_type, is_variadic_args] = *parameters;
+		outer_type = std::make_shared<FunctionTypeAST>(FunctionTypeAST(parameters_type, type, is_variadic_args));
+	}
 	else if (auto array_type = parse_declarator_array(type))
 		outer_type = array_type;
 	else
@@ -476,17 +479,24 @@ std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<Typ
 	return std::make_shared<ArrayTypeAST>(ArrayTypeAST(type, expr));
 }
 
-std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>> Parser::parse_declarator_parameters()
+std::shared_ptr<std::pair<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>, bool>> Parser::parse_declarator_parameters()
 {
 	if (!match(TokenName::tk_left_paren))
 		return nullptr;
 
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
 
+	bool is_variadic_args = false;
 	if (!match(TokenName::tk_right_paren))
 	{
 		auto cond = true;
-		if (match(TokenName::tk_void))
+		if (match(TokenName::tk_ellipsis))
+		{
+			match(TokenName::tk_right_paren, true);
+			cond = false;
+			is_variadic_args = true;
+		}
+		else if (match(TokenName::tk_void))
 			if (match(TokenName::tk_right_paren))
 				cond = false;
 			else
@@ -502,11 +512,19 @@ std::shared_ptr<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::sha
 			if (match(TokenName::tk_right_paren))
 				break;
 			else
+			{
 				match(TokenName::tk_comma, true);
+				if (match(TokenName::tk_ellipsis))
+				{
+					is_variadic_args = true;
+					match(TokenName::tk_right_paren, true);
+					break;
+				}
+			}
 		}
 	}
 
-	return std::make_shared<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>>(parameters);
+	return std::make_shared<std::pair<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>, bool>>(std::make_pair(parameters, is_variadic_args));
 }
 
 void Parser::enter_scope()

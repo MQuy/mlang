@@ -226,6 +226,8 @@ std::shared_ptr<Token> Lexer::scan_token()
 			move_cursor(-1);
 			return scan_decimal();
 		}
+		else if (look_ahead_and_match('.') && look_ahead_and_match('.'))
+			return std::make_shared<TokenSymbol>(TokenName::tk_ellipsis);
 		return std::make_shared<TokenSymbol>(TokenName::tk_dot);
 
 	case '\'':

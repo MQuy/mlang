@@ -9,6 +9,7 @@
 #define NBITS_LONG_LONG 64
 #define NBITS_FLOAT 32
 #define NBITS_DOUBLE 64
+#define NBITS_LONG_DOUBLE 128
 
 #include <memory>
 #include <optional>
@@ -252,15 +253,17 @@ public:
 class FunctionTypeAST : public TypeAST
 {
 public:
-	FunctionTypeAST(std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters, std::shared_ptr<TypeAST> returning)
+	FunctionTypeAST(std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters, std::shared_ptr<TypeAST> returning, bool is_variadic_args = false)
 		: TypeAST(TypeKind::function)
 		, parameters(parameters)
 		, returning(returning)
+		, is_variadic_args(is_variadic_args)
 	{
 	}
 
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
 	std::shared_ptr<TypeAST> returning;
+	bool is_variadic_args;
 };
 
 enum ASTNodeType

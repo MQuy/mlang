@@ -133,7 +133,7 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 		else
 			return_type = get_type(ftype_ast->returning);
 
-		type = llvm::FunctionType::get(return_type, parameters, false);
+		type = llvm::FunctionType::get(return_type, parameters, ftype_ast->is_variadic_args);
 	}
 	else if (type_ast->kind == TypeKind::enum_)
 	{
@@ -585,7 +585,10 @@ llvm::AllocaInst* IR::create_alloca(llvm::Function* func, llvm::Type* type, llvm
 void IR::init_pass_maanger()
 {
 	func_pass_manager->add(new UnreachableBlockInstructionPass());
-	func_pass_manager->add(llvm::createPromoteMemoryToRegisterPass());
+	// func_pass_manager->add(llvm::createPromoteMemoryToRegisterPass());
+	// func_pass_manager->add(llvm::createInstructionCombiningPass());
+	// func_pass_manager->add(llvm::createReassociatePass());
+	// func_pass_manager->add(llvm::createGVNPass());
 	func_pass_manager->add(llvm::createCFGSimplificationPass());
 	func_pass_manager->doInitialization();
 }
@@ -1028,9 +1031,13 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 	llvm::Function* callee = (llvm::Function*)expr->callee->accept(this);
 	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(expr->callee->type);
 
-	auto nargs = callee->arg_size() - translation_unit.is_aggregate_type(ftype_ast->returning) ? 1 : 0;
-	if (expr->arguments.size() != nargs)
-		throw std::runtime_error("arguments are mismatched");
+	if (!ftype_ast->is_variadic_args)
+	{
+		auto pad_arg = translation_unit.is_aggregate_type(ftype_ast->returning) ? 1 : 0;
+		auto nargs = callee->arg_size() - pad_arg;
+		if (expr->arguments.size() != nargs)
+			throw std::runtime_error("arguments are mismatched");
+	}
 
 	std::vector<llvm::Value*> args;
 
@@ -1044,9 +1051,16 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 
 	for (auto i = 0; i < expr->arguments.size(); ++i)
 	{
-		auto [_, ptype_ast] = ftype_ast->parameters[i];
 		auto arg = expr->arguments[i];
 		auto arg_value = (llvm::Value*)arg->accept(this);
+		std::shared_ptr<TypeAST> ptype_ast = nullptr;
+
+		if (i >= ftype_ast->parameters.size())
+			ptype_ast = translation_unit.is_integer_type(arg->type)
+							? translation_unit.promote_integer(arg->type)
+							: arg->type;
+		else
+			ptype_ast = std::get<1>(ftype_ast->parameters[i]);
 
 		if (translation_unit.is_aggregate_type(ptype_ast))
 		{

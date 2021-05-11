@@ -43,19 +43,20 @@ TEST(SpecialSymbol, Standalone_FollowingByAnyCharacter_NotCombine)
 {
 	init_keywords();
 
-	std::vector<std::pair<char, TokenName>> standalones = {
-		std::make_pair('[', TokenName::tk_left_bracket),
-		std::make_pair(']', TokenName::tk_right_bracket),
-		std::make_pair('{', TokenName::tk_left_brace),
-		std::make_pair('}', TokenName::tk_right_brace),
-		std::make_pair('(', TokenName::tk_left_paren),
-		std::make_pair(')', TokenName::tk_right_paren),
-		std::make_pair(',', TokenName::tk_comma),
-		std::make_pair(':', TokenName::tk_colon),
-		std::make_pair(';', TokenName::tk_semicolon),
-		std::make_pair('~', TokenName::tk_tilde),
-		std::make_pair('?', TokenName::tk_question_mark),
-		std::make_pair('\n', TokenName::tk_newline),
+	std::vector<std::pair<std::string, TokenName>> standalones = {
+		std::make_pair("[", TokenName::tk_left_bracket),
+		std::make_pair("]", TokenName::tk_right_bracket),
+		std::make_pair("{", TokenName::tk_left_brace),
+		std::make_pair("}", TokenName::tk_right_brace),
+		std::make_pair("(", TokenName::tk_left_paren),
+		std::make_pair(")", TokenName::tk_right_paren),
+		std::make_pair(",", TokenName::tk_comma),
+		std::make_pair("...", TokenName::tk_ellipsis),
+		std::make_pair(":", TokenName::tk_colon),
+		std::make_pair(";", TokenName::tk_semicolon),
+		std::make_pair("~", TokenName::tk_tilde),
+		std::make_pair("?", TokenName::tk_question_mark),
+		std::make_pair("\n", TokenName::tk_newline),
 	};
 	for (auto s : standalones)
 	{
