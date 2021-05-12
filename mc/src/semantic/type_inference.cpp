@@ -231,22 +231,26 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 
 	case BinaryOperator::array_subscript:
 	{
-		std::shared_ptr<PointerTypeAST> ptype = nullptr;
-		std::shared_ptr<BuiltinTypeAST> btype = nullptr;
-
 		if ((translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type)))
 		{
-			ptype = std::static_pointer_cast<PointerTypeAST>(expr1_type);
-			btype = std::static_pointer_cast<BuiltinTypeAST>(expr2_type);
+			auto ptype = std::static_pointer_cast<PointerTypeAST>(expr1_type);
+			expr_type = ptype->underlay;
 		}
 		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
 		{
-			ptype = std::static_pointer_cast<PointerTypeAST>(expr2_type);
-			btype = std::static_pointer_cast<BuiltinTypeAST>(expr1_type);
+			auto ptype = std::static_pointer_cast<PointerTypeAST>(expr2_type);
+			expr_type = ptype->underlay;
 		}
-
-		assert(ptype && btype);
-		expr_type = ptype->underlay;
+		else if (translation_unit.is_array_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
+		{
+			auto atype = std::static_pointer_cast<ArrayTypeAST>(expr1_type);
+			expr_type = atype->underlay;
+		}
+		else if (translation_unit.is_array_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
+		{
+			auto atype = std::static_pointer_cast<ArrayTypeAST>(expr2_type);
+			expr_type = atype->underlay;
+		}
 		break;
 	}
 

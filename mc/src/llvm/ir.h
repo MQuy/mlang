@@ -90,7 +90,6 @@ public:
 
 	void emit_object_file();
 	void init_pass_maanger();
-	llvm::Value *create_constant_value(std::shared_ptr<TypeAST> type, int);
 	llvm::Value *load_value(llvm::Value *source, std::shared_ptr<ExprAST> expr);
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);
 	llvm::Value *convert_to_bool(llvm::Value *source, std::string name);
@@ -106,6 +105,7 @@ public:
 	void unwind_stmt_branch(std::shared_ptr<StmtBranch> block, bool self_included = true);
 	void enter_scope();
 	void leave_scope();
+	void calculate_array_type_size(std::shared_ptr<TypeAST> type_ast, std::shared_ptr<ExprAST> expr);
 	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value *left, llvm::Value *right);
 	llvm::Function *create_function_prototype(std::string name, std::shared_ptr<TypeAST> type);
 	llvm::Value *get_or_insert_global_string(std::string content);

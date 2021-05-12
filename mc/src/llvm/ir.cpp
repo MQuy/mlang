@@ -261,6 +261,24 @@ void IR::leave_scope()
 	environment = environment->get_enclosing();
 }
 
+void IR::calculate_array_type_size(std::shared_ptr<TypeAST> type_ast, std::shared_ptr<ExprAST> expr)
+{
+	assert(type_ast->kind == TypeKind::array);
+
+	auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(type_ast);
+
+	if (expr->node_type == ASTNodeType::expr_sizeof)
+		expr = std::static_pointer_cast<SizeOfExprAST>(expr)->expr;
+
+	if (!atype_ast->expr && expr->node_type == ASTNodeType::expr_initializer)
+	{
+		auto initializer = std::static_pointer_cast<InitializerExprAST>(expr);
+		auto size = initializer->exprs.size();
+		auto literal = std::make_shared<TokenLiteral<int>>(size, std::to_string(size));
+		atype_ast->expr = std::make_shared<LiteralExprAST<int>>(LiteralExprAST<int>(literal));
+	}
+}
+
 llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type_ast, llvm::Value* left, llvm::Value* right)
 {
 	llvm::Value* result = nullptr;
@@ -1458,6 +1476,9 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 
 	for (auto [token, type_ast, expr] : stmt->declarators)
 	{
+		if (type_ast->kind == TypeKind::array)
+			calculate_array_type_size(type_ast, expr);
+
 		auto type = get_type(type_ast);
 		if (in_func_scope)
 		{
