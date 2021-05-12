@@ -20,6 +20,8 @@
 #include "scan/token.h"
 #include "utils.h"
 
+#define AGGREGATE_ANONYMOUS "anon"
+
 class ExprAST;
 
 enum class BuiltinTypeName
@@ -218,6 +220,7 @@ public:
 	AggregateTypeAST(AggregateKind aggregate_kind, std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), StorageSpecifier storage = StorageSpecifier::auto_)
 		: TypeAST(TypeKind::aggregate)
 		, aggregate_kind(aggregate_kind)
+		, anonymous(!name)
 		, name(name)
 		, members(members)
 		, qualifiers(qualifiers)
@@ -229,6 +232,7 @@ public:
 	AggregateKind aggregate_kind;
 	StorageSpecifier storage;
 	std::set<TypeQualifier> qualifiers;
+	bool anonymous;
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> members;	 // not support bit fields
 };
 

@@ -34,8 +34,16 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
-		"int printf(const char *format, ...);\n"
+		"struct foo {\n"
+		"	struct {\n"
+		"		int x, y;\n"
+		"	};\n"
+		"	struct {\n"
+		"		float a, b;\n"
+		"	};\n"
+		"};\n"
 		"int mc() {\n"
-		"	return printf(\"testing: %d %d\", 111, 222);\n"
+		"	struct foo x = {{11, 22}, {33, 44}};\n"
+		"	return x.y;\n"
 		"}\n");
 }

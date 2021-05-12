@@ -13,7 +13,7 @@
   - [ ] Support #pragma
 - [x] Parser
   - [x] Abstract Syntax Tree
-  - [ ] Anonymous struct and union
+  - [x] Anonymous struct and union
 - [ ] Semantic Analyzer
   - [ ] Syntax and semantic validation
   - [x] Type inference
@@ -24,6 +24,7 @@
   - [ ] Function without a prototype
   - [ ] Union member access
   - [ ] CVR qualified
+  - [ ] Static declaration
   - [x] Codegen
 
 ✍🏼 mc is C99-compliant

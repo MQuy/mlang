@@ -59,6 +59,7 @@ public:
 
 	void enter_scope();
 	void leave_scope();
+	std::shared_ptr<TypeAST> get_member_type(std::shared_ptr<AggregateTypeAST> type, std::string member_name);
 	bool add_type_declaration(std::shared_ptr<TypeAST> type);
 	void define_type(std::string name, std::shared_ptr<TypeAST> type);
 	void resolve_type(std::shared_ptr<TypeAST> type);

@@ -168,6 +168,35 @@ llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 	return linkage;
 }
 
+std::vector<int> IR::build_indices(std::shared_ptr<AggregateTypeAST> type_ast, std::string member_name)
+{
+	for (auto idx = 0; idx < type_ast->members.size(); ++idx)
+	{
+		auto [mname, mtype] = type_ast->members[idx];
+		if (mname && mname->name == member_name)
+			return std::vector<int>(1, idx);
+		else if (!mname && mtype->kind == TypeKind::aggregate)
+		{
+			auto indices = build_indices(std::static_pointer_cast<AggregateTypeAST>(mtype), member_name);
+			if (indices.size() > 0)
+			{
+				indices.insert(std::begin(indices), idx);
+				return indices;
+			}
+		}
+	}
+	return std::vector<int>();
+}
+
+std::vector<llvm::Value*> IR::get_indices(std::shared_ptr<AggregateTypeAST> type_ast, std::string member_name)
+{
+	std::vector<llvm::Value*> indices = {llvm::ConstantInt::get(builder->getInt32Ty(), 0)};
+	auto idxs = build_indices(type_ast, member_name);
+	for (auto idx : idxs)
+		indices.push_back(llvm::ConstantInt::get(builder->getInt32Ty(), idx));
+	return indices;
+}
+
 void IR::complete_block(llvm::Function* func, std::shared_ptr<ASTNode> node, llvm::BasicBlock* nextbb)
 {
 	node->accept(this);
@@ -1011,17 +1040,7 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 		object = load_value(expr_obj, expr->object);
 	}
 
-	auto idx = 0;
-	for (auto [mname, _] : object_type_ast->members)
-	{
-		if (mname->name == expr->member->name)
-			break;
-		idx++;
-	}
-
-	llvm::ArrayRef<llvm::Value*> indices = {
-		llvm::ConstantInt::get(builder->getInt32Ty(), 0),
-		llvm::ConstantInt::get(builder->getInt32Ty(), idx)};
+	auto indices = get_indices(object_type_ast, expr->member->name);
 	return builder->CreateGEP(object, indices);
 }
 
@@ -1356,7 +1375,8 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 		auto value = (llvm::Value*)stmt->expr->accept(this);
 		auto rvalue = load_value(value, stmt->expr);
 		auto ret = environment->lookup(LLVM_RETURN_NAME);
-		store_inst(ret, stmt->expr->type, rvalue, stmt->expr->type);
+		auto ftype = std::static_pointer_cast<FunctionTypeAST>(in_func_scope->type);
+		store_inst(ret, ftype->returning, rvalue, stmt->expr->type);
 	}
 	auto rstmt = find_stmt_branch(StmtBranchType::function);
 	builder->CreateBr(rstmt->endbb);

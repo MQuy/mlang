@@ -97,6 +97,8 @@ public:
 	llvm::Type *get_type(std::shared_ptr<TypeAST> type_ast);
 	llvm::AllocaInst *create_alloca(llvm::Function *func, llvm::Type *type, llvm::StringRef name = "");
 	llvm::GlobalValue::LinkageTypes get_linkage_type(StorageSpecifier storage);
+	std::vector<int> build_indices(std::shared_ptr<AggregateTypeAST> type_ast, std::string member_name);
+	std::vector<llvm::Value *> get_indices(std::shared_ptr<AggregateTypeAST> type_ast, std::string member_name);
 	void complete_block(llvm::Function *func, std::shared_ptr<ASTNode> node, llvm::BasicBlock *nextbb);
 	void branch_block(llvm::Function *func, std::shared_ptr<ExprAST> expr, llvm::BasicBlock *truebb, llvm::BasicBlock *falsebb);
 	void activate_block(llvm::Function *func, llvm::BasicBlock *endbb);

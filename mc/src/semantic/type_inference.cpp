@@ -10,6 +10,22 @@ void SemanticTypeInference::leave_scope()
 	environment = environment->get_enclosing();
 }
 
+std::shared_ptr<TypeAST> SemanticTypeInference::get_member_type(std::shared_ptr<AggregateTypeAST> type, std::string member_name)
+{
+	for (auto [mname, mtype] : type->members)
+	{
+		if (mname && mname->name == member_name)
+			return mtype;
+		else if (!mname && mtype->kind == TypeKind::aggregate)
+		{
+			auto rtype = get_member_type(std::static_pointer_cast<AggregateTypeAST>(mtype), member_name);
+			if (rtype)
+				return rtype;
+		}
+	}
+	return nullptr;
+}
+
 TranslationUnit SemanticTypeInference::analyze()
 {
 	for (auto decl : translation_unit.declarations)
@@ -373,18 +389,10 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 	}
 	assert(object_type);
 
-	std::shared_ptr<TypeAST> expr_type = nullptr;
-	for (auto [mname, mtype] : object_type->members)
-	{
-		if (expr->member->name == mname->name)
-		{
-			expr_type = mtype;
-			break;
-		}
-	}
-
+	std::shared_ptr<TypeAST> expr_type = get_member_type(object_type, expr->member->name);
 	if (!expr_type)
 		throw std::runtime_error(expr->member->name + " doesn't exist");
+
 	expr->type = expr_type;
 	return nullptr;
 }
@@ -590,8 +598,16 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
 		if (atype->members.size() > 0)
 		{
+			if (atype->anonymous)
+			{
+				auto name = environment->contain_type_name(AGGREGATE_ANONYMOUS)
+								? environment->generate_type_name(AGGREGATE_ANONYMOUS)
+								: AGGREGATE_ANONYMOUS;
+				atype->name = std::make_shared<TokenIdentifier>(name);
+			}
+
 			define_type(atype->name->name, type);
-			for (auto [mname, mtype] : atype->members)
+			for (auto [_, mtype] : atype->members)
 				add_type_declaration(mtype);
 			return true;
 		}
@@ -649,7 +665,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
 		atype->name->name = environment->get_type_name(atype->name->name);
 
-		for (auto [member_name, member_type] : atype->members)
+		for (auto [_, member_type] : atype->members)
 			resolve_type(member_type);
 	}
 	else if (type->kind == TypeKind::enum_)
