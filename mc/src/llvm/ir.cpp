@@ -922,6 +922,14 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 		result = load_value(tmpvar, nullptr);
 		break;
 	}
+
+	case BinaryOperator::array_subscript:
+	{
+		auto idx = ConstExprEval(this, expr->right).eval();
+		std::vector<llvm::Value*> indices = {llvm::ConstantInt::get(builder->getInt32Ty(), 0), llvm::ConstantInt::get(builder->getInt32Ty(), idx)};
+		result = builder->CreateGEP(left, indices);
+		break;
+	}
 	}
 
 	assert(result);

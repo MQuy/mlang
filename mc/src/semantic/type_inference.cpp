@@ -712,4 +712,14 @@ void SemanticTypeInference::fill_initializer_type(std::shared_ptr<InitializerExp
 				fill_initializer_type(std::static_pointer_cast<InitializerExprAST>(iexpr), mtype);
 		}
 	}
+	else if (translation_unit.is_array_type(type))
+	{
+		auto atype = std::static_pointer_cast<ArrayTypeAST>(translation_unit.get_type(type));
+		for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+		{
+			auto iexpr = expr->exprs[idx];
+			if (!iexpr->type)
+				fill_initializer_type(std::static_pointer_cast<InitializerExprAST>(iexpr), atype->underlay);
+		}
+	}
 }

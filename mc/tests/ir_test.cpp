@@ -35,7 +35,7 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int mc() {\n"
-		"	int x[] = {11, 22, 33, 44, 55};\n"
-		"	return x[2];\n"
+		"	int x[][2] = {{11, 22}, {33, 44}};\n"
+		"	return x[1][0];\n"
 		"}\n");
 }

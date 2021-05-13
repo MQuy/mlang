@@ -18,7 +18,8 @@
   - [ ] Syntax and semantic validation
   - [x] Type inference
 - [ ] LLVM
-  - [ ] Unknown array size
+  - [x] Unknown array size
+  - [x] Nested array subscripts
   - [ ] Nested flat array initializer
   - [ ] Forward declaration
   - [ ] Function without a prototype

@@ -124,15 +124,42 @@ std::shared_ptr<TypeAST> TranslationUnit::unalias_type(std::shared_ptr<TypeAST> 
 	return type;
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TypeAST> type_ast)
+std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TypeAST> type)
 {
 	std::string name;
-	if (type_ast->kind == TypeKind::alias)
-		name = std::static_pointer_cast<AliasTypeAST>(type_ast)->name->name;
-	else if (type_ast->kind == TypeKind::aggregate)
-		name = "custom::" + std::static_pointer_cast<AggregateTypeAST>(type_ast)->name->name;
-	else if (type_ast->kind == TypeKind::enum_)
-		name = "custom::" + std::static_pointer_cast<EnumTypeAST>(type_ast)->name->name;
+	if (type->kind == TypeKind::builtin)
+		return type;
+	if (type->kind == TypeKind::alias)
+		name = std::static_pointer_cast<AliasTypeAST>(type)->name->name;
+	else if (type->kind == TypeKind::aggregate)
+		name = "custom::" + std::static_pointer_cast<AggregateTypeAST>(type)->name->name;
+	else if (type->kind == TypeKind::enum_)
+		name = "custom::" + std::static_pointer_cast<EnumTypeAST>(type)->name->name;
+	else if (type->kind == TypeKind::array)
+	{
+		auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
+		atype->underlay = get_type(atype->underlay);
+		return atype;
+	}
+	else if (type->kind == TypeKind::pointer)
+	{
+		auto ptype = std::static_pointer_cast<ArrayTypeAST>(type);
+		ptype->underlay = get_type(ptype->underlay);
+		return ptype;
+	}
+	else if (type->kind == TypeKind::function)
+	{
+		auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
+
+		for (auto idx = 0; idx < ftype->parameters.size(); ++idx)
+		{
+			auto [_, ptype] = ftype->parameters[idx];
+			ftype->parameters[idx].second = get_type(ptype);
+		}
+
+		ftype->returning = get_type(ftype->returning);
+		return ftype;
+	}
 
 	return get_type(name);
 }
