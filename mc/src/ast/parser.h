@@ -73,6 +73,7 @@ private:
 	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<std::pair<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>, bool>> parse_declarator_parameters();
+	void revert_type_relation(std::shared_ptr<TypeAST> source_type, std::shared_ptr<TypeAST> dest_type, std::shared_ptr<TypeAST> anchor_type);
 
 	void enter_scope();
 	void leave_scope();
