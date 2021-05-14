@@ -12,6 +12,7 @@ public:
 	SemanticTypeInference(std::vector<std::shared_ptr<ExternAST>> declarations)
 		: translation_unit(TranslationUnit(declarations))
 		, environment(new TypeEnvironment(nullptr))
+		, in_func_scope(nullptr)
 	{
 	}
 
@@ -66,6 +67,7 @@ public:
 	void fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, std::shared_ptr<TypeAST> type);
 
 private:
+	FunctionDefinitionAST *in_func_scope;
 	TranslationUnit translation_unit;
 	TypeEnvironment *environment;
 };

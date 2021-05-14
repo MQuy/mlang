@@ -25,7 +25,7 @@
   - [ ] Function without a prototype
   - [ ] Union member access
   - [ ] CVR qualified
-  - [ ] Static declaration
+  - [x] Static declaration
   - [x] Codegen
 
 ✍🏼 mc is C99-compliant

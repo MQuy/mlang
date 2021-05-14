@@ -1431,6 +1431,8 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	auto arg = func->args().begin();
 	if (translation_unit.is_aggregate_type(ftype->returning))
 	{
+		arg->addAttr(llvm::Attribute::NoAlias);
+		arg->addAttr(llvm::Attribute::StructRet);
 		arg->setName(LLVM_RETURN_NAME);
 
 		auto& larg = *arg;
@@ -1445,7 +1447,10 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		auto& larg = *arg;
 
 		if (translation_unit.is_aggregate_type(ptype_ast))
+		{
 			environment->define(arg->getName().str(), &larg);
+			arg->addAttr(llvm::Attribute::ByVal);
+		}
 		else
 		{
 			llvm::AllocaInst* alloca = create_alloca(func, arg->getType(), arg->getName());
@@ -1487,8 +1492,10 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 		if (type_ast->kind == TypeKind::array)
 			calculate_array_type_size(type_ast, expr);
 
+		auto storage = translation_unit.get_storage_specifier(type_ast);
 		auto type = get_type(type_ast);
-		if (in_func_scope)
+
+		if (in_func_scope && storage != StorageSpecifier::static_)
 		{
 			llvm::Function* func = builder->GetInsertBlock()->getParent();
 			auto alloca = create_alloca(func, type, token->name);
@@ -1502,10 +1509,8 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 		}
 		else
 		{
-			llvm::Value* declarator;
-
 			if (type->isFunctionTy())
-				declarator = create_function_prototype(token->name, type_ast);
+				create_function_prototype(token->name, type_ast);
 			else
 			{
 				auto qualifiers = translation_unit.get_type_qualifiers(type_ast);
@@ -1522,7 +1527,7 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 					constant = (llvm::Constant*)cast_value(value, expr->type, type_ast);
 				}
 
-				declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, constant, token->name);
+				auto declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, constant, token->name);
 				environment->define(token, declarator);
 			}
 		}

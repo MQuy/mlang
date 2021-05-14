@@ -101,7 +101,8 @@ void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<std::string>* exp
 
 void* SemanticTypeInference::visit_identifier_expr(IdentifierExprAST* expr)
 {
-	expr->type = environment->get_identifier_type(expr->name);
+	expr->type = environment->get_declarator_type(expr->name);
+	expr->name->name = environment->get_declarator_name(expr->name->name);
 	return nullptr;
 }
 
@@ -548,15 +549,20 @@ void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* st
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
 	add_type_declaration(ftype->returning);
 	resolve_type(ftype);  // NOTE: MQ 2021-04-21 we don't support type definition in function parameters
-	environment->define_variable(stmt->name, ftype);
+	environment->define_declarator_type(stmt->name, ftype);
 
 	for (auto [pname, ptype] : ftype->parameters)
-		environment->define_variable(pname, ptype);
+	{
+		environment->define_declarator_type(pname, ptype);
+		environment->define_declarator_name(pname->name, pname->name);
+	}
 
 	enter_scope();
+	in_func_scope = stmt;
 
 	stmt->body->accept(this);
 
+	in_func_scope = nullptr;
 	leave_scope();
 	return nullptr;
 }
@@ -579,7 +585,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 		}
 		else
 		{
-			environment->define_variable(name, type);
+			environment->define_declarator_type(name, type);
 			if (expr)
 			{
 				expr->accept(this);
@@ -587,6 +593,10 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 				if (expr->node_type == ASTNodeType::expr_initializer)
 					fill_initializer_type(std::static_pointer_cast<InitializerExprAST>(expr), type);
 			}
+
+			auto declarator_name = name->name;
+			name->name = environment->generate_declarator_name(name, translation_unit.get_storage_specifier(type), in_func_scope);
+			environment->define_declarator_name(declarator_name, name->name);
 		}
 		resolve_type(type);
 	}
@@ -623,7 +633,7 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 		{
 			define_type(atype->name->name, type);
 			for (auto [mname, _] : atype->members)
-				environment->define_variable(mname, translation_unit.get_type("int"));
+				environment->define_declarator_type(mname, translation_unit.get_type("int"));
 			return true;
 		}
 	}
