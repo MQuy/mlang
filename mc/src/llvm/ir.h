@@ -46,7 +46,7 @@ public:
 		func_pass_manager = std::make_unique<llvm::legacy::FunctionPassManager>(module.get());
 	}
 
-	std::string generate();
+	std::string generate(std::string output_path);
 
 	void *visit_literal_expr(LiteralExprAST<int> *expr);
 	void *visit_literal_expr(LiteralExprAST<long> *expr);
@@ -88,7 +88,7 @@ public:
 	void *visit_function_definition(FunctionDefinitionAST *stmt);
 	void *visit_declaration(DeclarationAST *stmt);
 
-	void emit_object_file();
+	void emit_object_file(std::string path);
 	void init_pass_maanger();
 	llvm::Value *load_value(llvm::Value *source, std::shared_ptr<ExprAST> expr);
 	llvm::Value *cast_value(llvm::Value *source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast);

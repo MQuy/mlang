@@ -28,7 +28,7 @@ std::vector<std::shared_ptr<Token>> preprocess(std::string content)
 	Lexer lexer(content);
 
 	std::filesystem::path current_path = __FILE__;
-	std::filesystem::path library_path = "C:\\Program Files\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\mingw64\\lib\\gcc\\x86_64-w64-mingw32\\8.1.0\\include-fixed";
+	std::filesystem::path library_path = current_path.parent_path().string() + "\\fixtures";
 	std::vector<std::string> libraries_path = {library_path.string()};
 	Config config(libraries_path, current_path.parent_path().string());
 	Preprocessor preprocessor(lexer.get_source(), lexer.scan(), std::make_shared<Config>(config));
@@ -369,9 +369,9 @@ TEST(PreprocessorInclude, DefineMacroInIncludedFile)
 TEST(PreprocessorInclude, StandardIncludeDirectories)
 {
 	auto tokens = preprocess(
-		"#include \"limits.h\"\n"
-		"#ifdef CHAR_BIT\n"
+		"#include \"stdio.h\"\n"
+		"#ifdef BUFSIZ\n"
 		"x\n"
 		"#endif");
-	ASSERT_EQ(tokens.at(0)->lexeme, "x");
+	ASSERT_EQ(tokens.at(tokens.size() - 1)->lexeme, "x");
 }

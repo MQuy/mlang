@@ -582,20 +582,22 @@ unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type_ast)
 llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
 	auto type = source->getType();
+	auto value_id = source->getValueID();
 
 	if (expr == nullptr)
 		return builder->CreateLoad(source);
 	// skip if current expression is address of and aggregate (struct, union)
-	else if ((type->isIntegerTy() || type->isFloatTy() || type->isDoubleTy() || type->isFP128Ty())
+	else if (type->isIntegerTy() || type->isFloatTy() || type->isDoubleTy() || type->isFP128Ty()
+			 || value_id == llvm::Value::ValueTy::ConstantExprVal
 			 || (expr->node_type == ASTNodeType::expr_unary && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 			 || expr->type->kind == TypeKind::aggregate)
 		return source;
 	else
 	{
-		assert(source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
-			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
-			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr
-			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::BitCast);
+		assert(value_id == llvm::Value::ValueTy::GlobalVariableVal
+			   || value_id == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
+			   || value_id == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr
+			   || value_id == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::BitCast);
 		auto is_volatile = translation_unit.is_volatile_type(expr->type);
 		return builder->CreateLoad(source, is_volatile);
 	}
@@ -724,7 +726,7 @@ void IR::init_pass_maanger()
 	func_pass_manager->doInitialization();
 }
 
-void IR::emit_object_file()
+void IR::emit_object_file(std::string path)
 {
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
@@ -750,9 +752,8 @@ void IR::emit_object_file()
 
 	module->setDataLayout(target_machine->createDataLayout());
 
-	auto filename = "output.o";
 	std::error_code ec;
-	llvm::raw_fd_ostream dest(filename, ec, llvm::sys::fs::OF_None);
+	llvm::raw_fd_ostream dest(path, ec, llvm::sys::fs::OF_None);
 
 	if (ec)
 		throw std::runtime_error("Could not open file: " + ec.message());
@@ -767,7 +768,7 @@ void IR::emit_object_file()
 	dest.flush();
 }
 
-std::string IR::generate()
+std::string IR::generate(std::string output_path)
 {
 	init_pass_maanger();
 	for (auto declaration : translation_unit.declarations)
@@ -777,7 +778,7 @@ std::string IR::generate()
 	llvm::raw_string_ostream ros(str);
 	module->print(ros, nullptr, false, true);
 
-	emit_object_file();
+	emit_object_file(output_path);
 
 	return str;
 }
