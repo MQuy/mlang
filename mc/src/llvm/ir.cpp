@@ -160,6 +160,34 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	return type;
 }
 
+llvm::Constant* IR::get_null_value(llvm::Type* type)
+{
+	switch (type->getTypeID())
+	{
+	case llvm::Type::IntegerTyID:
+		return llvm::ConstantInt::get(type, 0);
+	case llvm::Type::HalfTyID:
+		return llvm::ConstantFP::get(type->getContext(),
+									 llvm::APFloat::getZero(llvm::APFloat::IEEEhalf()));
+	case llvm::Type::FloatTyID:
+		return llvm::ConstantFP::get(type->getContext(),
+									 llvm::APFloat::getZero(llvm::APFloat::IEEEsingle()));
+	case llvm::Type::DoubleTyID:
+		return llvm::ConstantFP::get(type->getContext(),
+									 llvm::APFloat::getZero(llvm::APFloat::IEEEdouble()));
+	case llvm::Type::FP128TyID:
+		return llvm::ConstantFP::get(type->getContext(),
+									 llvm::APFloat::getZero(llvm::APFloat::IEEEquad()));
+	case llvm::Type::PointerTyID:
+		return llvm::ConstantPointerNull::get((llvm::PointerType*)type);
+	case llvm::Type::StructTyID:
+	case llvm::Type::ArrayTyID:
+		return llvm::ConstantAggregateZero::get(type);
+	default:
+		assert_not_reached();
+	}
+}
+
 llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 {
 	auto linkage = storage == StorageSpecifier::static_
@@ -239,12 +267,9 @@ llvm::Value* IR::convert_to_bool(llvm::Value* source, std::string name)
 {
 	auto type = source->getType();
 	if (type->isIntegerTy())
-	{
-		auto nbits = source->getType()->getScalarSizeInBits();
-		return builder->CreateICmpNE(source, llvm::ConstantInt::get(*context, llvm::APInt(nbits, 0)), name);
-	}
+		return builder->CreateICmpNE(source, get_null_value(type), name);
 	else if (type->isFloatTy())
-		return builder->CreateFCmpONE(source, llvm::ConstantFP::get(*context, llvm::APFloat(0.0)), name);
+		return builder->CreateFCmpONE(source, get_null_value(type), name);
 	else if (type->isPointerTy())
 		return builder->CreateIsNull(source);
 	else
@@ -446,13 +471,7 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, l
 							  llvm::MaybeAlign(get_alignof_type(src_type_ast)),
 							  size);
 	}
-	// struct/union can be from allocation (underhood is pointer) or literal
-	// both are have same ast type
-	// - allocation: we have to use memcpy
-	// - literal: usual store
-	else if (src->getType()->isPointerTy()
-			 && dest->getType()->isPointerTy()
-			 && translation_unit.is_aggregate_type(dest_type_ast)
+	else if (translation_unit.is_aggregate_type(dest_type_ast)
 			 && translation_unit.is_aggregate_type(src_type_ast)
 			 && translation_unit.is_compatible_types(dest_type_ast, src_type_ast))
 	{
@@ -468,9 +487,6 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, l
 	}
 	else
 	{
-		if (src->getType()->isPointerTy() && !translation_unit.is_pointer_type(src_type_ast))
-			src = load_value(src, nullptr);
-
 		auto cvalue = cast_value(src, src_type_ast, dest_type_ast);
 		builder->CreateStore(cvalue, dest);
 	}
@@ -564,19 +580,23 @@ unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type_ast)
 
 llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 {
+	auto type = source->getType();
+
 	if (expr == nullptr)
 		return builder->CreateLoad(source);
 	// skip if current expression is address of and aggregate (struct, union)
-	else if ((expr->node_type == ASTNodeType::expr_unary
-			  && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+	else if ((type->isIntegerTy() || type->isFloatTy() || type->isDoubleTy() || type->isFP128Ty())
+			 || (expr->node_type == ASTNodeType::expr_unary && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 			 || expr->type->kind == TypeKind::aggregate)
 		return source;
-	else if (source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
-			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
-			 || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr)
-		return builder->CreateLoad(source);
 	else
-		return source;
+	{
+		assert(source->getValueID() == llvm::Value::ValueTy::GlobalVariableVal
+			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
+			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr
+			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::BitCast);
+		return builder->CreateLoad(source);
+	}
 }
 
 llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast)
@@ -621,6 +641,19 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 		if (translation_unit.is_double_type(dest_type_ast))
 			return source;
 		else if (translation_unit.is_float_type(dest_type_ast))
+			inst = llvm::Instruction::FPTrunc;
+		else if (translation_unit.is_signed_integer_type(dest_type_ast))
+			inst = llvm::Instruction::FPToSI;
+		else if (translation_unit.is_unsigned_integer_type(dest_type_ast))
+			inst = llvm::Instruction::FPToUI;
+		else
+			assert_not_reached();
+	}
+	else if (translation_unit.is_long_double_type(src_type_ast))
+	{
+		if (translation_unit.is_long_double_type(dest_type_ast))
+			return source;
+		else if (translation_unit.is_float_type(dest_type_ast) || translation_unit.is_double_type(dest_type_ast))
 			inst = llvm::Instruction::FPTrunc;
 		else if (translation_unit.is_signed_integer_type(dest_type_ast))
 			inst = llvm::Instruction::FPToSI;
@@ -789,8 +822,11 @@ void* IR::visit_literal_expr(LiteralExprAST<double>* expr)
 
 void* IR::visit_literal_expr(LiteralExprAST<long double>* expr)
 {
-	// TODO: MQ 2021-04-11 Support generating long double constant
-	return llvm::ConstantFP::get(*context, llvm::APFloat((double)expr->value->value));
+	llvm::APFloat value(static_cast<double>(expr->value->value));
+	bool ignored;
+	const llvm::fltSemantics* flt_semantic = &llvm::APFloat::IEEEquad();
+	value.convert(*flt_semantic, llvm::APFloat::rmTowardZero, &ignored);
+	return llvm::ConstantFP::get(*context, value);
 }
 
 void* IR::visit_literal_expr(LiteralExprAST<unsigned char>* expr)
@@ -1060,7 +1096,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 	}
 
 	case UnaryOperator::dereference:
-		result = load_value(expr1, expr->expr);
+		result = builder->CreateLoad(expr1);
 		break;
 
 	case UnaryOperator::address_of:
