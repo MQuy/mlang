@@ -23,7 +23,7 @@
   - [ ] Nested flat array initializer
   - [ ] Forward declaration
   - [ ] Function without a prototype
-  - [ ] Union member access
+  - [x] Union member access
   - [ ] CVR qualified
   - [x] Static declaration
   - [x] Codegen

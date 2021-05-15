@@ -468,6 +468,9 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, l
 	}
 	else
 	{
+		if (src->getType()->isPointerTy() && !translation_unit.is_pointer_type(src_type_ast))
+			src = load_value(src, nullptr);
+
 		auto cvalue = cast_value(src, src_type_ast, dest_type_ast);
 		builder->CreateStore(cvalue, dest);
 	}
@@ -505,6 +508,52 @@ std::string IR::get_aggregate_name(std::shared_ptr<TypeAST> type)
 	auto atype_ast = std::static_pointer_cast<AggregateTypeAST>(type);
 	auto prefix = atype_ast->aggregate_kind == AggregateKind::struct_ ? "struct." : "union.";
 	return prefix + atype_ast->name->name;
+}
+
+llvm::Value* IR::build_aggregate_accesses(llvm::Value* object, std::shared_ptr<AggregateTypeAST> type_ast, std::vector<int> indices)
+{
+	auto idx = indices.front();
+	indices.erase(indices.begin());
+
+	llvm::Value* object_member = nullptr;
+	std::shared_ptr<TypeAST> member_type = nullptr;
+	if (type_ast->aggregate_kind == AggregateKind::struct_)
+	{
+		member_type = std::get<1>(type_ast->members[idx]);
+		object_member = builder->CreateGEP(object, llvm::ConstantInt::get(builder->getInt32Ty(), idx));
+	}
+	else
+	{
+		assert(type_ast->aggregate_kind == AggregateKind::union_);
+		member_type = std::get<1>(type_ast->members[idx]);
+
+		auto pmember_type = std::make_shared<PointerTypeAST>(member_type);
+		auto ptype = std::make_shared<PointerTypeAST>(type_ast);
+		object_member = cast_value(object, ptype, pmember_type);
+	}
+
+	if (indices.size() > 0)
+		return build_aggregate_accesses(object_member, std::static_pointer_cast<AggregateTypeAST>(member_type), indices);
+	else
+		return object_member;
+}
+
+std::shared_ptr<TypeAST> IR::get_largest_aggregate_member(std::shared_ptr<AggregateTypeAST> type_ast)
+{
+	std::shared_ptr<TypeAST> largest_member_type = nullptr;
+	for (auto idx = 0, msize = 0; idx < type_ast->members.size(); ++idx)
+	{
+		auto [_, member_type] = type_ast->members[idx];
+		auto atype = get_type(member_type);
+		auto nsize = module->getDataLayout().getTypeAllocSize(atype);
+
+		if (nsize > msize)
+		{
+			msize = nsize;
+			largest_member_type = member_type;
+		}
+	}
+	return largest_member_type;
 }
 
 unsigned IR::get_sizeof_type(std::shared_ptr<TypeAST> type_ast)
@@ -1066,8 +1115,17 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 		object = load_value(expr_obj, expr->object);
 	}
 
-	auto indices = get_indices(object_type_ast, expr->member->name);
-	return builder->CreateGEP(object, indices);
+	if (object_type_ast->aggregate_kind == AggregateKind::struct_)
+	{
+		auto indices = get_indices(object_type_ast, expr->member->name);
+		return builder->CreateGEP(object, indices);
+	}
+	else
+	{
+		assert(object_type_ast->aggregate_kind == AggregateKind::union_);
+		auto idxs = build_indices(object_type_ast, expr->member->name);
+		return build_aggregate_accesses(object, object_type_ast, idxs);
+	}
 }
 
 void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
@@ -1166,24 +1224,37 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 			values.push_back((llvm::Constant*)e->accept(this));
 		return llvm::ConstantArray::get((llvm::ArrayType*)atype, values);
 	}
-	else if (translation_unit.is_struct_type(expr->type))
+	else if (translation_unit.is_aggregate_type(expr->type))
 	{
 		auto stype_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->type));
 		auto stype = get_type(stype_ast);
 		llvm::Function* func = builder->GetInsertBlock()->getParent();
-		auto tmp = create_alloca(func, stype);
+		llvm::Value* tmp = create_alloca(func, stype);
 
-		for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+		if (stype_ast->aggregate_kind == AggregateKind::struct_)
 		{
-			auto iexpr = expr->exprs[idx];
+			for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+			{
+				auto iexpr = expr->exprs[idx];
+				auto value = (llvm::Value*)iexpr->accept(this);
+				llvm::ArrayRef<llvm::Value*> indices = {
+					llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
+					llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
+				};
+				auto member = builder->CreateInBoundsGEP(tmp, indices);
+				auto [_, member_type] = stype_ast->members[idx];
+				store_inst(member, member_type, value, iexpr->type);
+			}
+		}
+		else
+		{
+			assert(stype_ast->aggregate_kind == AggregateKind::union_);
+			auto iexpr = expr->exprs.front();
 			auto value = (llvm::Value*)iexpr->accept(this);
-			llvm::ArrayRef<llvm::Value*> indices = {
-				llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
-				llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
-			};
-			auto member = builder->CreateInBoundsGEP(tmp, indices);
-			auto [_, member_type] = stype_ast->members[idx];
-			store_inst(member, member_type, value, iexpr->type);
+			std::shared_ptr<TypeAST> presented_type = get_largest_aggregate_member(stype_ast);
+
+			tmp = cast_value(tmp, std::make_shared<PointerTypeAST>(stype_ast), std::make_shared<PointerTypeAST>(presented_type));
+			store_inst(tmp, presented_type, value, iexpr->type);
 		}
 		return tmp;
 	}

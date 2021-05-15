@@ -34,8 +34,9 @@ std::string generate(std::string content)
 TEST(IR, demo)
 {
 	std::string text = generate(
+		"union foo { int a; double b; };\n"
 		"int mc() {\n"
-		"	static int x = 21;\n"
-		"	return x;\n"
+		"	union foo x = { 2 };\n"
+		"	return x.b;\n"
 		"}\n");
 }

@@ -106,14 +106,16 @@ public:
 	void enter_scope();
 	void leave_scope();
 	void calculate_array_type_size(std::shared_ptr<TypeAST> type_ast, std::shared_ptr<ExprAST> expr);
-	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type, llvm::Value *left, llvm::Value *right);
-	llvm::Function *create_function_prototype(std::string name, std::shared_ptr<TypeAST> type);
+	llvm::Value *execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type_ast, llvm::Value *left, llvm::Value *right);
+	llvm::Function *create_function_prototype(std::string name, std::shared_ptr<TypeAST> type_ast);
 	llvm::Value *get_or_insert_global_string(std::string content);
-	unsigned get_sizeof_type(std::shared_ptr<TypeAST> type);
-	unsigned get_alignof_type(std::shared_ptr<TypeAST> type);
+	unsigned get_sizeof_type(std::shared_ptr<TypeAST> type_ast);
+	unsigned get_alignof_type(std::shared_ptr<TypeAST> type_ast);
 	void store_inst(llvm::Value *dest, std::shared_ptr<TypeAST> dest_type, llvm::Value *src, std::shared_ptr<TypeAST> src_type);
 	BinaryOperator convert_assignment_to_arithmetic_binop(BinaryOperator binop);
-	std::string get_aggregate_name(std::shared_ptr<TypeAST> type);
+	std::string get_aggregate_name(std::shared_ptr<TypeAST> type_ast);
+	llvm::Value *build_aggregate_accesses(llvm::Value *object, std::shared_ptr<AggregateTypeAST> type_ast, std::vector<int> indices);
+	std::shared_ptr<TypeAST> get_largest_aggregate_member(std::shared_ptr<AggregateTypeAST> type_ast);
 
 private:
 	TranslationUnit translation_unit;
