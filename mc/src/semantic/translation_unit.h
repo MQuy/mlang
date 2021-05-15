@@ -9,6 +9,12 @@
 #include "ast/stmt.h"
 #include "scan/token.h"
 
+enum class DuplicateTypeAction
+{
+	add,
+	remove,
+};
+
 class TranslationUnit
 {
 public:
@@ -59,6 +65,7 @@ public:
 	bool is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	bool is_null_pointer(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr);
 	bool is_void_pointer(std::shared_ptr<TypeAST> type);
+	bool is_volatile_type(std::shared_ptr<TypeAST> type);
 
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);
@@ -72,6 +79,7 @@ public:
 	std::shared_ptr<TypeAST> composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2);
 	std::shared_ptr<TypeAST> convert_array_to_pointer(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> convert_function_to_pointer(std::shared_ptr<TypeAST> type);
+	std::shared_ptr<TypeAST> duplicate_type_with_qualifier(std::shared_ptr<TypeAST> type, TypeQualifier qualifier, DuplicateTypeAction action);
 
 	// struct or union -> aggregate::xxx
 	// alias -> same

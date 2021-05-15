@@ -24,7 +24,8 @@
   - [ ] Forward declaration
   - [ ] Function without a prototype
   - [x] Union member access
-  - [ ] CVR qualified
+  - [-] CVR qualified
+    - [x] volatile
   - [x] Static declaration
   - [x] Codegen
 

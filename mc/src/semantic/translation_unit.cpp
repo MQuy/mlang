@@ -10,7 +10,11 @@ std::set<TypeQualifier> TranslationUnit::get_type_qualifiers(std::shared_ptr<Typ
 	else if (type->kind == TypeKind::pointer)
 	{
 		auto ptype = std::static_pointer_cast<PointerTypeAST>(type);
-		return get_type_qualifiers(ptype->underlay);
+		auto qualifiers = ptype->qualifiers;
+		auto original_qualifiers = get_type_qualifiers(ptype->underlay);
+
+		qualifiers.insert(original_qualifiers.begin(), original_qualifiers.end());
+		return qualifiers;
 	}
 	else if (type->kind == TypeKind::array)
 	{
@@ -20,8 +24,12 @@ std::set<TypeQualifier> TranslationUnit::get_type_qualifiers(std::shared_ptr<Typ
 	else if (type->kind == TypeKind::alias)
 	{
 		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto qualifiers = atype->qualifiers;
 		auto stype = types[atype->name->name];
-		return get_type_qualifiers(stype);
+		auto original_qualifiers = get_type_qualifiers(stype);
+
+		qualifiers.insert(original_qualifiers.begin(), original_qualifiers.end());
+		return qualifiers;
 	}
 	else if (type->kind == TypeKind::aggregate)
 	{
@@ -317,6 +325,77 @@ std::shared_ptr<TypeAST> TranslationUnit::convert_function_to_pointer(std::share
 	assert(type->kind == TypeKind::function);
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
 	return std::make_shared<PointerTypeAST>(ftype);
+}
+
+std::shared_ptr<TypeAST> TranslationUnit::duplicate_type_with_qualifier(std::shared_ptr<TypeAST> type, TypeQualifier qualifier, DuplicateTypeAction action)
+{
+	auto handle_qualifier = [&action, &qualifier](std::set<TypeQualifier> &qualifiers)
+	{
+		if (action == DuplicateTypeAction::add)
+			qualifiers.insert(qualifier);
+		else
+			qualifiers.erase(qualifier);
+	};
+
+	if (type->kind == TypeKind::builtin)
+	{
+		auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
+		auto qualifiers = get_type_qualifiers(builtin_type);
+
+		handle_qualifier(qualifiers);
+
+		return std::make_shared<BuiltinTypeAST>(
+			builtin_type->name,
+			builtin_type->size,
+			builtin_type->align,
+			qualifiers,
+			builtin_type->storage);
+	}
+	else if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		auto qualifiers = get_type_qualifiers(atype);
+
+		handle_qualifier(qualifiers);
+
+		return std::make_shared<AliasTypeAST>(atype->name, qualifiers, atype->storage);
+	}
+	else if (type->kind == TypeKind::aggregate)
+	{
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+		auto qualifiers = get_type_qualifiers(atype);
+
+		handle_qualifier(qualifiers);
+
+		return std::make_shared<AggregateTypeAST>(atype->aggregate_kind, atype->name, atype->members, qualifiers, atype->storage);
+	}
+	else if (type->kind == TypeKind::array)
+	{
+		auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
+		return std::make_shared<ArrayTypeAST>(duplicate_type_with_qualifier(atype->underlay, qualifier, action), atype->expr);
+	}
+	else if (type->kind == TypeKind::enum_)
+	{
+		auto etype = std::static_pointer_cast<EnumTypeAST>(type);
+		auto qualifiers = get_type_qualifiers(etype);
+
+		handle_qualifier(qualifiers);
+
+		return std::make_shared<EnumTypeAST>(etype->name, etype->members, qualifiers, etype->storage);
+	}
+	else if (type->kind == TypeKind::pointer)
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(type);
+		auto qualifiers = get_type_qualifiers(ptype);
+
+		handle_qualifier(qualifiers);
+
+		return std::make_shared<PointerTypeAST>(ptype->underlay, qualifiers);
+	}
+	else if (type->kind == TypeKind::function)
+		return type;
+	else
+		assert_not_reached();
 }
 
 bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
@@ -712,4 +791,10 @@ bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
 	}
 	else
 		return false;
+}
+
+bool TranslationUnit::is_volatile_type(std::shared_ptr<TypeAST> type)
+{
+	auto qualifiers = get_type_qualifiers(type);
+	return std::find(qualifiers.begin(), qualifiers.end(), TypeQualifier::volatile_) != qualifiers.end();
 }

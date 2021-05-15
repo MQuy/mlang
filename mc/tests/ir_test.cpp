@@ -35,7 +35,7 @@ TEST(IR, demo)
 {
 	std::string text = generate(
 		"int mc() {\n"
-		"	long double x = 10;\n"
-		"	return x;\n"
+		"	volatile int x[2];\n"
+		"	return x[0];\n"
 		"}\n");
 }

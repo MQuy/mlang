@@ -232,26 +232,35 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 
 	case BinaryOperator::array_subscript:
 	{
+		std::shared_ptr<TypeAST> object_type = nullptr;
 		if ((translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type)))
 		{
+			object_type = expr1_type;
 			auto ptype = std::static_pointer_cast<PointerTypeAST>(expr1_type);
 			expr_type = ptype->underlay;
 		}
 		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
 		{
+			object_type = expr2_type;
 			auto ptype = std::static_pointer_cast<PointerTypeAST>(expr2_type);
 			expr_type = ptype->underlay;
 		}
 		else if (translation_unit.is_array_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
 		{
+			object_type = expr1_type;
 			auto atype = std::static_pointer_cast<ArrayTypeAST>(expr1_type);
 			expr_type = atype->underlay;
 		}
 		else if (translation_unit.is_array_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
 		{
+			object_type = expr2_type;
 			auto atype = std::static_pointer_cast<ArrayTypeAST>(expr2_type);
 			expr_type = atype->underlay;
 		}
+
+		if (translation_unit.is_volatile_type(object_type))
+			expr_type = translation_unit.duplicate_type_with_qualifier(expr_type, TypeQualifier::volatile_, DuplicateTypeAction::add);
+
 		break;
 	}
 
@@ -397,6 +406,13 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 	std::shared_ptr<TypeAST> expr_type = get_member_type(object_type, expr->member->name);
 	if (!expr_type)
 		throw std::runtime_error(expr->member->name + " doesn't exist");
+	// check directly from declarator's type since original type might not contain qualifiers
+	// ```c
+	//  struct foo { int a; }
+	//  volatile struct foo x;
+	// ```
+	else if (translation_unit.is_volatile_type(expr->object->type))
+		expr_type = translation_unit.duplicate_type_with_qualifier(expr_type, TypeQualifier::volatile_, DuplicateTypeAction::add);
 
 	expr->type = expr_type;
 	return nullptr;
@@ -423,6 +439,9 @@ void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)
 
 	if (expr->expr->node_type == ASTNodeType::expr_initializer)
 		expr->expr->type = expr->type;
+
+	if (translation_unit.is_volatile_type(expr->type) && !translation_unit.is_volatile_type(expr->expr->type))
+		expr->type = translation_unit.duplicate_type_with_qualifier(expr->type, TypeQualifier::volatile_, DuplicateTypeAction::remove);
 
 	return nullptr;
 }

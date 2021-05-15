@@ -488,6 +488,7 @@ void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, l
 	else
 	{
 		auto cvalue = cast_value(src, src_type_ast, dest_type_ast);
+		auto is_volatile = translation_unit.is_volatile_type(dest_type_ast);
 		builder->CreateStore(cvalue, dest);
 	}
 }
@@ -595,7 +596,8 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
 			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr
 			   || source->getValueID() == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::BitCast);
-		return builder->CreateLoad(source);
+		auto is_volatile = translation_unit.is_volatile_type(expr->type);
+		return builder->CreateLoad(source, is_volatile);
 	}
 }
 
@@ -891,7 +893,10 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 
 		if (binop == BinaryOperator::addition_assigment
 			|| binop == BinaryOperator::subtraction_assignment)
-			builder->CreateStore(result, left);
+		{
+			auto is_volatile = translation_unit.is_volatile_type(expr->left->type);
+			builder->CreateStore(result, left, is_volatile);
+		}
 		break;
 	}
 	case BinaryOperator::multiplication_assigment:
@@ -925,7 +930,10 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 			|| binop == BinaryOperator::bitwise_xor_assigment
 			|| binop == BinaryOperator::shift_left_assignment
 			|| binop == BinaryOperator::shift_right_assignment)
-			builder->CreateStore(result, left);
+		{
+			auto is_volatile = translation_unit.is_volatile_type(expr->left->type);
+			builder->CreateStore(result, left, is_volatile);
+		}
 		break;
 	}
 
@@ -1096,8 +1104,11 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 	}
 
 	case UnaryOperator::dereference:
+	{
+		auto is_volatile = translation_unit.is_volatile_type(expr->expr->type);
 		result = builder->CreateLoad(expr1);
 		break;
+	}
 
 	case UnaryOperator::address_of:
 		result = expr1;
@@ -1138,7 +1149,7 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 	auto expr_obj = (llvm::Value*)expr->object->accept(this);
 	llvm::Value* object = nullptr;
 
-	std::shared_ptr<AggregateTypeAST> object_type_ast;
+	std::shared_ptr<AggregateTypeAST> object_type_ast = nullptr;
 	if (translation_unit.is_aggregate_type(expr->object->type))
 	{
 		object = expr_obj;
@@ -1222,11 +1233,9 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 
 void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 {
-	if (translation_unit.is_void_type(expr->type))
-		return nullptr;
-
 	auto value = (llvm::Value*)expr->expr->accept(this);
-	return cast_value(value, expr->expr->type, expr->type);
+	auto casted_value = cast_value(value, expr->expr->type, expr->type);
+	return translation_unit.is_void_type(expr->type) ? nullptr : casted_value;
 }
 
 void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
@@ -1561,7 +1570,8 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 		else
 		{
 			llvm::AllocaInst* alloca = create_alloca(func, arg->getType(), arg->getName());
-			builder->CreateStore(&larg, alloca);
+			auto is_volatile = translation_unit.is_volatile_type(ptype_ast);
+			builder->CreateStore(&larg, alloca, is_volatile);
 		}
 	}
 
@@ -1596,7 +1606,7 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 
 	for (auto [token, type_ast, expr] : stmt->declarators)
 	{
-		if (type_ast->kind == TypeKind::array)
+		if (type_ast->kind == TypeKind::array && expr)
 			calculate_array_type_size(type_ast, expr);
 
 		auto storage = translation_unit.get_storage_specifier(type_ast);
