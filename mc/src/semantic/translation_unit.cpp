@@ -422,7 +422,7 @@ bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
 		auto original_type = get_type(atype->name);
 		return is_integer_type(original_type);
 	}
-	return false;
+	return is_enum_type(type);
 }
 
 bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
@@ -430,8 +430,7 @@ bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
 	if (type->kind == TypeKind::builtin)
 	{
 		auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
-		return builtin_type->name == BuiltinTypeName::_Bool
-			   || builtin_type->name == BuiltinTypeName::char_
+		return builtin_type->name == BuiltinTypeName::char_
 			   || builtin_type->name == BuiltinTypeName::signed_char
 			   || builtin_type->name == BuiltinTypeName::short_
 			   || builtin_type->name == BuiltinTypeName::int_
@@ -445,7 +444,7 @@ bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
 		return is_signed_integer_type(original_type);
 	}
 	else
-		return false;
+		return is_enum_type(type);
 }
 
 bool TranslationUnit::is_unsigned_integer_type(std::shared_ptr<TypeAST> type)

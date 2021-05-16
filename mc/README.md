@@ -22,7 +22,7 @@
   - [x] Unknown array size
   - [x] Nested array subscripts
   - [ ] Nested flat array initializer
-  - [x] Struct/Union forward declaration
+  - [x] Forward declaration
   - [ ] Function without a prototype
   - [x] Union member access
   - [-] CVR qualified

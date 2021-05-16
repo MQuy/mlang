@@ -287,7 +287,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 
 			if (match(TokenName::tk_left_brace) && !match(TokenName::tk_right_brace))
 			{
-				while (true)
+				while (!match(TokenName::tk_right_brace))
 				{
 					auto enumerator = parse_enumerator();
 					members.push_back(enumerator);
@@ -898,7 +898,7 @@ std::shared_ptr<ExprAST> Parser::parse_tenary_expr()
 
 	if (match(TokenName::tk_question_mark))
 	{
-		auto expr1 = parse_expr();
+		auto expr1 = parse_tenary_expr();
 		match(TokenName::tk_colon, true);
 		auto expr2 = parse_tenary_expr();
 
@@ -914,7 +914,7 @@ std::shared_ptr<ExprAST> Parser::parse_logical_or_expr()
 
 	if (match(TokenName::tk_vertical_vertical))
 	{
-		auto expr1 = parse_logical_and_expr();
+		auto expr1 = parse_logical_or_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::or_));
 	}
 
@@ -927,7 +927,7 @@ std::shared_ptr<ExprAST> Parser::parse_logical_and_expr()
 
 	if (match(TokenName::tk_ampersand_ampersand))
 	{
-		auto expr1 = parse_bitwise_or_expr();
+		auto expr1 = parse_logical_and_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::and_));
 	}
 
@@ -940,7 +940,7 @@ std::shared_ptr<ExprAST> Parser::parse_bitwise_or_expr()
 
 	if (match(TokenName::tk_vertical))
 	{
-		auto expr1 = parse_bitwise_xor_expr();
+		auto expr1 = parse_bitwise_or_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::bitwise_or));
 	}
 
@@ -953,7 +953,7 @@ std::shared_ptr<ExprAST> Parser::parse_bitwise_xor_expr()
 
 	if (match(TokenName::tk_caret))
 	{
-		auto expr1 = parse_bitwise_and_expr();
+		auto expr1 = parse_bitwise_xor_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::bitwise_xor));
 	}
 
@@ -966,7 +966,7 @@ std::shared_ptr<ExprAST> Parser::parse_bitwise_and_expr()
 
 	if (match(TokenName::tk_ampersand))
 	{
-		auto expr1 = parse_equality_expr();
+		auto expr1 = parse_bitwise_and_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, BinaryOperator::bitwise_and));
 	}
 
@@ -984,7 +984,7 @@ std::shared_ptr<ExprAST> Parser::parse_equality_expr()
 			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		auto expr1 = parse_relational_expr();
+		auto expr1 = parse_equality_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
 
@@ -1005,7 +1005,7 @@ std::shared_ptr<ExprAST> Parser::parse_relational_expr()
 			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		auto expr1 = parse_shift_expr();
+		auto expr1 = parse_relational_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
 
@@ -1024,7 +1024,7 @@ std::shared_ptr<ExprAST> Parser::parse_shift_expr()
 			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		auto expr1 = parse_additive_expr();
+		auto expr1 = parse_shift_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
 
@@ -1043,7 +1043,7 @@ std::shared_ptr<ExprAST> Parser::parse_additive_expr()
 			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		auto expr1 = parse_multiplice_expr();
+		auto expr1 = parse_additive_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
 
@@ -1063,7 +1063,7 @@ std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
 			  }))
 	{
 		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		auto expr1 = parse_cast_expr();
+		auto expr1 = parse_multiplice_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
 
@@ -1078,7 +1078,7 @@ std::shared_ptr<ExprAST> Parser::parse_cast_expr()
 		std::shared_ptr<TypeAST> type = parse_typename();
 		if (type != nullptr && match(TokenName::tk_right_paren))
 		{
-			auto expr1 = parse_unary_expr();
+			auto expr1 = parse_cast_expr();
 			return std::make_shared<TypeCastExprAST>(TypeCastExprAST(type, expr1));
 		}
 		else

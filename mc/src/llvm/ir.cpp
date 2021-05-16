@@ -610,12 +610,15 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 			 || expr->node_type == ASTNodeType::expr_literal
 			 || (expr->node_type == ASTNodeType::expr_unary
 				 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
-			 || expr->type->kind == TypeKind::aggregate)
+			 || expr->type->kind == TypeKind::aggregate
+			 || expr->type->kind == TypeKind::function
+			 || value_id == llvm::Value::ConstantPointerNullVal)
 		return source;
 	else
 	{
 		assert(value_id == llvm::Value::GlobalVariableVal
-			   || value_id == llvm::Value::ConstantExprVal	// global variable access
+			   || value_id == llvm::Value::FunctionVal		// extern function
+			   || value_id == llvm::Value::ConstantExprVal	// extern global variable
 			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::Load
 			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::Alloca
 			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::GetElementPtr
@@ -975,10 +978,10 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 							  : expr->right->type;
 		auto type_ast = translation_unit.convert_arithmetic_type(left_type, right_type);
 		auto rvalue_left = load_value(left, expr->left);
-		auto casted_rvalue_left = cast_value(rvalue_left, left_type, type_ast);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, type_ast);
 		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = cast_value(rvalue_right, right_type, type_ast);
-		auto value = execute_binop(binop, expr->type, casted_rvalue_left, casted_rvalue_right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, type_ast);
+		auto value = execute_binop(binop, type_ast, casted_rvalue_left, casted_rvalue_right);
 		result = cast_value(value, type_ast, expr->type);
 		break;
 	}

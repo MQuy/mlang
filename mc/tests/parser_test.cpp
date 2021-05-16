@@ -1469,11 +1469,12 @@ TEST(ASTExtern, FunctionDefinition_OperatorPrecedence)
 {
 	auto program = parse(
 		"void foo() {\n"
+		"	int x, y, x1, y2, z, x2, y3, z1;\n"
 		"	x = (x > y ? x1 + y2 * z : x1 - ++y2) && (x2[0] >> y3(10) == z1->z);\n"
 		"}");
 	auto func = std::static_pointer_cast<FunctionDefinitionAST>(program.front());
 	ASSERT_EQ(func->node_type, ASTNodeType::extern_function);
-	auto stmt = std::static_pointer_cast<ExprStmtAST>(func->body->stmts.front());
+	auto stmt = std::static_pointer_cast<ExprStmtAST>(func->body->stmts[1]);
 	ASSERT_EQ(stmt->node_type, ASTNodeType::stmt_expr);
 
 	auto expr = std::static_pointer_cast<BinaryExprAST>(stmt->expr);

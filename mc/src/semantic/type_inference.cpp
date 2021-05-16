@@ -663,17 +663,28 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, 
 		else if (is_forward)
 			define_type(atype->name->name, type);
 	}
-	// there is no forward declaration for enum
 	else if (type->kind == TypeKind::enum_)
 	{
 		auto atype = std::static_pointer_cast<EnumTypeAST>(type);
 		if (atype->members.size() > 0)
 		{
-			define_type(atype->name->name, type);
+			bool override = false;
+			if (environment->contain_type_name(atype->name->name, true))
+			{
+				auto type = environment->get_type_type(atype->name);
+				override = std::static_pointer_cast<AggregateTypeAST>(type)->members.size() == 0;
+			}
+
+			define_type(atype->name->name, type, override);
 			for (auto [mname, _] : atype->members)
+			{
 				environment->define_declarator_type(mname, translation_unit.get_type("int"));
+				environment->define_declarator_name(mname->name, mname->name);
+			}
 			return true;
 		}
+		else if (is_forward)
+			define_type(atype->name->name, type);
 	}
 	return false;
 }

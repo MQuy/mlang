@@ -176,7 +176,8 @@ unary_expression = postfix_expression
                   | "--", unary_expression
                   | unary_operator, cast_expression
                   | "sizeof", unary_expression
-                  | "sizeof", "(", type_name, ")";
+                  | "sizeof", "(", type_name, ")"
+                  | "_Alignof", "(", type_name, ")";
 
 unary_operator = "&" | "*" | "+" | "-" | "~" | "!";
 
