@@ -466,7 +466,32 @@ void Parser::revert_type_relation(std::shared_ptr<TypeAST> source_type, std::sha
 	}
 }
 
-std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::parse_declarator(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> Parser::parse_typename()
+{
+	auto number_of_parens = 0;
+	while (match(TokenName::tk_left_paren))
+		number_of_parens++;
+
+	std::shared_ptr<TypeAST> type = parse_declaration_specifiers(false);
+	if (!type)
+		return nullptr;
+
+	if (type->kind == TypeKind::alias)
+	{
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		if (environment->lookup(atype->name) == SymbolType::declarator)
+			return nullptr;
+	}
+
+	auto [declarator_name, declarator_type] = parse_declarator(type, false);
+
+	for (; number_of_parens > 0; number_of_parens--)
+		match(TokenName::tk_right_paren, true);
+
+	return declarator_type;
+}
+
+std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::parse_declarator(std::shared_ptr<TypeAST> type, bool abstract)
 {
 	if (match(TokenName::tk_asterisk))
 	{
@@ -481,7 +506,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	std::shared_ptr<TypeAST> outer_type = type;
 	std::shared_ptr<TypeAST> inner_type;
 
-	if (match(TokenType::tk_identifier, false, false))
+	if (match(TokenType::tk_identifier, false, false) && !abstract)
 	{
 		auto token = advance();
 		identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
@@ -1050,7 +1075,7 @@ std::shared_ptr<ExprAST> Parser::parse_cast_expr()
 	auto pos = runner;
 	if (match(TokenName::tk_left_paren))
 	{
-		std::shared_ptr<TypeAST> type = parse_declaration_specifiers(false);
+		std::shared_ptr<TypeAST> type = parse_typename();
 		if (type != nullptr && match(TokenName::tk_right_paren))
 		{
 			auto expr1 = parse_unary_expr();

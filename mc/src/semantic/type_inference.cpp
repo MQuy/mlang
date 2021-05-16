@@ -424,8 +424,16 @@ void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
 	for (auto arg : expr->arguments)
 		arg->accept(this);
 
-	assert(translation_unit.is_function_type(expr->callee->type));
-	std::shared_ptr<TypeAST> expr_type = translation_unit.get_function_return_type(expr->callee->type);
+	std::shared_ptr<TypeAST> expr_type = nullptr;
+	if (translation_unit.is_function_type(expr->callee->type))
+		expr_type = translation_unit.get_function_return_type(expr->callee->type);
+	else if (translation_unit.is_pointer_type(expr->callee->type))
+	{
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->callee->type);
+		assert(translation_unit.is_function_type(ptype->underlay));
+		expr_type = ptype->underlay;
+	}
+
 	if (!expr_type)
 		throw std::runtime_error("function call type is not valid");
 	expr->type = expr_type;
@@ -566,7 +574,7 @@ void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt)
 void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* stmt)
 {
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
-	add_type_declaration(ftype->returning);
+	add_type_declaration(ftype->returning, false);
 	resolve_type(ftype);  // NOTE: MQ 2021-04-21 we don't support type definition in function parameters
 	environment->define_declarator_type(stmt->name, ftype);
 	environment->define_declarator_name(stmt->name->name, stmt->name->name);
@@ -589,7 +597,7 @@ void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* st
 
 void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 {
-	auto type_defined = add_type_declaration(stmt->type);
+	auto type_defined = add_type_declaration(stmt->type, stmt->declarators.size() == 0);
 	resolve_type(stmt->type);
 
 	for (auto [name, type, expr] : stmt->declarators)
@@ -599,7 +607,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 			if (!type_defined)
 			{
 				auto utype = translation_unit.unbox_type(type);
-				type_defined = add_type_declaration(utype);
+				type_defined = add_type_declaration(utype, false);
 			}
 			define_type(name->name, type);
 		}
@@ -625,7 +633,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
 }
 
 // only for struct, union and enum
-bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
+bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, bool is_forward)
 {
 	if (type->kind == TypeKind::aggregate)
 	{
@@ -640,12 +648,22 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 				atype->name = std::make_shared<TokenIdentifier>(name);
 			}
 
-			define_type(atype->name->name, type);
+			bool override = false;
+			if (environment->contain_type_name(atype->name->name, true))
+			{
+				auto type = environment->get_type_type(atype->name);
+				override = std::static_pointer_cast<AggregateTypeAST>(type)->members.size() == 0;
+			}
+
+			define_type(atype->name->name, type, override);
 			for (auto [_, mtype] : atype->members)
-				add_type_declaration(mtype);
+				add_type_declaration(mtype, false);
 			return true;
 		}
+		else if (is_forward)
+			define_type(atype->name->name, type);
 	}
+	// there is no forward declaration for enum
 	else if (type->kind == TypeKind::enum_)
 	{
 		auto atype = std::static_pointer_cast<EnumTypeAST>(type);
@@ -660,9 +678,9 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type)
 	return false;
 }
 
-void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type)
+void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type, bool override)
 {
-	auto new_name = environment->contain_type_name(name) ? environment->generate_type_name(name) : name;
+	auto new_name = environment->contain_type_name(name) && !override ? environment->generate_type_name(name) : name;
 	std::shared_ptr<TokenIdentifier> token_identifier;
 
 	if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
@@ -683,17 +701,22 @@ void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAS
 		assert_not_reached();
 
 	if (name == new_name)
-		environment->define_type(name, name);
+	{
+		environment->define_type_name(name, name);
+		environment->define_type_type(name, type);
+	}
 	else
 	{
-		environment->define_type(name, new_name);
-		environment->define_type(new_name, new_name);
+		environment->define_type_name(name, new_name);
+		environment->define_type_type(name, type);
+		environment->define_type_name(new_name, new_name);
+		environment->define_type_type(new_name, type);
 	}
 }
 
 void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 {
-	// don't need to resolve alias type since it is resolved at at line of declaration
+	// don't need to resolve alias type since it is resolved at line of declaration
 	if (type->kind == TypeKind::aggregate)
 	{
 		auto atype = std::static_pointer_cast<AggregateTypeAST>(type);

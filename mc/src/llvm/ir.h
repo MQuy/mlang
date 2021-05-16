@@ -117,6 +117,7 @@ public:
 	llvm::Value *build_aggregate_accesses(llvm::Value *object, std::shared_ptr<AggregateTypeAST> type_ast, std::vector<int> indices);
 	std::shared_ptr<TypeAST> get_largest_aggregate_member(std::shared_ptr<AggregateTypeAST> type_ast);
 	llvm::Constant *get_null_value(llvm::Type *type);
+	std::vector<llvm::Type *> get_aggregate_member_types(std::shared_ptr<AggregateTypeAST> type_ast);
 
 private:
 	TranslationUnit translation_unit;

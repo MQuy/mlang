@@ -1,12 +1,14 @@
 #include "type_environment.h"
 
-bool TypeEnvironment::contain_type_name(std::string name)
+bool TypeEnvironment::contain_type_name(std::string name, bool in_current_scope)
 {
 	for (auto scope = this; scope; scope = scope->enclosing)
 	{
 		auto type_names = scope->type_names;
 		if (type_names.find(name) != type_names.end())
 			return true;
+		else if (in_current_scope)
+			break;
 	}
 	return false;
 }
@@ -29,6 +31,18 @@ std::string TypeEnvironment::generate_type_name(std::string name)
 	else
 		duplicated_type_names[name] = 0;
 	return name + "." + std::to_string(duplicated_type_names[name]);
+}
+
+std::shared_ptr<TypeAST> TypeEnvironment::get_type_type(std::shared_ptr<TokenIdentifier> identifier)
+{
+	auto name = identifier->name;
+	for (auto scope = this; scope; scope = scope->enclosing)
+	{
+		auto type_types = scope->type_types;
+		if (type_types.find(name) != type_types.end())
+			return type_types[name];
+	}
+	throw std::runtime_error(name + " doesn't exist");
 }
 
 std::string TypeEnvironment::get_declarator_name(std::string name)
@@ -55,9 +69,9 @@ std::shared_ptr<TypeAST> TypeEnvironment::get_declarator_type(std::shared_ptr<To
 	auto name = identifier->name;
 	for (auto scope = this; scope; scope = scope->enclosing)
 	{
-		auto variable_types = scope->declarator_types;
-		if (variable_types.find(name) != variable_types.end())
-			return variable_types[name];
+		auto declartor_types = scope->declarator_types;
+		if (declartor_types.find(name) != declartor_types.end())
+			return declartor_types[name];
 	}
 	throw std::runtime_error(name + " doesn't exist");
 }

@@ -14,6 +14,7 @@
 - [x] Parser
   - [x] Abstract Syntax Tree
   - [x] Anonymous struct and union
+  - [ ] Variable attributes
 - [ ] Semantic Analyzer
   - [ ] Syntax and semantic validation
   - [x] Type inference
@@ -21,7 +22,7 @@
   - [x] Unknown array size
   - [x] Nested array subscripts
   - [ ] Nested flat array initializer
-  - [ ] Forward declaration
+  - [x] Struct/Union forward declaration
   - [ ] Function without a prototype
   - [x] Union member access
   - [-] CVR qualified

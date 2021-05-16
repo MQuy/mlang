@@ -80,34 +80,23 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	{
 		auto atype_ast = std::static_pointer_cast<AggregateTypeAST>(type_ast);
 		auto type_name = get_aggregate_name(type_ast);
-		if (auto ty = module->getTypeByName(type_name))
-			type = ty;
+		if (auto struct_type = module->getTypeByName(type_name))
+		{
+			type = struct_type;
+
+			if (struct_type->elements().size() == 0 && atype_ast->members.size() > 0)
+			{
+				std::vector<llvm::Type*> members = get_aggregate_member_types(atype_ast);
+				((llvm::StructType*)type)->setBody(members);
+			}
+		}
 		else
 		{
-			std::vector<llvm::Type*> members;
-			for (auto [aname, atype_ast] : atype_ast->members)
-			{
-				auto atype = get_type(atype_ast);
-				members.push_back(atype);
-			}
+			type = llvm::StructType::create(*context, type_name);
 
-			if (atype_ast->aggregate_kind == AggregateKind::union_)
-			{
-				llvm::Type* mtype = nullptr;
-				auto msize = 0;
-				for (auto member : members)
-				{
-					auto nsize = module->getDataLayout().getTypeAllocSize(member);
-					if (nsize > msize)
-					{
-						msize = nsize;
-						mtype = member;
-					}
-				}
-				type = llvm::StructType::create(*context, {mtype}, type_name);
-			}
-			else
-				type = llvm::StructType::create(*context, members, type_name);
+			std::vector<llvm::Type*> members = get_aggregate_member_types(atype_ast);
+			if (members.size())
+				((llvm::StructType*)type)->setBody(members);
 		}
 	}
 	else if (type_ast->kind == TypeKind::function)
@@ -188,12 +177,42 @@ llvm::Constant* IR::get_null_value(llvm::Type* type)
 	}
 }
 
+std::vector<llvm::Type*> IR::get_aggregate_member_types(std::shared_ptr<AggregateTypeAST> type_ast)
+{
+	std::vector<llvm::Type*> members;
+	for (auto [aname, atype_ast] : type_ast->members)
+	{
+		auto atype = get_type(atype_ast);
+		members.push_back(atype);
+	}
+
+	if (type_ast->aggregate_kind == AggregateKind::union_)
+	{
+		llvm::Type* mtype = nullptr;
+		auto msize = 0;
+		for (auto member : members)
+		{
+			auto nsize = module->getDataLayout().getTypeAllocSize(member);
+			if (nsize > msize)
+			{
+				msize = nsize;
+				mtype = member;
+			}
+		}
+		return {mtype};
+	}
+	else
+		return members;
+}
+
 llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 {
-	auto linkage = storage == StorageSpecifier::static_
-					   ? llvm::GlobalValue::LinkageTypes::InternalLinkage
-					   : llvm::GlobalValue::LinkageTypes::ExternalLinkage;
-	return linkage;
+	if (storage == StorageSpecifier::static_)
+		return llvm::GlobalValue::LinkageTypes::InternalLinkage;
+	else if (storage == StorageSpecifier::auto_)
+		return llvm::GlobalValue::LinkageTypes::CommonLinkage;
+	else if (storage == StorageSpecifier::extern_)
+		return llvm::GlobalValue::LinkageTypes::ExternalLinkage;
 }
 
 std::vector<int> IR::build_indices(std::shared_ptr<AggregateTypeAST> type_ast, std::string member_name)
@@ -588,16 +607,19 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 		return builder->CreateLoad(source);
 	// skip if current expression is address of and aggregate (struct, union)
 	else if (type->isIntegerTy() || type->isFloatTy() || type->isDoubleTy() || type->isFP128Ty()
-			 || value_id == llvm::Value::ValueTy::ConstantExprVal
-			 || (expr->node_type == ASTNodeType::expr_unary && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+			 || expr->node_type == ASTNodeType::expr_literal
+			 || (expr->node_type == ASTNodeType::expr_unary
+				 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 			 || expr->type->kind == TypeKind::aggregate)
 		return source;
 	else
 	{
-		assert(value_id == llvm::Value::ValueTy::GlobalVariableVal
-			   || value_id == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::Alloca
-			   || value_id == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::GetElementPtr
-			   || value_id == llvm::Value::ValueTy::InstructionVal + llvm::Instruction::BitCast);
+		assert(value_id == llvm::Value::GlobalVariableVal
+			   || value_id == llvm::Value::ConstantExprVal	// global variable access
+			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::Load
+			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::Alloca
+			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::GetElementPtr
+			   || value_id == llvm::Value::InstructionVal + llvm::Instruction::BitCast);
 		auto is_volatile = translation_unit.is_volatile_type(expr->type);
 		return builder->CreateLoad(source, is_volatile);
 	}
@@ -1107,7 +1129,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 	case UnaryOperator::dereference:
 	{
 		auto is_volatile = translation_unit.is_volatile_type(expr->expr->type);
-		result = builder->CreateLoad(expr1);
+		result = builder->CreateLoad(expr1, is_volatile);
 		break;
 	}
 
@@ -1180,14 +1202,15 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	llvm::Function* callee = (llvm::Function*)expr->callee->accept(this);
-	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(expr->callee->type);
+	std::shared_ptr<FunctionTypeAST> ftype_ast = nullptr;
 
-	if (!ftype_ast->is_variadic_args)
+	if (translation_unit.is_function_type(expr->callee->type))
+		ftype_ast = std::static_pointer_cast<FunctionTypeAST>(expr->callee->type);
+	else if (translation_unit.is_pointer_type(expr->callee->type))
 	{
-		auto pad_arg = translation_unit.is_aggregate_type(ftype_ast->returning) ? 1 : 0;
-		auto nargs = callee->arg_size() - pad_arg;
-		if (expr->arguments.size() != nargs)
-			throw std::runtime_error("arguments are mismatched");
+		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(expr->callee->type);
+		assert(translation_unit.is_function_type(ptype_ast->underlay));
+		ftype_ast = std::static_pointer_cast<FunctionTypeAST>(ptype_ast->underlay);
 	}
 
 	std::vector<llvm::Value*> args;
@@ -1228,15 +1251,16 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 		}
 	}
 
-	llvm::Value* rvalue = builder->CreateCall(callee, args);
+	llvm::Value* rvalue = builder->CreateCall((llvm::FunctionType*)get_type(ftype_ast), (llvm::Function*)callee, args);
 	return fret ? fret : rvalue;
 }
 
 void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 {
 	auto value = (llvm::Value*)expr->expr->accept(this);
-	auto casted_value = cast_value(value, expr->expr->type, expr->type);
-	return translation_unit.is_void_type(expr->type) ? nullptr : casted_value;
+	auto rvalue = load_value(value, expr->expr);
+	auto casted_rvalue = cast_value(rvalue, expr->expr->type, expr->type);
+	return translation_unit.is_void_type(expr->type) ? nullptr : casted_rvalue;
 }
 
 void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
@@ -1638,9 +1662,8 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 											   {
 												   return qualifier == TypeQualifier::const_;
 											   });
-				auto storage = translation_unit.get_storage_specifier(type_ast);
 				auto linkage = get_linkage_type(storage);
-				llvm::Constant* constant = nullptr;
+				llvm::Constant* constant = get_null_value(type);
 				if (expr)
 				{
 					auto value = (llvm::Constant*)expr->accept(this);
