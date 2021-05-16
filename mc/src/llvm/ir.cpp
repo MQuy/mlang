@@ -515,8 +515,8 @@ BinaryOperator IR::convert_assignment_to_arithmetic_binop(BinaryOperator binop)
 		return BinaryOperator::shift_left;
 	else if (binop == BinaryOperator::shift_right_assignment)
 		return BinaryOperator::shift_right;
-
-	assert_not_reached();
+	else
+		return binop;
 }
 
 std::string IR::get_aggregate_name(std::shared_ptr<TypeAST> type)
@@ -1019,8 +1019,8 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 
 	case BinaryOperator::array_subscript:
 	{
-		auto idx = ConstExprEval(this, expr->right).eval();
-		std::vector<llvm::Value*> indices = {llvm::ConstantInt::get(builder->getInt32Ty(), 0), llvm::ConstantInt::get(builder->getInt32Ty(), idx)};
+		auto rvalue_right = load_value(right, expr->right);
+		std::vector<llvm::Value*> indices = {llvm::ConstantInt::get(builder->getInt32Ty(), 0), rvalue_right};
 		result = builder->CreateGEP(left, indices);
 		break;
 	}
@@ -1394,7 +1394,9 @@ void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
 	auto func = builder->GetInsertBlock()->getParent();
 	auto value = (llvm::Value*)stmt->expr->accept(this);
 	auto endbb = llvm::BasicBlock::Create(*context, "switch.exit");
-	auto switch_inst = builder->CreateSwitch(value, endbb, 2);
+
+	auto rvalue = load_value(value, stmt->expr);
+	auto switch_inst = builder->CreateSwitch(rvalue, endbb, 2);
 
 	auto sstmt = std::make_shared<SwitchStmtBranch>(SwitchStmtBranch(switch_inst, endbb));
 	stmts_branch.push_back(sstmt);

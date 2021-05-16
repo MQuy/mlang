@@ -430,7 +430,8 @@ bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
 	if (type->kind == TypeKind::builtin)
 	{
 		auto builtin_type = std::static_pointer_cast<BuiltinTypeAST>(type);
-		return builtin_type->name == BuiltinTypeName::char_
+		return builtin_type->name == BuiltinTypeName::_Bool
+			   || builtin_type->name == BuiltinTypeName::char_
 			   || builtin_type->name == BuiltinTypeName::signed_char
 			   || builtin_type->name == BuiltinTypeName::short_
 			   || builtin_type->name == BuiltinTypeName::int_
