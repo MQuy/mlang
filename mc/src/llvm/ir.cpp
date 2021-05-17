@@ -1103,7 +1103,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 		auto value = execute_binop(BinaryOperator::addition, expr->expr->type, rvalue_right, one);
 
 		store_inst(expr1, expr->type, value, expr->type);
-		result = expr1;
+		result = rvalue_right;
 		break;
 	}
 
@@ -1146,8 +1146,28 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 
 	case UnaryOperator::dereference:
 	{
+		// we already load value in postfix/prefix expression
+		if (expr->expr->node_type == ASTNodeType::expr_unary)
+		{
+			auto expr1_type_ast = std::static_pointer_cast<UnaryExprAST>(expr->expr);
+			auto expr1_op = expr1_type_ast->op;
+			if (expr1_op == UnaryOperator::postfix_decrement || expr1_op == UnaryOperator::postfix_increment
+				|| expr1_op == UnaryOperator::prefix_decrement || expr1_op == UnaryOperator::prefix_increment)
+			{
+				result = expr1;
+				break;
+			}
+		}
+
 		auto is_volatile = translation_unit.is_volatile_type(expr->expr->type);
-		result = builder->CreateLoad(expr1, is_volatile);
+		if (translation_unit.is_pointer_type(expr->expr->type))
+			result = builder->CreateLoad(expr1, is_volatile);
+		else
+		{
+			assert(translation_unit.is_array_type(expr->expr->type));
+			std::vector<llvm::Value*> indices = {get_null_value(builder->getInt32Ty()), get_null_value(builder->getInt32Ty())};
+			result = builder->CreateGEP(expr1, indices);
+		}
 		break;
 	}
 
