@@ -612,6 +612,7 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 				 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 			 || expr->type->kind == TypeKind::aggregate
 			 || expr->type->kind == TypeKind::function
+			 || expr->type->kind == TypeKind::array
 			 || value_id == llvm::Value::ConstantPointerNullVal)
 		return source;
 	else
@@ -900,11 +901,17 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::subtraction:
 	{
 		auto rvalue_left = load_value(left, expr->left);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
+		auto left_type_ast = translation_unit.is_pointer_type(expr->type) && translation_unit.is_integer_type(expr->left->type)
+								 ? translation_unit.get_type("int")
+								 : expr->type;
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, left_type_ast);
+
 		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = translation_unit.is_pointer_type(expr->left->type) && translation_unit.is_integer_type(expr->right->type)
-									   ? cast_value(rvalue_right, expr->right->type, translation_unit.get_type("int"))
-									   : cast_value(rvalue_right, expr->right->type, expr->type);
+		auto right_type_ast = translation_unit.is_pointer_type(expr->type) && translation_unit.is_integer_type(expr->right->type)
+								  ? translation_unit.get_type("int")
+								  : expr->type;
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, right_type_ast);
+
 		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr->type, casted_rvalue_left, casted_rvalue_right);
 
 		if (translation_unit.is_pointer_type(expr->left->type)
@@ -1045,7 +1052,15 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::array_subscript:
 	{
 		auto rvalue_right = load_value(right, expr->right);
-		std::vector<llvm::Value*> indices = {llvm::ConstantInt::get(builder->getInt32Ty(), 0), rvalue_right};
+		std::vector<llvm::Value*> indices;
+		if (translation_unit.is_array_type(expr->left->type))
+			indices = {llvm::ConstantInt::get(builder->getInt32Ty(), 0), rvalue_right};
+		else
+		{
+			left = load_value(left, expr->left);
+			assert(translation_unit.is_pointer_type(expr->left->type));
+			indices = {rvalue_right};
+		}
 		result = builder->CreateGEP(left, indices);
 		break;
 	}
@@ -1088,7 +1103,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 		auto value = execute_binop(BinaryOperator::addition, expr->expr->type, rvalue_right, one);
 
 		store_inst(expr1, expr->type, value, expr->type);
-		result = rvalue_right;
+		result = expr1;
 		break;
 	}
 

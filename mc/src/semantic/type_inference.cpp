@@ -123,13 +123,15 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 
 	case BinaryOperator::addition_assigment:
 		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
+			   || (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_pointer_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type)));
 		expr_type = expr1_type;
 		break;
 
 	case BinaryOperator::subtraction_assignment:
 		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
-			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
+			   || (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_pointer_type(expr2_type))
+			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			   || (translation_unit.is_pointer_type(expr1_type)
 				   && translation_unit.is_pointer_type(expr2_type)
 				   && translation_unit.is_compatible_types(expr1_type, expr2_type)));
@@ -149,29 +151,22 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 		break;
 
 	case BinaryOperator::addition:
-		if (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
-			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
-		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
-			expr_type = expr1_type;
-		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
-			expr_type = expr2_type;
-		else
-			throw std::runtime_error("addition only supports both arithmetic types or pointer/integer");
-		break;
-
 	case BinaryOperator::subtraction:
 		if (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 			expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
-		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
-			expr_type = expr1_type;
-		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
-			expr_type = expr2_type;
-		else if (translation_unit.is_pointer_type(expr1_type)
-				 && translation_unit.is_pointer_type(expr2_type)
+		else if (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_integer_type(expr2_type))
+			expr_type = translation_unit.convert_array_to_pointer(expr1_type);
+		else if (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_integer_type(expr1_type))
+			expr_type = translation_unit.convert_array_to_pointer(expr2_type);
+		else if (expr->op == BinaryOperator::subtraction
+				 && (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_array_or_pointer_type(expr2_type))
 				 && translation_unit.is_compatible_types(expr1_type, expr2_type))
 			expr_type = translation_unit.get_type("long");
+		else if (expr->op == BinaryOperator::addition)
+			throw std::runtime_error("addition only supports both arithmetic types or pointer/integer");
 		else
 			throw std::runtime_error("subtraction only supports both arithmetic types, both pointers or pointer/integer");
+
 		break;
 
 	case BinaryOperator::multiplication:
@@ -217,7 +212,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::equal:
 	case BinaryOperator::not_equal:
 		assert((translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
-			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type)));
+			   || (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_array_or_pointer_type(expr2_type)));
 		expr_type = translation_unit.get_type("_Bool");
 		break;
 
@@ -226,7 +221,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	case BinaryOperator::less:
 	case BinaryOperator::less_or_equal:
 		assert((translation_unit.is_real_type(expr1_type) && translation_unit.is_real_type(expr2_type))
-			   || (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type)));
+			   || (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_array_or_pointer_type(expr2_type)));
 		expr_type = translation_unit.get_type("_Bool");
 		break;
 
@@ -328,9 +323,16 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 
 	case UnaryOperator::dereference:
 	{
-		assert(translation_unit.is_pointer_type(expr->expr->type));
-		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->expr->type);
-		expr_type = ptype->underlay;
+		std::shared_ptr<TypeAST> element_type = nullptr;
+		if (translation_unit.is_pointer_type(expr->expr->type))
+			element_type = std::static_pointer_cast<PointerTypeAST>(expr->expr->type)->underlay;
+		else
+		{
+			assert(translation_unit.is_array_type(expr->expr->type));
+			element_type = std::static_pointer_cast<ArrayTypeAST>(expr->expr->type)->underlay;
+		}
+
+		expr_type = element_type;
 		break;
 	}
 
@@ -367,14 +369,14 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 			expr_type = expr1_type;
 		else if (translation_unit.is_void_type(expr1_type) && translation_unit.is_void_type(expr2_type))
 			expr_type = translation_unit.get_type("void");
-		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type, expr->expr2))
-			expr_type = expr1_type;
-		else if (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type, expr->expr2))
-			expr_type = expr2_type;
-		else if (translation_unit.is_pointer_type(expr1_type) && translation_unit.is_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type))
+		else if (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type, expr->expr2))
+			expr_type = translation_unit.convert_array_to_pointer(expr1_type);
+		else if (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type, expr->expr2))
+			expr_type = translation_unit.convert_array_to_pointer(expr2_type);
+		else if (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type))
 			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
-		else if ((translation_unit.is_pointer_type(expr1_type) && translation_unit.is_void_pointer(expr2_type))
-				 || (translation_unit.is_pointer_type(expr2_type) && translation_unit.is_void_pointer(expr1_type)))
+		else if ((translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_void_pointer(expr2_type))
+				 || (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_void_pointer(expr1_type)))
 			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
 	}
 

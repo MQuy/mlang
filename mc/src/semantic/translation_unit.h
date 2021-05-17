@@ -24,8 +24,8 @@ public:
 		types["void"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::void_, 0, 0);
 		types["_Bool"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::_Bool, NBITS_BOOL, NBITS_BOOL);
 		types["char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::char_, NBITS_CHAR, NBITS_CHAR);
-		types["unsigned char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::signed_char, NBITS_CHAR, NBITS_CHAR);
-		types["signed char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::unsigned_char, NBITS_CHAR, NBITS_CHAR);
+		types["unsigned char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::unsigned_char, NBITS_CHAR, NBITS_CHAR);
+		types["signed char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::signed_char, NBITS_CHAR, NBITS_CHAR);
 		types["short"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::short_, NBITS_SHORT, NBITS_SHORT);
 		types["unsigned short"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::unsigned_short, NBITS_SHORT, NBITS_SHORT);
 		types["int"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::int_, NBITS_INT, NBITS_INT);
@@ -66,6 +66,7 @@ public:
 	bool is_null_pointer(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr);
 	bool is_void_pointer(std::shared_ptr<TypeAST> type);
 	bool is_volatile_type(std::shared_ptr<TypeAST> type);
+	bool is_array_or_pointer_type(std::shared_ptr<TypeAST> type);
 
 	std::shared_ptr<TypeAST> get_type(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> get_type(BuiltinTypeName name);

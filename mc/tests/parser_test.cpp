@@ -14,6 +14,7 @@ std::vector<std::shared_ptr<ExternAST>> parse(std::string content)
 {
 	init_keywords();
 	init_operators();
+	init_types();
 	Lexer lexer(content);
 
 	std::filesystem::path current_path = __FILE__;

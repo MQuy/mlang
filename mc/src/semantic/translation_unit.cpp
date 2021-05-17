@@ -315,9 +315,13 @@ std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST
 
 std::shared_ptr<TypeAST> TranslationUnit::convert_array_to_pointer(std::shared_ptr<TypeAST> type)
 {
-	assert(type->kind == TypeKind::array);
-	auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
-	return std::make_shared<PointerTypeAST>(atype->underlay);
+	if (type->kind == TypeKind::array)
+	{
+		auto atype = std::static_pointer_cast<ArrayTypeAST>(type);
+		return std::make_shared<PointerTypeAST>(atype->underlay);
+	}
+	assert(type->kind == TypeKind::pointer);
+	return type;
 }
 
 std::shared_ptr<TypeAST> TranslationUnit::convert_function_to_pointer(std::shared_ptr<TypeAST> type)
@@ -797,4 +801,9 @@ bool TranslationUnit::is_volatile_type(std::shared_ptr<TypeAST> type)
 {
 	auto qualifiers = get_type_qualifiers(type);
 	return std::find(qualifiers.begin(), qualifiers.end(), TypeQualifier::volatile_) != qualifiers.end();
+}
+
+bool TranslationUnit::is_array_or_pointer_type(std::shared_ptr<TypeAST> type)
+{
+	return is_array_type(type) || is_pointer_type(type);
 }
