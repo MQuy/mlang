@@ -83,7 +83,17 @@ TEST(IR, testcases)
 										"18_include",
 										"19_pointer_arithmetic",
 										"20_pointer_comparison",
-										"21_char_array"});
+										"21_char_array",
+										"23_type_coercion",
+										"24_math_library",
+										"25_quicksort",
+										"26_character_constants",
+										"27_sizeof",
+										"28_strings",
+										"29_array_address",
+										"30_hanoi",
+										"31_args",
+										"32_led"});
 	std::filesystem::path current_path = __FILE__;
 
 	for (auto test_name : testcases)
@@ -109,7 +119,7 @@ TEST(IR, testcases)
 TEST(IR, testcase)
 {
 	std::filesystem::path current_path = __FILE__;
-	std::string test_name = "22_floating_point";
+	std::string test_name = "33_ternary_op";
 	std::filesystem::path testcase_folder = current_path.parent_path().string() + "\\testcases";
 	std::filesystem::path testcase_path = testcase_folder.string() + "\\" + test_name + ".c";
 	std::filesystem::path testcase_expected_path = testcase_folder.string() + "\\" + test_name + ".expect";

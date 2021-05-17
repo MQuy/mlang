@@ -1125,7 +1125,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 			auto type = parse_declaration_specifiers(false);
 			auto is_type = type != nullptr;
 
-			if (type->kind == TypeKind::alias)
+			if (is_type && type->kind == TypeKind::alias)
 			{
 				auto atype = std::static_pointer_cast<AliasTypeAST>(type);
 				is_type = is_type && environment->lookup(atype->name) == SymbolType::type;

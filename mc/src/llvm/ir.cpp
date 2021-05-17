@@ -610,6 +610,7 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 			 || expr->node_type == ASTNodeType::expr_literal
 			 || (expr->node_type == ASTNodeType::expr_unary
 				 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
+			 || expr->node_type == ASTNodeType::expr_function_call
 			 || expr->type->kind == TypeKind::aggregate
 			 || expr->type->kind == TypeKind::function
 			 || expr->type->kind == TypeKind::array
@@ -1268,9 +1269,14 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 		std::shared_ptr<TypeAST> ptype_ast = nullptr;
 
 		if (i >= ftype_ast->parameters.size())
-			ptype_ast = translation_unit.is_integer_type(arg->type)
-							? translation_unit.promote_integer(arg->type)
-							: arg->type;
+		{
+			if (translation_unit.is_integer_type(arg->type))
+				ptype_ast = translation_unit.promote_integer(arg->type);
+			else if (translation_unit.is_float_type(arg->type))
+				ptype_ast = translation_unit.get_type("double");
+			else
+				ptype_ast = arg->type;
+		}
 		else
 			ptype_ast = std::get<1>(ftype_ast->parameters[i]);
 

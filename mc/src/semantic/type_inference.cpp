@@ -518,7 +518,8 @@ void* SemanticTypeInference::visit_if_stmt(IfStmtAST* stmt)
 {
 	stmt->cond->accept(this);
 	stmt->if_stmt->accept(this);
-	stmt->else_stmt->accept(this);
+	if (stmt->else_stmt)
+		stmt->else_stmt->accept(this);
 	return nullptr;
 }
 
@@ -569,7 +570,8 @@ void* SemanticTypeInference::visit_break_stmt(BreakStmtAST* stmt)
 
 void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt)
 {
-	stmt->expr->accept(this);
+	if (stmt->expr)
+		stmt->expr->accept(this);
 	return nullptr;
 }
 
