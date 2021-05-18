@@ -1395,11 +1395,21 @@ void* IR::visit_initializer_constant(InitializerExprAST* expr, void* data)
 		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(expr->type);
 		auto atype = get_type(expr->type);
 		std::vector<llvm::Constant*> values;
-		for (auto e : expr->exprs)
+		auto size = ConstExprEval(this, atype_ast->expr).eval();
+		for (auto idx = 0; idx < size; ++idx)
 		{
-			auto value = (llvm::Constant*)e->accept(this);
-			auto rvalue = (llvm::Constant*)cast_value(value, e->type, atype_ast->underlay);
-			values.push_back(rvalue);
+			if (idx < expr->exprs.size())
+			{
+				auto iexpr = expr->exprs[idx];
+				auto value = (llvm::Constant*)iexpr->accept(this);
+				auto rvalue = (llvm::Constant*)cast_value(value, iexpr->type, atype_ast->underlay);
+				values.push_back(rvalue);
+			}
+			else
+			{
+				auto member_type = get_type(atype_ast->underlay);
+				values.push_back(get_null_value(member_type));
+			}
 		}
 		return llvm::ConstantArray::get((llvm::ArrayType*)atype, values);
 	}
@@ -1412,13 +1422,19 @@ void* IR::visit_initializer_constant(InitializerExprAST* expr, void* data)
 		if (stype_ast->aggregate_kind == AggregateKind::struct_)
 		{
 			std::vector<llvm::Constant*> values;
-			for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+			for (auto idx = 0; idx < stype_ast->members.size(); ++idx)
 			{
-				auto iexpr = expr->exprs[idx];
 				auto [_, member_type] = stype_ast->members[idx];
-				auto value = (llvm::Constant*)iexpr->accept(this);
-				auto rvalue = (llvm::Constant*)cast_value(value, iexpr->type, member_type);
-				values.push_back(rvalue);
+
+				if (idx < expr->exprs.size())
+				{
+					auto iexpr = expr->exprs[idx];
+					auto value = (llvm::Constant*)iexpr->accept(this);
+					auto rvalue = (llvm::Constant*)cast_value(value, iexpr->type, member_type);
+					values.push_back(rvalue);
+				}
+				else
+					values.push_back(get_null_value(get_type(member_type)));
 			}
 			return llvm::ConstantStruct::get((llvm::StructType*)stype, values);
 		}

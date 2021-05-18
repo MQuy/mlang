@@ -2,3 +2,4 @@
 #define NULL ((void *)0)
 
 int printf(const char *format, ...);
+int sprintf(char *stream, const char *format, ...);
