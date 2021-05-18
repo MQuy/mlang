@@ -21,7 +21,7 @@ public:
 		, type(type)
 	{
 	}
-	virtual void *accept(NodeVisitor *visitor) = 0;
+	virtual void *accept(NodeVisitor *visitor, void *data = nullptr) = 0;
 
 	std::shared_ptr<TypeAST> type;
 };
@@ -35,9 +35,9 @@ public:
 		, value(value)
 	{
 	}
-	void *accept(NodeVisitor *visitor)
+	void *accept(NodeVisitor *visitor, void *data = nullptr)
 	{
-		return visitor->visit_literal_expr(this);
+		return visitor->visit_literal_expr(this, data);
 	}
 
 	std::shared_ptr<TokenLiteral<T>> value;
@@ -51,7 +51,7 @@ public:
 		, name(name)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_identifier_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_identifier_expr(this, data); }
 
 	std::shared_ptr<TokenIdentifier> name;
 };
@@ -66,7 +66,7 @@ public:
 		, op(op)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_binary_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_binary_expr(this, data); }
 
 	std::shared_ptr<ExprAST> left;
 	std::shared_ptr<ExprAST> right;
@@ -82,7 +82,7 @@ public:
 		, op(op)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_unary_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_unary_expr(this, data); }
 
 	std::shared_ptr<ExprAST> expr;
 	UnaryOperator op;
@@ -98,7 +98,7 @@ public:
 		, expr2(expr2)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_tenary_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_tenary_expr(this, data); }
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<ExprAST> expr1;
@@ -120,7 +120,7 @@ public:
 		, access_type(access_type)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_member_access_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_member_access_expr(this, data); }
 
 	std::shared_ptr<ExprAST> object;
 	std::shared_ptr<TokenIdentifier> member;
@@ -136,7 +136,7 @@ public:
 		, arguments(arguments)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_function_call_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_function_call_expr(this, data); }
 
 	std::shared_ptr<ExprAST> callee;
 	std::vector<std::shared_ptr<ExprAST>> arguments;
@@ -150,7 +150,7 @@ public:
 		, expr(expr)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_typecast_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_typecast_expr(this, data); }
 
 	std::shared_ptr<ExprAST> expr;
 };
@@ -164,7 +164,7 @@ public:
 		, size_of_type(size_of_type)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_sizeof_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_sizeof_expr(this, data); }
 
 	std::shared_ptr<ExprAST> expr;
 	std::shared_ptr<TypeAST> size_of_type;
@@ -178,7 +178,7 @@ public:
 		, align_of_type(align_of_type)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_alignof_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_alignof_expr(this, data); }
 
 	std::shared_ptr<TypeAST> align_of_type;
 };
@@ -191,7 +191,7 @@ public:
 		, exprs(exprs)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_initializer_expr(this); }
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_initializer_expr(this, data); }
 
 	std::vector<std::shared_ptr<ExprAST>> exprs;
 };

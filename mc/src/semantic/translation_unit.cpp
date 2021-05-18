@@ -310,7 +310,12 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 
 std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	assert_not_implemented();
+	if (is_void_pointer(type1))
+		return type2;
+	else if (is_void_pointer(type2))
+		return type1;
+	else
+		assert_not_implemented();
 }
 
 std::shared_ptr<TypeAST> TranslationUnit::convert_array_to_pointer(std::shared_ptr<TypeAST> type)

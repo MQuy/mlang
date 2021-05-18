@@ -18,7 +18,7 @@ public:
 		: ASTNode(node_type)
 	{
 	}
-	virtual void *accept(NodeVisitor *visitor) = 0;
+	virtual void *accept(NodeVisitor *visitor, void *data = nullptr) = 0;
 };
 
 class StmtAST : public FragmentAST
@@ -39,7 +39,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_label_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_label_stmt(this, data); };
 
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<StmtAST> stmt;
@@ -54,7 +54,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_case_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_case_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> constant;
 	std::shared_ptr<StmtAST> stmt;
@@ -68,7 +68,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_default_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_default_stmt(this, data); };
 
 	std::shared_ptr<StmtAST> stmt;
 };
@@ -81,7 +81,7 @@ public:
 		, expr(expr)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_expr_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_expr_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> expr;
 };
@@ -94,7 +94,7 @@ public:
 		, stmts(stmts)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_compound_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_compound_stmt(this, data); };
 
 	std::vector<std::shared_ptr<FragmentAST>> stmts;  // have to statement or declaration
 };
@@ -109,7 +109,7 @@ public:
 		, else_stmt(else_stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_if_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_if_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> if_stmt;
@@ -125,7 +125,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_switch_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_switch_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> expr;
 	std::shared_ptr<StmtAST> stmt;
@@ -142,7 +142,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_for_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_for_stmt(this, data); };
 
 	std::shared_ptr<ASTNode> init;
 	std::shared_ptr<ExprAST> cond;
@@ -159,7 +159,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_while_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_while_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> stmt;
@@ -174,7 +174,7 @@ public:
 		, stmt(stmt)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_dowhile_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_dowhile_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> cond;
 	std::shared_ptr<StmtAST> stmt;
@@ -188,7 +188,7 @@ public:
 		, name(name)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_jump_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_jump_stmt(this, data); };
 
 	std::shared_ptr<TokenIdentifier> name;
 };
@@ -200,7 +200,7 @@ public:
 		: StmtAST(ASTNodeType::stmt_continue)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_continue_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_continue_stmt(this, data); };
 };
 
 class BreakStmtAST : public StmtAST
@@ -210,7 +210,7 @@ public:
 		: StmtAST(ASTNodeType::stmt_break)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_break_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_break_stmt(this, data); };
 };
 
 class ReturnStmtAST : public StmtAST
@@ -221,7 +221,7 @@ public:
 		, expr(expr)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_return_stmt(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_return_stmt(this, data); };
 
 	std::shared_ptr<ExprAST> expr;
 };
@@ -247,7 +247,7 @@ public:
 		, body(body)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_function_definition(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_function_definition(this, data); };
 
 	std::shared_ptr<TokenIdentifier> name;
 	std::shared_ptr<CompoundStmtAST> body;
@@ -261,7 +261,7 @@ public:
 		, declarators(declarators)
 	{
 	}
-	void *accept(NodeVisitor *visitor) { return visitor->visit_declaration(this); };
+	void *accept(NodeVisitor *visitor, void *data = nullptr) { return visitor->visit_declaration(this, data); };
 
 	std::vector<std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>>> declarators;
 };

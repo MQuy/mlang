@@ -33,80 +33,80 @@ TranslationUnit SemanticTypeInference::analyze()
 	return translation_unit;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<int>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<int>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::int_);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::long_);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long long>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long long>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::long_long);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned int>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned int>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_int);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned long>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned long>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_long);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned long long>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned long long>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_long_long);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<float>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<float>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::float_);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<double>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<double>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::double_);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long double>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<long double>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::long_double);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned char>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<unsigned char>* expr, void* data)
 {
 	expr->type = translation_unit.get_type(BuiltinTypeName::unsigned_char);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<std::string>* expr)
+void* SemanticTypeInference::visit_literal_expr(LiteralExprAST<std::string>* expr, void* data)
 {
 	expr->type = translation_unit.get_type("const char *");
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_identifier_expr(IdentifierExprAST* expr)
+void* SemanticTypeInference::visit_identifier_expr(IdentifierExprAST* expr, void* data)
 {
 	expr->type = environment->get_declarator_type(expr->name);
 	expr->name->name = environment->get_declarator_name(expr->name->name);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
+void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr, void* data)
 {
 	expr->left->accept(this);
 	expr->right->accept(this);
@@ -289,7 +289,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
+void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr, void* data)
 {
 	if (expr->expr)
 		expr->expr->accept(this);
@@ -350,7 +350,7 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
+void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr, void* data)
 {
 	expr->cond->accept(this);
 	expr->expr1->accept(this);
@@ -371,13 +371,20 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 			expr_type = translation_unit.get_type("void");
 		else if (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type, expr->expr2))
 			expr_type = translation_unit.convert_array_to_pointer(expr1_type);
-		else if (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type, expr->expr2))
+		else if (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type, expr->expr1))
 			expr_type = translation_unit.convert_array_to_pointer(expr2_type);
 		else if (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_compatible_types(expr1_type, expr2_type))
 			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
 		else if ((translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_void_pointer(expr2_type))
 				 || (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_void_pointer(expr1_type)))
 			expr_type = translation_unit.composite_type(expr1_type, expr2_type);
+	}
+	else
+	{
+		if (translation_unit.is_array_or_pointer_type(expr1_type) && translation_unit.is_null_pointer(expr2_type, expr->expr2))
+			expr_type = translation_unit.convert_array_to_pointer(expr1_type);
+		else if (translation_unit.is_array_or_pointer_type(expr2_type) && translation_unit.is_null_pointer(expr1_type, expr->expr1))
+			expr_type = translation_unit.convert_array_to_pointer(expr2_type);
 	}
 
 	if (!expr_type)
@@ -386,7 +393,7 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
+void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr, void* data)
 {
 	expr->object->accept(this);
 
@@ -420,7 +427,7 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
+void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr, void* data)
 {
 	expr->callee->accept(this);
 	for (auto arg : expr->arguments)
@@ -442,7 +449,7 @@ void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)
+void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr, void* data)
 {
 	resolve_type(expr->type);
 	expr->expr->accept(this);
@@ -456,7 +463,7 @@ void* SemanticTypeInference::visit_typecast_expr(TypeCastExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_sizeof_expr(SizeOfExprAST* expr)
+void* SemanticTypeInference::visit_sizeof_expr(SizeOfExprAST* expr, void* data)
 {
 	if (expr->expr)
 		expr->expr->accept(this);
@@ -465,45 +472,45 @@ void* SemanticTypeInference::visit_sizeof_expr(SizeOfExprAST* expr)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_alignof_expr(AlignOfExprAST* expr)
+void* SemanticTypeInference::visit_alignof_expr(AlignOfExprAST* expr, void* data)
 {
 	expr->type = translation_unit.get_type("unsigned int");
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_initializer_expr(InitializerExprAST* expr)
+void* SemanticTypeInference::visit_initializer_expr(InitializerExprAST* expr, void* data)
 {
 	for (auto e : expr->exprs)
 		e->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_label_stmt(LabelStmtAST* stmt)
+void* SemanticTypeInference::visit_label_stmt(LabelStmtAST* stmt, void* data)
 {
 	stmt->stmt->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_case_stmt(CaseStmtAST* stmt)
+void* SemanticTypeInference::visit_case_stmt(CaseStmtAST* stmt, void* data)
 {
 	stmt->constant->accept(this);
 	stmt->stmt->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_default_stmt(DefaultStmtAST* stmt)
+void* SemanticTypeInference::visit_default_stmt(DefaultStmtAST* stmt, void* data)
 {
 	stmt->stmt->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_expr_stmt(ExprStmtAST* stmt)
+void* SemanticTypeInference::visit_expr_stmt(ExprStmtAST* stmt, void* data)
 {
 	stmt->expr->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_compound_stmt(CompoundStmtAST* stmt)
+void* SemanticTypeInference::visit_compound_stmt(CompoundStmtAST* stmt, void* data)
 {
 	enter_scope();
 
@@ -514,7 +521,7 @@ void* SemanticTypeInference::visit_compound_stmt(CompoundStmtAST* stmt)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_if_stmt(IfStmtAST* stmt)
+void* SemanticTypeInference::visit_if_stmt(IfStmtAST* stmt, void* data)
 {
 	stmt->cond->accept(this);
 	stmt->if_stmt->accept(this);
@@ -523,14 +530,14 @@ void* SemanticTypeInference::visit_if_stmt(IfStmtAST* stmt)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_switch_stmt(SwitchStmtAST* stmt)
+void* SemanticTypeInference::visit_switch_stmt(SwitchStmtAST* stmt, void* data)
 {
 	stmt->expr->accept(this);
 	stmt->stmt->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_for_stmt(ForStmtAST* stmt)
+void* SemanticTypeInference::visit_for_stmt(ForStmtAST* stmt, void* data)
 {
 	stmt->init->accept(this);
 	stmt->cond->accept(this);
@@ -539,43 +546,43 @@ void* SemanticTypeInference::visit_for_stmt(ForStmtAST* stmt)
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_while_stmt(WhileStmtAST* stmt)
+void* SemanticTypeInference::visit_while_stmt(WhileStmtAST* stmt, void* data)
 {
 	stmt->cond->accept(this);
 	stmt->stmt->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_dowhile_stmt(DoWhileStmtAST* stmt)
+void* SemanticTypeInference::visit_dowhile_stmt(DoWhileStmtAST* stmt, void* data)
 {
 	stmt->stmt->accept(this);
 	stmt->cond->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_jump_stmt(JumpStmtAST* stmt)
+void* SemanticTypeInference::visit_jump_stmt(JumpStmtAST* stmt, void* data)
 {
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_continue_stmt(ContinueStmtAST* stmt)
+void* SemanticTypeInference::visit_continue_stmt(ContinueStmtAST* stmt, void* data)
 {
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_break_stmt(BreakStmtAST* stmt)
+void* SemanticTypeInference::visit_break_stmt(BreakStmtAST* stmt, void* data)
 {
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt)
+void* SemanticTypeInference::visit_return_stmt(ReturnStmtAST* stmt, void* data)
 {
 	if (stmt->expr)
 		stmt->expr->accept(this);
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* stmt)
+void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* stmt, void* data)
 {
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
 	add_type_declaration(ftype->returning, false);
@@ -599,7 +606,7 @@ void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* st
 	return nullptr;
 }
 
-void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt)
+void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 {
 	auto type_defined = add_type_declaration(stmt->type, stmt->declarators.size() == 0);
 	resolve_type(stmt->type);

@@ -810,47 +810,47 @@ std::string IR::generate(std::string output_path)
 	return str;
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<int>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<int>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, expr->value->value, true));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<long>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<long>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_LONG, expr->value->value, true));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<long long>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<long long>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_LONG_LONG, expr->value->value, true));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<unsigned int>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<unsigned int>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, expr->value->value));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<unsigned long>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<unsigned long>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_LONG, expr->value->value));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<unsigned long long>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<unsigned long long>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_LONG_LONG, expr->value->value));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<float>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<float>* expr, void* data)
 {
 	return llvm::ConstantFP::get(*context, llvm::APFloat(expr->value->value));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<double>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<double>* expr, void* data)
 {
 	return llvm::ConstantFP::get(*context, llvm::APFloat(expr->value->value));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<long double>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<long double>* expr, void* data)
 {
 	llvm::APFloat value(static_cast<double>(expr->value->value));
 	bool ignored;
@@ -859,17 +859,17 @@ void* IR::visit_literal_expr(LiteralExprAST<long double>* expr)
 	return llvm::ConstantFP::get(*context, value);
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<unsigned char>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<unsigned char>* expr, void* data)
 {
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_CHAR, expr->value->value));
 }
 
-void* IR::visit_literal_expr(LiteralExprAST<std::string>* expr)
+void* IR::visit_literal_expr(LiteralExprAST<std::string>* expr, void* data)
 {
 	return get_or_insert_global_string(expr->value->value);
 }
 
-void* IR::visit_identifier_expr(IdentifierExprAST* expr)
+void* IR::visit_identifier_expr(IdentifierExprAST* expr, void* data)
 {
 	llvm::Value* value = environment->lookup(expr->name);
 	if (!value)
@@ -877,7 +877,7 @@ void* IR::visit_identifier_expr(IdentifierExprAST* expr)
 	return value;
 }
 
-void* IR::visit_binary_expr(BinaryExprAST* expr)
+void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 {
 	BinaryOperator binop = expr->op;
 	llvm::Value* left = (llvm::Value*)expr->left->accept(this);
@@ -1071,7 +1071,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr)
 	return result;
 }
 
-void* IR::visit_unary_expr(UnaryExprAST* expr)
+void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 {
 	UnaryOperator unaryop = expr->op;
 	llvm::Value* expr1 = (llvm::Value*)expr->expr->accept(this);
@@ -1180,7 +1180,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr)
 	return result;
 }
 
-void* IR::visit_tenary_expr(TenaryExprAST* expr)
+void* IR::visit_tenary_expr(TenaryExprAST* expr, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto thenbb = llvm::BasicBlock::Create(*context, "tenary.then");
@@ -1203,10 +1203,10 @@ void* IR::visit_tenary_expr(TenaryExprAST* expr)
 	builder->CreateBr(endbb);
 
 	activate_block(func, endbb);
-	return builder->CreateLoad(tmpvar);
+	return tmpvar;
 }
 
-void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
+void* IR::visit_member_access_expr(MemberAccessExprAST* expr, void* data)
 {
 	auto expr_obj = (llvm::Value*)expr->object->accept(this);
 	llvm::Value* object = nullptr;
@@ -1237,7 +1237,7 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr)
 	}
 }
 
-void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
+void* IR::visit_function_call_expr(FunctionCallExprAST* expr, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	llvm::Function* callee = (llvm::Function*)expr->callee->accept(this);
@@ -1299,7 +1299,7 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr)
 	return fret ? fret : rvalue;
 }
 
-void* IR::visit_typecast_expr(TypeCastExprAST* expr)
+void* IR::visit_typecast_expr(TypeCastExprAST* expr, void* data)
 {
 	auto value = (llvm::Value*)expr->expr->accept(this);
 	auto rvalue = load_value(value, expr->expr);
@@ -1307,7 +1307,7 @@ void* IR::visit_typecast_expr(TypeCastExprAST* expr)
 	return translation_unit.is_void_type(expr->type) ? nullptr : casted_rvalue;
 }
 
-void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
+void* IR::visit_sizeof_expr(SizeOfExprAST* expr, void* data)
 {
 	std::shared_ptr<TypeAST> type_ast = expr->expr ? expr->expr->type : expr->size_of_type;
 	auto typesize = get_sizeof_type(type_ast);
@@ -1315,20 +1315,24 @@ void* IR::visit_sizeof_expr(SizeOfExprAST* expr)
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, typesize, true));
 }
 
-void* IR::visit_alignof_expr(AlignOfExprAST* expr)
+void* IR::visit_alignof_expr(AlignOfExprAST* expr, void* data)
 {
 	auto alignsize = get_alignof_type(expr->align_of_type);
 
 	return llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, alignsize, true));
 }
 
-void* IR::visit_initializer_expr(InitializerExprAST* expr)
+void* IR::visit_initializer_expr(InitializerExprAST* expr, void* data)
 {
+	assert(data);
+	llvm::Value* declarator = (llvm::Value*)data;
+
 	if (translation_unit.is_scalar_type(expr->type))
 	{
 		auto fexpr = expr->exprs.front();
 		auto value = (llvm::Value*)fexpr->accept(this);
-		return load_value(value, fexpr);
+		auto rvalue = load_value(value, fexpr);
+		store_inst(declarator, expr->type, rvalue, expr->type);
 	}
 	else if (translation_unit.is_array_type(expr->type))
 	{
@@ -1336,14 +1340,14 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 		std::vector<llvm::Constant*> values;
 		for (auto e : expr->exprs)
 			values.push_back((llvm::Constant*)e->accept(this));
-		return llvm::ConstantArray::get((llvm::ArrayType*)atype, values);
+		auto rvalue = llvm::ConstantArray::get((llvm::ArrayType*)atype, values);
+		store_inst(declarator, expr->type, rvalue, expr->type);
 	}
 	else if (translation_unit.is_aggregate_type(expr->type))
 	{
 		auto stype_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->type));
 		auto stype = get_type(stype_ast);
 		llvm::Function* func = builder->GetInsertBlock()->getParent();
-		llvm::Value* tmp = create_alloca(func, stype);
 
 		if (stype_ast->aggregate_kind == AggregateKind::struct_)
 		{
@@ -1351,13 +1355,17 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 			{
 				auto iexpr = expr->exprs[idx];
 				auto value = (llvm::Value*)iexpr->accept(this);
-				llvm::ArrayRef<llvm::Value*> indices = {
-					llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
-					llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
-				};
-				auto member = builder->CreateInBoundsGEP(tmp, indices);
-				auto [_, member_type] = stype_ast->members[idx];
-				store_inst(member, member_type, value, iexpr->type);
+
+				if (declarator)
+				{
+					llvm::ArrayRef<llvm::Value*> indices = {
+						llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
+						llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
+					};
+					auto member = builder->CreateInBoundsGEP(declarator, indices);
+					auto [_, member_type] = stype_ast->members[idx];
+					store_inst(member, member_type, value, iexpr->type);
+				}
 			}
 		}
 		else
@@ -1367,14 +1375,67 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr)
 			auto value = (llvm::Value*)iexpr->accept(this);
 			std::shared_ptr<TypeAST> presented_type = get_largest_aggregate_member(stype_ast);
 
-			tmp = cast_value(tmp, std::make_shared<PointerTypeAST>(stype_ast), std::make_shared<PointerTypeAST>(presented_type));
-			store_inst(tmp, presented_type, value, iexpr->type);
+			declarator = cast_value(declarator, std::make_shared<PointerTypeAST>(stype_ast), std::make_shared<PointerTypeAST>(presented_type));
+			store_inst(declarator, presented_type, value, iexpr->type);
 		}
-		return tmp;
+	}
+	return nullptr;
+}
+
+void* IR::visit_initializer_constant(InitializerExprAST* expr, void* data)
+{
+	if (translation_unit.is_scalar_type(expr->type))
+	{
+		auto fexpr = expr->exprs.front();
+		auto value = (llvm::Value*)fexpr->accept(this);
+		return cast_value(value, fexpr->type, expr->type);
+	}
+	else if (translation_unit.is_array_type(expr->type))
+	{
+		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(expr->type);
+		auto atype = get_type(expr->type);
+		std::vector<llvm::Constant*> values;
+		for (auto e : expr->exprs)
+		{
+			auto value = (llvm::Constant*)e->accept(this);
+			auto rvalue = (llvm::Constant*)cast_value(value, e->type, atype_ast->underlay);
+			values.push_back(rvalue);
+		}
+		return llvm::ConstantArray::get((llvm::ArrayType*)atype, values);
+	}
+	else if (translation_unit.is_aggregate_type(expr->type))
+	{
+		auto stype_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr->type));
+		auto stype = get_type(stype_ast);
+		llvm::Function* func = builder->GetInsertBlock()->getParent();
+
+		if (stype_ast->aggregate_kind == AggregateKind::struct_)
+		{
+			std::vector<llvm::Constant*> values;
+			for (auto idx = 0; idx < expr->exprs.size(); ++idx)
+			{
+				auto iexpr = expr->exprs[idx];
+				auto [_, member_type] = stype_ast->members[idx];
+				auto value = (llvm::Constant*)iexpr->accept(this);
+				auto rvalue = (llvm::Constant*)cast_value(value, iexpr->type, member_type);
+				values.push_back(rvalue);
+			}
+			return llvm::ConstantStruct::get((llvm::StructType*)stype, values);
+		}
+		else
+		{
+			assert(stype_ast->aggregate_kind == AggregateKind::union_);
+			auto iexpr = expr->exprs.front();
+			auto value = (llvm::Constant*)iexpr->accept(this);
+			std::shared_ptr<TypeAST> presented_type = get_largest_aggregate_member(stype_ast);
+			auto rvalue = (llvm::Constant*)cast_value(value, iexpr->type, presented_type);
+
+			return llvm::ConstantStruct::get((llvm::StructType*)stype, {rvalue});
+		}
 	}
 }
 
-void* IR::visit_label_stmt(LabelStmtAST* stmt)
+void* IR::visit_label_stmt(LabelStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto labelbb = llvm::BasicBlock::Create(*context, stmt->name->name);
@@ -1385,7 +1446,7 @@ void* IR::visit_label_stmt(LabelStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_case_stmt(CaseStmtAST* stmt)
+void* IR::visit_case_stmt(CaseStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto sstmt = std::static_pointer_cast<SwitchStmtBranch>(find_stmt_branch(StmtBranchType::switch_));
@@ -1401,7 +1462,7 @@ void* IR::visit_case_stmt(CaseStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_default_stmt(DefaultStmtAST* stmt)
+void* IR::visit_default_stmt(DefaultStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto sstmt = std::static_pointer_cast<SwitchStmtBranch>(find_stmt_branch(StmtBranchType::switch_));
@@ -1416,7 +1477,7 @@ void* IR::visit_default_stmt(DefaultStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_expr_stmt(ExprStmtAST* stmt)
+void* IR::visit_expr_stmt(ExprStmtAST* stmt, void* data)
 {
 	if (stmt->expr)
 		return stmt->expr->accept(this);
@@ -1424,7 +1485,7 @@ void* IR::visit_expr_stmt(ExprStmtAST* stmt)
 		return nullptr;
 }
 
-void* IR::visit_compound_stmt(CompoundStmtAST* stmt)
+void* IR::visit_compound_stmt(CompoundStmtAST* stmt, void* data)
 {
 	enter_scope();
 
@@ -1435,7 +1496,7 @@ void* IR::visit_compound_stmt(CompoundStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_if_stmt(IfStmtAST* stmt)
+void* IR::visit_if_stmt(IfStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto thenbb = llvm::BasicBlock::Create(*context, "if.then");
@@ -1457,7 +1518,7 @@ void* IR::visit_if_stmt(IfStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
+void* IR::visit_switch_stmt(SwitchStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	auto value = (llvm::Value*)stmt->expr->accept(this);
@@ -1477,7 +1538,7 @@ void* IR::visit_switch_stmt(SwitchStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_for_stmt(ForStmtAST* stmt)
+void* IR::visit_for_stmt(ForStmtAST* stmt, void* data)
 {
 	enter_scope();
 	stmt->init->accept(this);
@@ -1508,7 +1569,7 @@ void* IR::visit_for_stmt(ForStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_while_stmt(WhileStmtAST* stmt)
+void* IR::visit_while_stmt(WhileStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "while.cond");
@@ -1531,7 +1592,7 @@ void* IR::visit_while_stmt(WhileStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
+void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* bodybb = llvm::BasicBlock::Create(*context, "dowhile.body");
@@ -1554,7 +1615,7 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_jump_stmt(JumpStmtAST* stmt)
+void* IR::visit_jump_stmt(JumpStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
 	for (auto& block : func->getBasicBlockList())
@@ -1563,7 +1624,7 @@ void* IR::visit_jump_stmt(JumpStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
+void* IR::visit_continue_stmt(ContinueStmtAST* stmt, void* data)
 {
 	auto fstmt = std::static_pointer_cast<LoopStmtBranch>(find_stmt_branch(StmtBranchType::loop));
 	assert(fstmt);
@@ -1572,7 +1633,7 @@ void* IR::visit_continue_stmt(ContinueStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_break_stmt(BreakStmtAST* stmt)
+void* IR::visit_break_stmt(BreakStmtAST* stmt, void* data)
 {
 	auto fstmt = stmts_branch.back();
 	assert(fstmt);
@@ -1581,7 +1642,7 @@ void* IR::visit_break_stmt(BreakStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_return_stmt(ReturnStmtAST* stmt)
+void* IR::visit_return_stmt(ReturnStmtAST* stmt, void* data)
 {
 	if (stmt->expr)
 	{
@@ -1597,7 +1658,7 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt)
 	return nullptr;
 }
 
-void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
+void* IR::visit_function_definition(FunctionDefinitionAST* stmt, void* data)
 {
 	llvm::Function* func = nullptr;
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
@@ -1671,7 +1732,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt)
 	return func;
 }
 
-void* IR::visit_declaration(DeclarationAST* stmt)
+void* IR::visit_declaration(DeclarationAST* stmt, void* data)
 {
 	get_type(stmt->type);
 
@@ -1690,9 +1751,12 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 
 			if (expr)
 			{
-				auto value = (llvm::Value*)expr->accept(this);
-				auto rvalue = load_value(value, expr);
-				store_inst(alloca, type_ast, rvalue, expr->type);
+				auto value = (llvm::Value*)expr->accept(this, alloca);
+				if (expr->node_type != ASTNodeType::expr_initializer)
+				{
+					auto rvalue = load_value(value, expr);
+					store_inst(alloca, type_ast, rvalue, expr->type);
+				}
 			}
 		}
 		else
@@ -1707,15 +1771,20 @@ void* IR::visit_declaration(DeclarationAST* stmt)
 												   return qualifier == TypeQualifier::const_;
 											   });
 				auto linkage = get_linkage_type(storage);
-				llvm::Constant* constant = get_null_value(type);
+				auto declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, get_null_value(type), token->name);
+				environment->define(token, declarator);
+
 				if (expr)
 				{
-					auto value = (llvm::Constant*)expr->accept(this);
-					constant = (llvm::Constant*)cast_value(value, expr->type, type_ast);
-				}
+					llvm::Constant* value = nullptr;
+					if (expr->node_type != ASTNodeType::expr_initializer)
+						value = (llvm::Constant*)expr->accept(this, declarator);
+					else
+						value = (llvm::Constant*)visit_initializer_constant((InitializerExprAST*)expr.get());
 
-				auto declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, constant, token->name);
-				environment->define(token, declarator);
+					auto rvalue = (llvm::Constant*)cast_value(value, expr->type, type_ast);
+					declarator->setInitializer(rvalue);
+				}
 			}
 		}
 	}
