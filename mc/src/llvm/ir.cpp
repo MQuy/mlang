@@ -138,7 +138,8 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 				mvalue = llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, prev_constant->getValue().getSExtValue() + 1, true));
 
 			prev_constant = mvalue;
-			environment->define(mname, mvalue);
+			if (!environment->lookup(mname))
+				environment->define(mname, mvalue);
 		}
 
 		type = builder->getInt32Ty();
@@ -447,7 +448,7 @@ llvm::Value* IR::execute_binop(BinaryOperator op, std::shared_ptr<TypeAST> type_
 
 llvm::Function* IR::create_function_prototype(std::string name, std::shared_ptr<TypeAST> type)
 {
-	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(type);
+	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(translation_unit.get_type(type));
 	llvm::FunctionType* ftype = (llvm::FunctionType*)get_type(ftype_ast);
 
 	auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
@@ -475,6 +476,9 @@ unsigned IR::get_alignof_type(std::shared_ptr<TypeAST> type_ast)
 
 void IR::store_inst(llvm::Value* dest, std::shared_ptr<TypeAST> dest_type_ast, llvm::Value* src, std::shared_ptr<TypeAST> src_type_ast)
 {
+	src_type_ast = translation_unit.get_type(src_type_ast);
+	dest_type_ast = translation_unit.get_type(dest_type_ast);
+
 	auto src_type = get_type(src_type_ast);
 
 	if (translation_unit.is_array_type(dest_type_ast) && translation_unit.is_pointer_type(src_type_ast))
@@ -555,13 +559,13 @@ llvm::Value* IR::build_aggregate_accesses(llvm::Value* object, std::shared_ptr<A
 	std::shared_ptr<TypeAST> member_type = nullptr;
 	if (type_ast->aggregate_kind == AggregateKind::struct_)
 	{
-		member_type = std::get<1>(type_ast->members[idx]);
+		member_type = translation_unit.get_type(std::get<1>(type_ast->members[idx]));
 		object_member = builder->CreateGEP(object, llvm::ConstantInt::get(builder->getInt32Ty(), idx));
 	}
 	else
 	{
 		assert(type_ast->aggregate_kind == AggregateKind::union_);
-		member_type = std::get<1>(type_ast->members[idx]);
+		member_type = translation_unit.get_type(std::get<1>(type_ast->members[idx]));
 
 		auto pmember_type = std::make_shared<PointerTypeAST>(member_type);
 		auto ptype = std::make_shared<PointerTypeAST>(type_ast);
@@ -633,6 +637,9 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_type_ast, std::shared_ptr<TypeAST> dest_type_ast)
 {
 	llvm::Instruction::CastOps inst = llvm::Instruction::BitCast;
+
+	src_type_ast = translation_unit.get_type(src_type_ast);
+	dest_type_ast = translation_unit.get_type(dest_type_ast);
 
 	if (translation_unit.is_same_types(src_type_ast, dest_type_ast))
 		return source;
@@ -941,7 +948,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 			&& translation_unit.is_pointer_type(expr->right->type)
 			&& binop == BinaryOperator::subtraction)
 		{
-			auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(expr->left->type);
+			auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(translation_unit.get_type(expr->left->type));
 			auto ptype = get_type(ptype_ast->underlay);
 			auto size = module->getDataLayout().getTypeSizeInBits(ptype);
 			result = builder->CreateExactSDiv(result, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, size, true)));
@@ -1259,13 +1266,15 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr, void* data)
 	llvm::Function* callee = (llvm::Function*)expr->callee->accept(this);
 	std::shared_ptr<FunctionTypeAST> ftype_ast = nullptr;
 
-	if (translation_unit.is_function_type(expr->callee->type))
-		ftype_ast = std::static_pointer_cast<FunctionTypeAST>(expr->callee->type);
-	else if (translation_unit.is_pointer_type(expr->callee->type))
+	auto callee_type_ast = translation_unit.get_type(expr->callee->type);
+	if (translation_unit.is_function_type(callee_type_ast))
+		ftype_ast = std::static_pointer_cast<FunctionTypeAST>(callee_type_ast);
+	else if (translation_unit.is_pointer_type(callee_type_ast))
 	{
-		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(expr->callee->type);
-		assert(translation_unit.is_function_type(ptype_ast->underlay));
-		ftype_ast = std::static_pointer_cast<FunctionTypeAST>(ptype_ast->underlay);
+		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(callee_type_ast);
+		auto underlay_type_ast = translation_unit.get_type(ptype_ast->underlay);
+		assert(translation_unit.is_function_type(underlay_type_ast));
+		ftype_ast = std::static_pointer_cast<FunctionTypeAST>(underlay_type_ast);
 	}
 
 	std::vector<llvm::Value*> args;
@@ -1408,7 +1417,7 @@ void* IR::visit_initializer_constant(InitializerExprAST* expr, void* data)
 	}
 	else if (translation_unit.is_array_type(expr->type))
 	{
-		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(expr->type);
+		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(translation_unit.get_type(expr->type));
 		auto atype = get_type(expr->type);
 		std::vector<llvm::Constant*> values;
 		auto size = ConstExprEval(this, atype_ast->expr).eval();
@@ -1681,7 +1690,7 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt, void* data)
 		auto value = (llvm::Value*)stmt->expr->accept(this);
 		auto rvalue = load_value(value, stmt->expr);
 		auto ret = environment->lookup(LLVM_RETURN_NAME);
-		auto ftype = std::static_pointer_cast<FunctionTypeAST>(in_func_scope->type);
+		auto ftype = std::static_pointer_cast<FunctionTypeAST>(translation_unit.get_type(in_func_scope->type));
 		store_inst(ret, ftype->returning, rvalue, stmt->expr->type);
 	}
 	auto rstmt = find_stmt_branch(StmtBranchType::function);
@@ -1693,7 +1702,7 @@ void* IR::visit_return_stmt(ReturnStmtAST* stmt, void* data)
 void* IR::visit_function_definition(FunctionDefinitionAST* stmt, void* data)
 {
 	llvm::Function* func = nullptr;
-	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
+	auto ftype = std::static_pointer_cast<FunctionTypeAST>(translation_unit.get_type(stmt->type));
 	if (!(func = module->getFunction(stmt->name->name)))
 		func = create_function_prototype(stmt->name->name, stmt->type);
 
@@ -1794,7 +1803,10 @@ void* IR::visit_declaration(DeclarationAST* stmt, void* data)
 		else
 		{
 			if (type->isFunctionTy())
-				create_function_prototype(token->name, type_ast);
+			{
+				if (environment->lookup(token->name) == nullptr)
+					create_function_prototype(token->name, type_ast);
+			}
 			else
 			{
 				auto qualifiers = translation_unit.get_type_qualifiers(type_ast);

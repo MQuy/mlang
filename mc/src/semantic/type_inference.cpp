@@ -111,8 +111,8 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr, void* data)
 	expr->left->accept(this);
 	expr->right->accept(this);
 
-	auto expr1_type = expr->left->type;
-	auto expr2_type = expr->right->type;
+	auto expr1_type = translation_unit.get_type(expr->left->type);
+	auto expr2_type = translation_unit.get_type(expr->right->type);
 	std::shared_ptr<TypeAST> expr_type = nullptr;
 
 	switch (expr->op)
@@ -262,7 +262,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr, void* data)
 	case BinaryOperator::member_access:
 	{
 		assert(translation_unit.is_aggregate_type(expr1_type));
-		auto atype = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(expr1_type));
+		auto atype = std::static_pointer_cast<AggregateTypeAST>(expr1_type);
 		auto identifier = std::static_pointer_cast<IdentifierExprAST>(expr->right);
 
 		for (auto [mname, mtype] : atype->members)
@@ -295,41 +295,42 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr, void* data)
 		expr->expr->accept(this);
 
 	std::shared_ptr<TypeAST> expr_type = nullptr;
+	auto expr1_type = translation_unit.get_type(expr->expr->type);
 	switch (expr->op)
 	{
 	case UnaryOperator::postfix_increment:
 	case UnaryOperator::postfix_decrement:
 	case UnaryOperator::prefix_increment:
 	case UnaryOperator::prefix_decrement:
-		if (translation_unit.is_arithmetic_type(expr->expr->type))
-			expr_type = translation_unit.promote_integer(expr->expr->type);
-		else if (translation_unit.is_pointer_type(expr->expr->type))
-			expr_type = expr->expr->type;
+		if (translation_unit.is_arithmetic_type(expr1_type))
+			expr_type = translation_unit.promote_integer(expr1_type);
+		else if (translation_unit.is_pointer_type(expr1_type))
+			expr_type = expr1_type;
 		else
 			throw std::runtime_error("only integer, real float or pointer type is supported in increment/decrement");
 		break;
 
 	case UnaryOperator::plus:
 	case UnaryOperator::minus:
-		assert(translation_unit.is_arithmetic_type(expr->expr->type));
-		expr_type = translation_unit.promote_integer(expr->expr->type);
+		assert(translation_unit.is_arithmetic_type(expr1_type));
+		expr_type = translation_unit.promote_integer(expr1_type);
 		break;
 
 	case UnaryOperator::complement:
 	case UnaryOperator::not_:
-		assert(translation_unit.is_integer_type(expr->expr->type));
-		expr_type = translation_unit.promote_integer(expr->expr->type);
+		assert(translation_unit.is_integer_type(expr1_type));
+		expr_type = translation_unit.promote_integer(expr1_type);
 		break;
 
 	case UnaryOperator::dereference:
 	{
 		std::shared_ptr<TypeAST> element_type = nullptr;
-		if (translation_unit.is_pointer_type(expr->expr->type))
-			element_type = std::static_pointer_cast<PointerTypeAST>(expr->expr->type)->underlay;
+		if (translation_unit.is_pointer_type(expr1_type))
+			element_type = std::static_pointer_cast<PointerTypeAST>(expr1_type)->underlay;
 		else
 		{
-			assert(translation_unit.is_array_type(expr->expr->type));
-			element_type = std::static_pointer_cast<ArrayTypeAST>(expr->expr->type)->underlay;
+			assert(translation_unit.is_array_type(expr1_type));
+			element_type = std::static_pointer_cast<ArrayTypeAST>(expr1_type)->underlay;
 		}
 
 		expr_type = element_type;
@@ -337,7 +338,7 @@ void* SemanticTypeInference::visit_unary_expr(UnaryExprAST* expr, void* data)
 	}
 
 	case UnaryOperator::address_of:
-		expr_type = std::make_shared<PointerTypeAST>(expr->expr->type);
+		expr_type = std::make_shared<PointerTypeAST>(expr1_type);
 		break;
 
 	default:
@@ -356,8 +357,8 @@ void* SemanticTypeInference::visit_tenary_expr(TenaryExprAST* expr, void* data)
 	expr->expr1->accept(this);
 	expr->expr2->accept(this);
 
-	auto expr1_type = expr->expr1->type;
-	auto expr2_type = expr->expr2->type;
+	auto expr1_type = translation_unit.get_type(expr->expr1->type);
+	auto expr2_type = translation_unit.get_type(expr->expr2->type);
 	std::shared_ptr<TypeAST> expr_type = nullptr;
 	if (translation_unit.is_arithmetic_type(expr1_type) && translation_unit.is_arithmetic_type(expr2_type))
 		expr_type = translation_unit.convert_arithmetic_type(expr1_type, expr2_type);
@@ -439,7 +440,7 @@ void* SemanticTypeInference::visit_function_call_expr(FunctionCallExprAST* expr,
 		expr_type = translation_unit.get_function_return_type(expr->callee->type);
 	else if (translation_unit.is_pointer_type(expr->callee->type))
 	{
-		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->callee->type);
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(translation_unit.get_type(expr->callee->type));
 		assert(translation_unit.is_function_type(ptype->underlay));
 		expr_type = ptype->underlay;
 	}

@@ -285,10 +285,12 @@ void TranslationUnit::add_type(std::string name, std::shared_ptr<TypeAST> type)
 
 std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	assert(is_arithmetic_type(type1) && is_arithmetic_type(type2));
+	auto original_type1 = get_type(type1);
+	auto original_type2 = get_type(type2);
+	assert(is_arithmetic_type(original_type1) && is_arithmetic_type(original_type2));
 
-	auto btype1 = std::static_pointer_cast<BuiltinTypeAST>(type1);
-	auto btype2 = std::static_pointer_cast<BuiltinTypeAST>(type2);
+	auto btype1 = std::static_pointer_cast<BuiltinTypeAST>(original_type1);
+	auto btype2 = std::static_pointer_cast<BuiltinTypeAST>(original_type2);
 	if (btype1->name == btype2->name)
 		return btype1;
 	else if (is_long_double_type(btype1) || is_long_double_type(btype2))
@@ -323,9 +325,10 @@ std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_pt
 
 std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAST> type)
 {
-	assert(is_arithmetic_type(type));
+	auto original_type = get_type(type);
+	assert(is_arithmetic_type(original_type));
 
-	auto btype = std::static_pointer_cast<BuiltinTypeAST>(type);
+	auto btype = std::static_pointer_cast<BuiltinTypeAST>(original_type);
 	if (is_real_float_type(btype))
 		return type;
 	else if (type_nbits[btype->name] < NBITS_INT || btype->name == BuiltinTypeName::int_)
@@ -336,16 +339,19 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 
 std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	if (is_arithmetic_type(type1) && is_arithmetic_type(type2))
-		return convert_arithmetic_type(type1, type2);
-	else if (is_void_pointer(type1))
+	auto original_type1 = get_type(type1);
+	auto original_type2 = get_type(type2);
+
+	if (is_arithmetic_type(original_type1) && is_arithmetic_type(original_type2))
+		return convert_arithmetic_type(original_type1, original_type2);
+	else if (is_void_pointer(original_type1))
 		return type2;
-	else if (is_void_pointer(type2))
+	else if (is_void_pointer(original_type2))
 		return type1;
-	else if (is_array_type(type1) && is_array_type(type2))
+	else if (is_array_type(original_type1) && is_array_type(original_type2))
 	{
-		auto atype1 = std::static_pointer_cast<ArrayTypeAST>(type1);
-		auto atype2 = std::static_pointer_cast<ArrayTypeAST>(type2);
+		auto atype1 = std::static_pointer_cast<ArrayTypeAST>(original_type1);
+		auto atype2 = std::static_pointer_cast<ArrayTypeAST>(original_type2);
 		auto underlay = composite_type(atype1->underlay, atype2->underlay);
 		std::shared_ptr<ExprAST> expr = nullptr;
 
@@ -354,9 +360,34 @@ std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST
 		else if (atype1->expr && !atype2->expr)
 			expr = atype1->expr;
 		else
-			assert_not_implemented();
+		{
+			auto expr1 = std::dynamic_pointer_cast<LiteralExprAST<int>>(atype1->expr);
+			auto expr2 = std::dynamic_pointer_cast<LiteralExprAST<int>>(atype2->expr);
+			if (!(expr1 && expr2 && expr1->value->value == expr2->value->value))
+				assert_not_implemented();
+		}
 
 		return std::make_shared<ArrayTypeAST>(ArrayTypeAST(underlay, atype2->expr));
+	}
+	else if (is_function_type(original_type1) && is_function_type(original_type2))
+	{
+		auto ftype1 = std::static_pointer_cast<FunctionTypeAST>(original_type1);
+		auto ftype2 = std::static_pointer_cast<FunctionTypeAST>(original_type2);
+
+		if (ftype1->parameters.size() != ftype2->parameters.size())
+			assert_not_reached();
+
+		std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parameters;
+		for (auto idx = 0; idx < ftype1->parameters.size(); ++idx)
+		{
+			auto [fparam1_name, fparam1_type] = ftype1->parameters[idx];
+			auto [fparam2_name, fparam2_type] = ftype2->parameters[idx];
+
+			auto param = std::make_pair(fparam1_name ? fparam1_name : fparam2_name, composite_type(fparam1_type, fparam2_type));
+			parameters.push_back(param);
+		}
+		auto return_type = composite_type(ftype1->returning, ftype2->returning);
+		return std::make_shared<FunctionTypeAST>(parameters, return_type);
 	}
 	else
 		assert_not_implemented();
@@ -672,8 +703,8 @@ bool TranslationUnit::is_function_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::alias)
 	{
-		auto atype = std::static_pointer_cast<PointerTypeAST>(type);
-		return is_function_type(atype->underlay);
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		return is_function_type(get_type(type));
 	}
 	return type->kind == TypeKind::function;
 }
@@ -708,25 +739,28 @@ bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
 
 bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	if (is_same_types(type1, type2))
+	auto original_type1 = get_type(type1);
+	auto original_type2 = get_type(type2);
+
+	if (is_same_types(original_type1, original_type2))
 		return true;
-	else if (is_pointer_type(type1) && is_pointer_type(type2))
+	else if (is_pointer_type(original_type1) && is_pointer_type(original_type2))
 	{
-		auto ptype1 = std::static_pointer_cast<PointerTypeAST>(type1);
-		auto ptype2 = std::static_pointer_cast<PointerTypeAST>(type2);
+		auto ptype1 = std::static_pointer_cast<PointerTypeAST>(original_type1);
+		auto ptype2 = std::static_pointer_cast<PointerTypeAST>(original_type2);
 		return is_compatible_types(ptype1->underlay, ptype2->underlay);
 	}
-	else if (is_array_type(type1) && is_array_type(type2))
+	else if (is_array_type(original_type1) && is_array_type(original_type2))
 	{
-		auto atype1 = std::static_pointer_cast<ArrayTypeAST>(type1);
-		auto atype2 = std::static_pointer_cast<ArrayTypeAST>(type2);
+		auto atype1 = std::static_pointer_cast<ArrayTypeAST>(original_type1);
+		auto atype2 = std::static_pointer_cast<ArrayTypeAST>(original_type2);
 		// TODO: MQ 2021-05-05 If both have constant size, only if that size is the same
 		return is_compatible_types(atype1->underlay, atype2->underlay);
 	}
-	else if (is_aggregate_type(type1) && is_aggregate_type(type2))
+	else if (is_aggregate_type(original_type1) && is_aggregate_type(original_type2))
 	{
-		auto atype1 = std::static_pointer_cast<AggregateTypeAST>(type1);
-		auto atype2 = std::static_pointer_cast<AggregateTypeAST>(type2);
+		auto atype1 = std::static_pointer_cast<AggregateTypeAST>(original_type1);
+		auto atype2 = std::static_pointer_cast<AggregateTypeAST>(original_type2);
 
 		if (atype1->aggregate_kind != atype2->aggregate_kind
 			|| atype1->name->name != atype2->name->name
@@ -744,13 +778,31 @@ bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::s
 		}
 		return true;
 	}
-	else if (is_enum_type(type1) && is_enum_type(type2))
+	else if (is_enum_type(original_type1) && is_enum_type(original_type2))
 	{
-		auto etype1 = std::static_pointer_cast<EnumTypeAST>(type1);
-		auto etype2 = std::static_pointer_cast<EnumTypeAST>(type2);
+		auto etype1 = std::static_pointer_cast<EnumTypeAST>(original_type1);
+		auto etype2 = std::static_pointer_cast<EnumTypeAST>(original_type2);
 
 		if (etype1->name->name != etype2->name->name || etype1->members.size() != etype2->members.size())
 			return false;
+	}
+	else if (is_function_type(original_type1) && is_function_type(original_type2))
+	{
+		auto ftype1 = std::static_pointer_cast<FunctionTypeAST>(original_type1);
+		auto ftype2 = std::static_pointer_cast<FunctionTypeAST>(original_type2);
+
+		if (ftype1->parameters.size() != ftype2->parameters.size())
+			return false;
+
+		for (auto idx = 0; idx < ftype1->parameters.size(); ++idx)
+		{
+			auto [fparam1_name, fparam1_type] = ftype1->parameters[idx];
+			auto [fparam2_name, fparam2_type] = ftype2->parameters[idx];
+
+			if (!is_compatible_types(fparam1_type, fparam1_type))
+				return false;
+		}
+		return is_compatible_types(ftype1->returning, ftype2->returning);
 	}
 
 	return false;
