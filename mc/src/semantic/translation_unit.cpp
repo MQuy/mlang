@@ -1,5 +1,7 @@
 #include "translation_unit.h"
 
+#include <regex>
+
 std::set<TypeQualifier> TranslationUnit::get_type_qualifiers(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::builtin)
@@ -213,7 +215,31 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(BuiltinTypeName name)
 
 std::shared_ptr<TypeAST> TranslationUnit::get_type(std::string name)
 {
-	return types[name];
+	auto type = types[name];
+
+	if (type)
+	{
+		if (type->kind == TypeKind::alias)
+			return get_type(type);
+		// if name doesn't contain custom:: and type is aggregate -> type looked up by name is alias
+		else if (std::regex_match(name, std::regex("^custom::")) == false)
+		{
+			if (type->kind == TypeKind::aggregate)
+			{
+				auto atype = std::static_pointer_cast<AggregateTypeAST>(type);
+				if (atype->members.size() == 0)
+					return get_type(atype);
+			}
+			else if (type->kind == TypeKind::enum_)
+			{
+				auto etype = std::static_pointer_cast<EnumTypeAST>(type);
+				if (etype->members.size() == 0)
+					return get_type(etype);
+			}
+		}
+	}
+
+	return type;
 }
 
 std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TokenIdentifier> identifier)
@@ -310,10 +336,28 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 
 std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
 {
-	if (is_void_pointer(type1))
+	if (is_arithmetic_type(type1) && is_arithmetic_type(type2))
+		return convert_arithmetic_type(type1, type2);
+	else if (is_void_pointer(type1))
 		return type2;
 	else if (is_void_pointer(type2))
 		return type1;
+	else if (is_array_type(type1) && is_array_type(type2))
+	{
+		auto atype1 = std::static_pointer_cast<ArrayTypeAST>(type1);
+		auto atype2 = std::static_pointer_cast<ArrayTypeAST>(type2);
+		auto underlay = composite_type(atype1->underlay, atype2->underlay);
+		std::shared_ptr<ExprAST> expr = nullptr;
+
+		if (!atype1->expr && atype2->expr)
+			expr = atype2->expr;
+		else if (atype1->expr && !atype2->expr)
+			expr = atype1->expr;
+		else
+			assert_not_implemented();
+
+		return std::make_shared<ArrayTypeAST>(ArrayTypeAST(underlay, atype2->expr));
+	}
 	else
 		assert_not_implemented();
 }

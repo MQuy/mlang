@@ -60,6 +60,12 @@ bool NameEnvironment::is_typedef(std::shared_ptr<TypeAST> type)
 		auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
 		return is_typedef(ftype->returning);
 	}
+	else
+	{
+		assert(type->kind == TypeKind::alias);
+		auto atype = std::static_pointer_cast<AliasTypeAST>(type);
+		storage = atype->storage;
+	}
 
 	return storage == StorageSpecifier::typedef_;
 }

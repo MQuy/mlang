@@ -30,7 +30,7 @@ public:
 	std::string generate_declarator_name(std::shared_ptr<TokenIdentifier> identifier, StorageSpecifier storage, FunctionDefinitionAST *func);
 
 	void define_declarator_type(std::shared_ptr<TokenIdentifier> identifier, std::shared_ptr<TypeAST> type) { declarator_types[identifier->name] = type; }
-	std::shared_ptr<TypeAST> get_declarator_type(std::shared_ptr<TokenIdentifier> identifier);
+	std::shared_ptr<TypeAST> get_declarator_type(std::shared_ptr<TokenIdentifier> identifier, bool in_current_scope = false);
 
 private:
 	TypeEnvironment *enclosing;

@@ -68,7 +68,7 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 	{
 		auto atype_ast = std::static_pointer_cast<ArrayTypeAST>(type_ast);
 		auto element = get_type(atype_ast->underlay);
-		auto number_of_elements = ConstExprEval(this, atype_ast->expr).eval();
+		auto number_of_elements = atype_ast->expr ? ConstExprEval(this, atype_ast->expr).eval() : 0;
 		type = llvm::ArrayType::get(element, number_of_elements);
 	}
 	else if (type_ast->kind == TypeKind::alias)
@@ -1235,7 +1235,7 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr, void* data)
 	}
 	else if (translation_unit.is_pointer_type(expr->object->type))
 	{
-		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
+		auto ptype_ast = std::static_pointer_cast<PointerTypeAST>(translation_unit.get_type(expr->object->type));
 		object_type_ast = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(ptype_ast->underlay));
 		object = load_value(expr_obj, expr->object);
 	}
@@ -1803,8 +1803,18 @@ void* IR::visit_declaration(DeclarationAST* stmt, void* data)
 												   return qualifier == TypeQualifier::const_;
 											   });
 				auto linkage = get_linkage_type(storage);
-				auto declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, get_null_value(type), token->name);
-				environment->define(token, declarator);
+				llvm::GlobalVariable* declarator = nullptr;
+				if (declarator = (llvm::GlobalVariable*)environment->lookup(token->name))
+				{
+					if (!expr)
+						continue;
+
+					declarator->eraseFromParent();
+				}
+
+				auto override = declarator != nullptr;
+				declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, get_null_value(type), token->name);
+				environment->define(token, declarator, override);
 
 				if (expr)
 				{

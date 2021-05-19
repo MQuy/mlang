@@ -17,8 +17,8 @@ public:
 
 	llvm::Value *lookup(std::string name);
 	llvm::Value *lookup(std::shared_ptr<TokenIdentifier> identifier);
-	void define(std::string name, llvm::Value *value);
-	void define(std::shared_ptr<TokenIdentifier> identifier, llvm::Value *value);
+	void define(std::string name, llvm::Value *value, bool override = false);
+	void define(std::shared_ptr<TokenIdentifier> identifier, llvm::Value *value, bool override = false);
 	ValueEnvironment *get_enclosing();
 
 private:

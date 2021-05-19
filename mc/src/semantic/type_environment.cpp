@@ -42,7 +42,7 @@ std::shared_ptr<TypeAST> TypeEnvironment::get_type_type(std::shared_ptr<TokenIde
 		if (type_types.find(name) != type_types.end())
 			return type_types[name];
 	}
-	throw std::runtime_error(name + " doesn't exist");
+	return nullptr;
 }
 
 std::string TypeEnvironment::get_declarator_name(std::string name)
@@ -64,7 +64,7 @@ std::string TypeEnvironment::generate_declarator_name(std::shared_ptr<TokenIdent
 		return identifier->name;
 }
 
-std::shared_ptr<TypeAST> TypeEnvironment::get_declarator_type(std::shared_ptr<TokenIdentifier> identifier)
+std::shared_ptr<TypeAST> TypeEnvironment::get_declarator_type(std::shared_ptr<TokenIdentifier> identifier, bool in_current_scope)
 {
 	auto name = identifier->name;
 	for (auto scope = this; scope; scope = scope->enclosing)
@@ -72,6 +72,8 @@ std::shared_ptr<TypeAST> TypeEnvironment::get_declarator_type(std::shared_ptr<To
 		auto declartor_types = scope->declarator_types;
 		if (declartor_types.find(name) != declartor_types.end())
 			return declartor_types[name];
+		else if (in_current_scope)
+			break;
 	}
-	throw std::runtime_error(name + " doesn't exist");
+	return nullptr;
 }

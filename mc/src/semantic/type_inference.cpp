@@ -406,9 +406,10 @@ void* SemanticTypeInference::visit_member_access_expr(MemberAccessExprAST* expr,
 	else if (translation_unit.is_pointer_type(expr->object->type))
 	{
 		assert(expr->access_type == MemberAccessType::arrow);
-		auto ptype = std::static_pointer_cast<PointerTypeAST>(expr->object->type);
-		assert(translation_unit.is_aggregate_type(ptype->underlay));
-		object_type = std::static_pointer_cast<AggregateTypeAST>(translation_unit.get_type(ptype->underlay));
+		auto ptype = std::static_pointer_cast<PointerTypeAST>(translation_unit.get_type(expr->object->type));
+		auto underlay_type = translation_unit.get_type(ptype->underlay);
+		assert(underlay_type->kind == TypeKind::aggregate);
+		object_type = std::static_pointer_cast<AggregateTypeAST>(underlay_type);
 	}
 	assert(object_type);
 
@@ -611,8 +612,10 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 	auto type_defined = add_type_declaration(stmt->type, stmt->declarators.size() == 0);
 	resolve_type(stmt->type);
 
-	for (auto [name, type, expr] : stmt->declarators)
+	for (auto idx = 0; idx < stmt->declarators.size(); ++idx)
 	{
+		auto [name, type, expr] = stmt->declarators[idx];
+
 		if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
 		{
 			if (!type_defined)
@@ -624,7 +627,29 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 		}
 		else
 		{
-			environment->define_declarator_type(name, type);
+			auto declarator_type = environment->get_declarator_type(name, true);
+			if (declarator_type)
+			{
+				if (in_func_scope)
+					throw std::runtime_error("redefinition of " + name->name);
+				else
+				{
+					if (!translation_unit.is_compatible_types(type, declarator_type))
+						throw std::runtime_error("redefinition of " + name->name + " with a different type");
+					type = translation_unit.composite_type(type, declarator_type);
+					std::get<1>(stmt->declarators[idx]) = type;
+					environment->define_declarator_type(name, type);
+				}
+			}
+			else
+			{
+				environment->define_declarator_type(name, type);
+
+				auto declarator_name = name->name;
+				name->name = environment->generate_declarator_name(name, translation_unit.get_storage_specifier(type), in_func_scope);
+				environment->define_declarator_name(declarator_name, name->name);
+			}
+
 			if (expr)
 			{
 				expr->accept(this);
@@ -632,10 +657,6 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 				if (expr->node_type == ASTNodeType::expr_initializer)
 					fill_initializer_type(std::static_pointer_cast<InitializerExprAST>(expr), type);
 			}
-
-			auto declarator_name = name->name;
-			name->name = environment->generate_declarator_name(name, translation_unit.get_storage_specifier(type), in_func_scope);
-			environment->define_declarator_name(declarator_name, name->name);
 		}
 		resolve_type(type);
 	}
