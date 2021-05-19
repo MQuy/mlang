@@ -879,10 +879,32 @@ void* IR::visit_identifier_expr(IdentifierExprAST* expr, void* data)
 
 void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 {
-	BinaryOperator binop = expr->op;
-	llvm::Value* left = (llvm::Value*)expr->left->accept(this);
-	llvm::Value* right = (llvm::Value*)expr->right->accept(this);
+	auto binop = expr->op;
+	auto expr_type_ast = expr->type;
+	auto left = (llvm::Value*)expr->left->accept(this);
+	auto right = (llvm::Value*)expr->right->accept(this);
 	llvm::Value* result = nullptr;
+
+	// when inferencing type, result of addition, subtraction, multiplication and division assignment type is left type
+	// but when executing, type should be largest between left and right
+	// `float x; x += 10.5;`
+	// x has to be convert to double and add operation between x(double) and 10.5(double)
+	// the result is casted back to float
+	if (binop == BinaryOperator::addition_assigment || binop == BinaryOperator::subtraction_assignment)
+	{
+		if (translation_unit.is_arithmetic_type(expr->left->type) && translation_unit.is_arithmetic_type(expr->right->type))
+			expr_type_ast = translation_unit.convert_arithmetic_type(expr->left->type, expr->right->type);
+		else if (translation_unit.is_array_or_pointer_type(expr->left->type) && translation_unit.is_integer_type(expr->right->type))
+			expr_type_ast = translation_unit.convert_array_to_pointer(expr->left->type);
+		else if (translation_unit.is_array_or_pointer_type(expr->right->type) && translation_unit.is_integer_type(expr->left->type))
+			expr_type_ast = translation_unit.convert_array_to_pointer(expr->right->type);
+		else if (expr->op == BinaryOperator::subtraction
+				 && (translation_unit.is_array_or_pointer_type(expr->left->type) && translation_unit.is_array_or_pointer_type(expr->right->type))
+				 && translation_unit.is_compatible_types(expr->left->type, expr->right->type))
+			expr_type_ast = translation_unit.get_type("long");
+	}
+	else if (binop == BinaryOperator::multiplication_assigment || binop == BinaryOperator::division_assignment)
+		expr_type_ast = translation_unit.convert_arithmetic_type(expr->left->type, expr->right->type);
 
 	switch (binop)
 	{
@@ -902,18 +924,18 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 	case BinaryOperator::subtraction:
 	{
 		auto rvalue_left = load_value(left, expr->left);
-		auto left_type_ast = translation_unit.is_pointer_type(expr->type) && translation_unit.is_integer_type(expr->left->type)
+		auto left_type_ast = translation_unit.is_pointer_type(expr_type_ast) && translation_unit.is_integer_type(expr->left->type)
 								 ? translation_unit.get_type("int")
-								 : expr->type;
+								 : expr_type_ast;
 		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, left_type_ast);
 
 		auto rvalue_right = load_value(right, expr->right);
-		auto right_type_ast = translation_unit.is_pointer_type(expr->type) && translation_unit.is_integer_type(expr->right->type)
+		auto right_type_ast = translation_unit.is_pointer_type(expr_type_ast) && translation_unit.is_integer_type(expr->right->type)
 								  ? translation_unit.get_type("int")
-								  : expr->type;
+								  : expr_type_ast;
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, right_type_ast);
 
-		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr->type, casted_rvalue_left, casted_rvalue_right);
+		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr_type_ast, casted_rvalue_left, casted_rvalue_right);
 
 		if (translation_unit.is_pointer_type(expr->left->type)
 			&& translation_unit.is_pointer_type(expr->right->type)
@@ -925,12 +947,8 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 			result = builder->CreateExactSDiv(result, llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, size, true)));
 		}
 
-		if (binop == BinaryOperator::addition_assigment
-			|| binop == BinaryOperator::subtraction_assignment)
-		{
-			auto is_volatile = translation_unit.is_volatile_type(expr->left->type);
-			builder->CreateStore(result, left, is_volatile);
-		}
+		if (binop == BinaryOperator::addition_assigment || binop == BinaryOperator::subtraction_assignment)
+			store_inst(left, expr->left->type, result, expr_type_ast);
 		break;
 	}
 	case BinaryOperator::multiplication_assigment:
@@ -951,10 +969,10 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 	case BinaryOperator::shift_right:
 	{
 		auto rvalue_left = load_value(left, expr->left);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr->type);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->left->type, expr_type_ast);
 		auto rvalue_right = load_value(right, expr->right);
-		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr->type);
-		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr->type, casted_rvalue_left, casted_rvalue_right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, expr_type_ast);
+		result = execute_binop(convert_assignment_to_arithmetic_binop(binop), expr_type_ast, casted_rvalue_left, casted_rvalue_right);
 
 		if (binop == BinaryOperator::multiplication_assigment
 			|| binop == BinaryOperator::division_assignment
@@ -964,10 +982,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 			|| binop == BinaryOperator::bitwise_xor_assigment
 			|| binop == BinaryOperator::shift_left_assignment
 			|| binop == BinaryOperator::shift_right_assignment)
-		{
-			auto is_volatile = translation_unit.is_volatile_type(expr->left->type);
-			builder->CreateStore(result, left, is_volatile);
-		}
+			store_inst(left, expr->left->type, result, expr_type_ast);
 		break;
 	}
 
@@ -990,7 +1005,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 		auto rvalue_right = load_value(right, expr->right);
 		auto casted_rvalue_right = cast_value(rvalue_right, expr->right->type, type_ast);
 		auto value = execute_binop(binop, type_ast, casted_rvalue_left, casted_rvalue_right);
-		result = cast_value(value, type_ast, expr->type);
+		result = cast_value(value, type_ast, expr_type_ast);
 		break;
 	}
 
@@ -998,7 +1013,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 	{
 		auto rvalue_left = load_value(left, expr->left);
 		auto rvalue_right = load_value(right, expr->right);
-		result = cast_value(rvalue_right, expr->right->type, expr->type);
+		result = cast_value(rvalue_right, expr->right->type, expr_type_ast);
 		break;
 	}
 
@@ -1009,16 +1024,16 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 		auto elsebb = llvm::BasicBlock::Create(*context, "and.else");
 		auto endbb = llvm::BasicBlock::Create(*context, "and.end");
 
-		auto tmpvar = create_alloca(func, get_type(expr->type));
+		auto tmpvar = create_alloca(func, get_type(expr_type_ast));
 		branch_block(func, expr->left, thenbb, elsebb);
 
 		activate_block(func, elsebb);
-		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt1Ty(), llvm::APInt(NBITS_BOOL, 0, false)), expr->type);
+		store_inst(tmpvar, expr_type_ast, llvm::ConstantInt::get(builder->getInt1Ty(), llvm::APInt(NBITS_BOOL, 0, false)), expr_type_ast);
 		builder->CreateBr(endbb);
 
 		activate_block(func, thenbb);
 		auto rvalue_right = load_value(right, expr->right);
-		store_inst(tmpvar, expr->type, convert_to_bool(rvalue_right, ""), translation_unit.get_type("_Bool"));
+		store_inst(tmpvar, expr_type_ast, convert_to_bool(rvalue_right, ""), translation_unit.get_type("_Bool"));
 		builder->CreateBr(endbb);
 
 		activate_block(func, endbb);
@@ -1033,16 +1048,16 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 		auto elsebb = llvm::BasicBlock::Create(*context, "or.else");
 		auto endbb = llvm::BasicBlock::Create(*context, "or.end");
 
-		auto tmpvar = create_alloca(func, get_type(expr->type));
+		auto tmpvar = create_alloca(func, get_type(expr_type_ast));
 		branch_block(func, expr->left, thenbb, elsebb);
 
 		activate_block(func, thenbb);
-		store_inst(tmpvar, expr->type, llvm::ConstantInt::get(builder->getInt1Ty(), llvm::APInt(NBITS_BOOL, 1, false)), expr->type);
+		store_inst(tmpvar, expr_type_ast, llvm::ConstantInt::get(builder->getInt1Ty(), llvm::APInt(NBITS_BOOL, 1, false)), expr_type_ast);
 		builder->CreateBr(endbb);
 
 		activate_block(func, elsebb);
 		auto rvalue_right = load_value(right, expr->right);
-		store_inst(tmpvar, expr->type, convert_to_bool(rvalue_right, ""), translation_unit.get_type("_Bool"));
+		store_inst(tmpvar, expr_type_ast, convert_to_bool(rvalue_right, ""), translation_unit.get_type("_Bool"));
 		builder->CreateBr(endbb);
 
 		activate_block(func, endbb);
@@ -1073,8 +1088,9 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 
 void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 {
-	UnaryOperator unaryop = expr->op;
-	llvm::Value* expr1 = (llvm::Value*)expr->expr->accept(this);
+	auto unaryop = expr->op;
+	auto expr_type = expr->type;
+	auto expr1 = (llvm::Value*)expr->expr->accept(this);
 	llvm::Value* result = nullptr;
 
 	switch (unaryop)
@@ -1084,12 +1100,12 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 	{
 		auto rvalue_right = load_value(expr1, expr->expr);
 		auto sign = unaryop == UnaryOperator::prefix_increment ? 1 : -1;
-		auto one = translation_unit.is_real_float_type(expr->type)
+		auto one = translation_unit.is_real_float_type(expr_type)
 					   ? (llvm::Constant*)llvm::ConstantFP::get(*context, llvm::APFloat(1.0 * sign))
 					   : (llvm::Constant*)llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 1 * sign, true));
 		auto value = execute_binop(BinaryOperator::addition, expr->expr->type, rvalue_right, one);
 
-		store_inst(expr1, expr->type, value, expr->type);
+		store_inst(expr1, expr_type, value, expr_type);
 		result = value;
 		break;
 	}
@@ -1098,12 +1114,12 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 	{
 		auto rvalue_right = load_value(expr1, expr->expr);
 		auto sign = unaryop == UnaryOperator::postfix_increment ? 1 : -1;
-		auto one = translation_unit.is_real_float_type(expr->type)
+		auto one = translation_unit.is_real_float_type(expr_type)
 					   ? (llvm::Constant*)llvm::ConstantFP::get(*context, llvm::APFloat(1.0 * sign))
 					   : (llvm::Constant*)llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 1 * sign, true));
 		auto value = execute_binop(BinaryOperator::addition, expr->expr->type, rvalue_right, one);
 
-		store_inst(expr1, expr->type, value, expr->type);
+		store_inst(expr1, expr_type, value, expr_type);
 		result = rvalue_right;
 		break;
 	}
@@ -1116,32 +1132,32 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 	{
 		auto rvalue_left = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0, true)),
 									  translation_unit.get_type("int"),
-									  expr->type);
+									  expr_type);
 		auto rvalue_right = load_value(expr1, expr->expr);
-		auto casted_rvalue_right = cast_value(rvalue_right, expr->expr->type, expr->type);
-		result = execute_binop(BinaryOperator::subtraction, expr->type, rvalue_left, casted_rvalue_right);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr->expr->type, expr_type);
+		result = execute_binop(BinaryOperator::subtraction, expr_type, rvalue_left, casted_rvalue_right);
 		break;
 	}
 
 	case UnaryOperator::complement:
 	{
 		auto rvalue_left = load_value(expr1, expr->expr);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr->type);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr_type);
 		auto rvalue_right = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, -1, true)),
 									   translation_unit.get_type("int"),
-									   expr->type);
-		result = execute_binop(BinaryOperator::bitwise_xor, expr->type, casted_rvalue_left, rvalue_right);
+									   expr_type);
+		result = execute_binop(BinaryOperator::bitwise_xor, expr_type, casted_rvalue_left, rvalue_right);
 		break;
 	}
 
 	case UnaryOperator::not_:
 	{
 		auto rvalue_left = load_value(expr1, expr->expr);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr->type);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr->expr->type, expr_type);
 		auto rvalue_right = cast_value(llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, 0, true)),
 									   translation_unit.get_type("int"),
-									   expr->type);
-		result = execute_binop(BinaryOperator::equal, expr->type, casted_rvalue_left, rvalue_right);
+									   expr_type);
+		result = execute_binop(BinaryOperator::equal, expr_type, casted_rvalue_left, rvalue_right);
 		break;
 	}
 

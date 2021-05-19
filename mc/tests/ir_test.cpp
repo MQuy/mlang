@@ -84,6 +84,7 @@ TEST(IR, testcases)
 										"19_pointer_arithmetic",
 										"20_pointer_comparison",
 										"21_char_array",
+										"22_floating_point",
 										"23_type_coercion",
 										"24_math_library",
 										"25_quicksort",
@@ -123,7 +124,7 @@ TEST(IR, testcases)
 TEST(IR, test)
 {
 	std::filesystem::path current_path = __FILE__;
-	std::string test_name = "38_multiple_array_index";
+	std::string test_name = "22_floating_point";
 	std::filesystem::path testcase_folder = current_path.parent_path().string() + "\\testcases";
 	std::filesystem::path testcase_path = testcase_folder.string() + "\\" + test_name + ".c";
 	std::filesystem::path testcase_expected_path = testcase_folder.string() + "\\" + test_name + ".expect";
