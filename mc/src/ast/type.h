@@ -241,6 +241,7 @@ class EnumTypeAST : public TypeAST
 public:
 	EnumTypeAST(std::shared_ptr<TokenIdentifier> name, std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members, std::set<TypeQualifier> qualifiers = std::set<TypeQualifier>(), StorageSpecifier storage = StorageSpecifier::auto_)
 		: TypeAST(TypeKind::enum_)
+		, anonymous(!name)
 		, name(name)
 		, members(members)
 		, qualifiers(qualifiers)
@@ -251,6 +252,7 @@ public:
 	std::shared_ptr<TokenIdentifier> name;
 	StorageSpecifier storage;
 	std::set<TypeQualifier> qualifiers;
+	bool anonymous;
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members;
 };
 

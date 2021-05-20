@@ -707,18 +707,26 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, 
 	}
 	else if (type->kind == TypeKind::enum_)
 	{
-		auto atype = std::static_pointer_cast<EnumTypeAST>(type);
-		if (atype->members.size() > 0)
+		auto etype = std::static_pointer_cast<EnumTypeAST>(type);
+		if (etype->members.size() > 0)
 		{
-			bool override = false;
-			if (environment->contain_type_name(atype->name->name, true))
+			if (etype->anonymous)
 			{
-				auto type = environment->get_type_type(atype->name);
+				auto name = environment->contain_type_name(AGGREGATE_ANONYMOUS)
+								? environment->generate_type_name(AGGREGATE_ANONYMOUS)
+								: AGGREGATE_ANONYMOUS;
+				etype->name = std::make_shared<TokenIdentifier>(name);
+			}
+
+			bool override = false;
+			if (environment->contain_type_name(etype->name->name, true))
+			{
+				auto type = environment->get_type_type(etype->name);
 				override = std::static_pointer_cast<AggregateTypeAST>(type)->members.size() == 0;
 			}
 
-			define_type(atype->name->name, type, override);
-			for (auto [mname, _] : atype->members)
+			define_type(etype->name->name, type, override);
+			for (auto [mname, _] : etype->members)
 			{
 				environment->define_declarator_type(mname, translation_unit.get_type("int"));
 				environment->define_declarator_name(mname->name, mname->name);
@@ -726,7 +734,7 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, 
 			return true;
 		}
 		else if (is_forward)
-			define_type(atype->name->name, type);
+			define_type(etype->name->name, type);
 	}
 	return false;
 }
