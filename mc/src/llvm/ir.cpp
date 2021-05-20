@@ -138,8 +138,9 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 				mvalue = llvm::ConstantInt::get(*context, llvm::APInt(NBITS_INT, prev_constant->getValue().getSExtValue() + 1, true));
 
 			prev_constant = mvalue;
-			if (!environment->lookup(mname))
-				environment->define(mname, mvalue);
+			// at this stage, there is no invalid semantic -> no redefition of declarators
+			// if declarator exist in environment -> repeated enum checking
+			environment->define(mname, mvalue, true);
 		}
 
 		type = builder->getInt32Ty();

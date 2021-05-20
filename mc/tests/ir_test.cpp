@@ -99,8 +99,14 @@ TEST(IR, testcases)
 										"34_array_assignment",
 										"35_sizeof",
 										"36_array_initialisers",
+										// 37_sprintf
 										"38_multiple_array_index",
-										"39_typedef"});
+										"39_typedef",
+										// 40_stdio
+										"41_hashif",
+										// 42_function_pointer
+										"43_void_param",
+										"44_scoped_declarations"});
 	std::filesystem::path current_path = __FILE__;
 
 	for (auto test_name : testcases)
@@ -126,7 +132,7 @@ TEST(IR, testcases)
 TEST(IR, test)
 {
 	std::filesystem::path current_path = __FILE__;
-	std::string test_name = "17_enum";
+	std::string test_name = "45_empty_for";
 	std::filesystem::path testcase_folder = current_path.parent_path().string() + "\\testcases";
 	std::filesystem::path testcase_path = testcase_folder.string() + "\\" + test_name + ".c";
 	std::filesystem::path testcase_expected_path = testcase_folder.string() + "\\" + test_name + ".expect";

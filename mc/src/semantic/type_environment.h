@@ -23,13 +23,13 @@ public:
 	std::string generate_type_name(std::string name);
 
 	void define_type_type(std::string name, std::shared_ptr<TypeAST> type) { type_types[name] = type; }
-	std::shared_ptr<TypeAST> get_type_type(std::shared_ptr<TokenIdentifier> identifier);
+	std::shared_ptr<TypeAST> get_type_type(std::shared_ptr<TokenIdentifier> identifier, bool in_current_scope = false);
 
-	void define_declarator_name(std::string oldname, std::string newname) { declarator_names[oldname] = newname; }
+	void define_declarator_name(std::string oldname, std::string newname, bool override = false);
 	std::string get_declarator_name(std::string name);
 	std::string generate_declarator_name(std::shared_ptr<TokenIdentifier> identifier, StorageSpecifier storage, FunctionDefinitionAST *func);
 
-	void define_declarator_type(std::shared_ptr<TokenIdentifier> identifier, std::shared_ptr<TypeAST> type) { declarator_types[identifier->name] = type; }
+	void define_declarator_type(std::shared_ptr<TokenIdentifier> identifier, std::shared_ptr<TypeAST> type, bool override = false);
 	std::shared_ptr<TypeAST> get_declarator_type(std::shared_ptr<TokenIdentifier> identifier, bool in_current_scope = false);
 
 private:

@@ -589,17 +589,21 @@ void* SemanticTypeInference::visit_function_definition(FunctionDefinitionAST* st
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(stmt->type);
 	add_type_declaration(ftype->returning, false);
 	resolve_type(ftype);  // NOTE: MQ 2021-04-21 we don't support type definition in function parameters
-	environment->define_declarator_type(stmt->name, ftype);
-	environment->define_declarator_name(stmt->name->name, stmt->name->name);
+
+	auto override = false;
+	if (auto declarator_type = environment->get_declarator_type(stmt->name))
+		override = translation_unit.is_function_type(declarator_type);
+	environment->define_declarator_type(stmt->name, ftype, override);
+	environment->define_declarator_name(stmt->name->name, stmt->name->name, override);
+
+	enter_scope();
+	in_func_scope = stmt;
 
 	for (auto [pname, ptype] : ftype->parameters)
 	{
 		environment->define_declarator_type(pname, ptype);
 		environment->define_declarator_name(pname->name, pname->name);
 	}
-
-	enter_scope();
-	in_func_scope = stmt;
 
 	stmt->body->accept(this);
 
@@ -639,7 +643,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 						throw std::runtime_error("redefinition of " + name->name + " with a different type");
 					type = translation_unit.composite_type(type, declarator_type);
 					std::get<1>(stmt->declarators[idx]) = type;
-					environment->define_declarator_type(name, type);
+					environment->define_declarator_type(name, type, true);
 				}
 			}
 			else

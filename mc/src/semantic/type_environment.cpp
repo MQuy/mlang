@@ -33,7 +33,7 @@ std::string TypeEnvironment::generate_type_name(std::string name)
 	return name + "." + std::to_string(duplicated_type_names[name]);
 }
 
-std::shared_ptr<TypeAST> TypeEnvironment::get_type_type(std::shared_ptr<TokenIdentifier> identifier)
+std::shared_ptr<TypeAST> TypeEnvironment::get_type_type(std::shared_ptr<TokenIdentifier> identifier, bool in_current_scope)
 {
 	auto name = identifier->name;
 	for (auto scope = this; scope; scope = scope->enclosing)
@@ -41,8 +41,18 @@ std::shared_ptr<TypeAST> TypeEnvironment::get_type_type(std::shared_ptr<TokenIde
 		auto type_types = scope->type_types;
 		if (type_types.find(name) != type_types.end())
 			return type_types[name];
+		else if (in_current_scope)
+			break;
 	}
 	return nullptr;
+}
+
+void TypeEnvironment::define_declarator_name(std::string oldname, std::string newname, bool override)
+{
+	if (declarator_names.find(oldname) != declarator_names.end() && !override)
+		throw std::runtime_error("redefinition of " + newname);
+
+	declarator_names[oldname] = newname;
 }
 
 std::string TypeEnvironment::get_declarator_name(std::string name)
@@ -62,6 +72,14 @@ std::string TypeEnvironment::generate_declarator_name(std::shared_ptr<TokenIdent
 		return func->name->name + "." + identifier->name;
 	else
 		return identifier->name;
+}
+
+void TypeEnvironment::define_declarator_type(std::shared_ptr<TokenIdentifier> identifier, std::shared_ptr<TypeAST> type, bool override)
+{
+	if (declarator_types.find(identifier->name) != declarator_types.end() && !override)
+		throw std::runtime_error("redefinition of " + identifier->name);
+
+	declarator_types[identifier->name] = type;
 }
 
 std::shared_ptr<TypeAST> TypeEnvironment::get_declarator_type(std::shared_ptr<TokenIdentifier> identifier, bool in_current_scope)
