@@ -321,7 +321,7 @@ void IR::calculate_array_type_size(std::shared_ptr<TypeAST> type_ast, std::share
 		auto initializer = std::static_pointer_cast<InitializerExprAST>(expr);
 		auto size = initializer->exprs.size();
 		auto literal = std::make_shared<TokenLiteral<int>>(size, std::to_string(size));
-		atype_ast->expr = std::make_shared<LiteralExprAST<int>>(LiteralExprAST<int>(literal));
+		atype_ast->expr = std::make_shared<LiteralExprAST<int>>(literal);
 	}
 }
 
@@ -1583,7 +1583,9 @@ void* IR::visit_switch_stmt(SwitchStmtAST* stmt, void* data)
 void* IR::visit_for_stmt(ForStmtAST* stmt, void* data)
 {
 	enter_scope();
-	stmt->init->accept(this);
+
+	if (stmt->init)
+		stmt->init->accept(this);
 
 	auto func = builder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* condbb = llvm::BasicBlock::Create(*context, "for.cond");
@@ -1591,18 +1593,24 @@ void* IR::visit_for_stmt(ForStmtAST* stmt, void* data)
 	llvm::BasicBlock* incrbb = llvm::BasicBlock::Create(*context, "for.incr");
 	llvm::BasicBlock* endbb = llvm::BasicBlock::Create(*context, "for.end");
 
-	auto fstmt = std::make_shared<LoopStmtBranch>(LoopStmtBranch(endbb, incrbb));
+	auto fstmt = std::make_shared<LoopStmtBranch>(LoopStmtBranch(endbb, stmt->inc ? incrbb : condbb));
 	stmts_branch.push_back(fstmt);
 	builder->CreateBr(condbb);
 
 	activate_block(func, condbb);
-	branch_block(func, stmt->cond, bodybb, endbb);
+	auto cond_expr = stmt->cond
+						 ? stmt->cond
+						 : std::make_shared<LiteralExprAST<int>>(std::make_shared<TokenLiteral<int>>(1, "1"));
+	branch_block(func, cond_expr, bodybb, endbb);
 
 	activate_block(func, bodybb);
-	complete_block(func, stmt->stmt, incrbb);
+	complete_block(func, stmt->stmt, stmt->inc ? incrbb : condbb);
 
-	activate_block(func, incrbb);
-	complete_block(func, stmt->inc, condbb);
+	if (stmt->inc)
+	{
+		activate_block(func, incrbb);
+		complete_block(func, stmt->inc, condbb);
+	}
 
 	activate_block(func, endbb);
 

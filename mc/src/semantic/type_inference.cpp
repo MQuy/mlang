@@ -541,10 +541,15 @@ void* SemanticTypeInference::visit_switch_stmt(SwitchStmtAST* stmt, void* data)
 
 void* SemanticTypeInference::visit_for_stmt(ForStmtAST* stmt, void* data)
 {
-	stmt->init->accept(this);
-	stmt->cond->accept(this);
+	if (stmt->init)
+		stmt->init->accept(this);
+	if (stmt->cond)
+		stmt->cond->accept(this);
+
 	stmt->stmt->accept(this);
-	stmt->inc->accept(this);
+
+	if (stmt->inc)
+		stmt->inc->accept(this);
 	return nullptr;
 }
 
