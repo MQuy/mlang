@@ -1500,7 +1500,17 @@ void* IR::visit_initializer_constant(InitializerExprAST* expr, void* data)
 void* IR::visit_label_stmt(LabelStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
-	auto labelbb = llvm::BasicBlock::Create(*context, stmt->name->name);
+	llvm::BasicBlock* labelbb = nullptr;
+	auto label_name = stmt->name->name;
+
+	if (func_labels.find(label_name) == func_labels.end())
+	{
+		labelbb = llvm::BasicBlock::Create(*context, label_name);
+		func_labels[label_name] = labelbb;
+	}
+	else
+		labelbb = func_labels[label_name];
+
 	builder->CreateBr(labelbb);
 	activate_block(func, labelbb);
 
@@ -1688,9 +1698,16 @@ void* IR::visit_dowhile_stmt(DoWhileStmtAST* stmt, void* data)
 void* IR::visit_jump_stmt(JumpStmtAST* stmt, void* data)
 {
 	auto func = builder->GetInsertBlock()->getParent();
-	for (auto& block : func->getBasicBlockList())
-		if (block.getName() == stmt->name->name)
-			builder->CreateBr(&block);
+	llvm::BasicBlock* block = nullptr;
+	auto label_name = stmt->name->name;
+
+	if (func_labels.find(label_name) == func_labels.end())
+	{
+		block = llvm::BasicBlock::Create(*context, label_name);
+		func_labels[label_name] = block;
+	}
+
+	builder->CreateBr(block);
 	return nullptr;
 }
 
@@ -1737,6 +1754,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt, void* data)
 
 	enter_scope();
 	stmts_branch.clear();
+	func_labels.clear();
 	in_func_scope = stmt;
 
 	llvm::BasicBlock* entrybb = llvm::BasicBlock::Create(*context, "entry");
@@ -1797,6 +1815,7 @@ void* IR::visit_function_definition(FunctionDefinitionAST* stmt, void* data)
 	func_pass_manager->run(*func);
 
 	in_func_scope = nullptr;
+	func_labels.clear();
 	stmts_branch.clear();
 	leave_scope();
 	return func;

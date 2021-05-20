@@ -129,6 +129,7 @@ private:
 	std::unique_ptr<llvm::IRBuilder<>> builder;
 	std::unique_ptr<llvm::legacy::FunctionPassManager> func_pass_manager;
 	std::vector<std::shared_ptr<StmtBranch>> stmts_branch;
+	std::unordered_map<std::string, llvm::BasicBlock *> func_labels;
 	std::unordered_map<std::string, llvm::Value *> global_strings;	// use for string
 	FunctionDefinitionAST *in_func_scope;
 };
