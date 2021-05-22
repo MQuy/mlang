@@ -32,6 +32,8 @@ enum class BuiltinTypeName
 	unsigned_char,
 	short_,
 	unsigned_short,
+	signed_,
+	unsigned_,
 	int_,
 	unsigned_int,
 	long_,

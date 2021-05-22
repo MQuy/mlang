@@ -118,6 +118,8 @@ TEST(IR, testcases)
 		"52_unnamed_enum",
 		"54_goto",
 		"55_lshift_type",
+		// 60_errors_and_warnings
+		"61_integers",
 	});
 	std::filesystem::path current_path = __FILE__;
 
@@ -144,7 +146,7 @@ TEST(IR, testcases)
 TEST(IR, test)
 {
 	std::filesystem::path current_path = __FILE__;
-	std::string test_name = "55_lshift_type";
+	std::string test_name = "64_macro_nesting";
 	std::filesystem::path testcase_folder = current_path.parent_path().string() + "\\testcases";
 	std::filesystem::path testcase_path = testcase_folder.string() + "\\" + test_name + ".c";
 	std::filesystem::path testcase_expected_path = testcase_folder.string() + "\\" + test_name + ".expect";

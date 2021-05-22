@@ -236,6 +236,8 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 					return make_builtin_ast(BuiltinTypeName::long_long, 8);
 				return make_builtin_ast(BuiltinTypeName::long_, 8);
 			}
+			else
+				return make_builtin_ast(BuiltinTypeName::signed_, 4);
 		}
 		case TokenName::tk_unsigned:
 		{
@@ -251,6 +253,8 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 					return make_builtin_ast(BuiltinTypeName::unsigned_long_long, 8);
 				return make_builtin_ast(BuiltinTypeName::unsigned_long, 8);
 			}
+			else
+				return make_builtin_ast(BuiltinTypeName::unsigned_, 4);
 		}
 
 		case TokenName::tk_struct:

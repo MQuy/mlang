@@ -28,6 +28,8 @@ public:
 		types["signed char"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::signed_char, NBITS_CHAR, NBITS_CHAR);
 		types["short"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::short_, NBITS_SHORT, NBITS_SHORT);
 		types["unsigned short"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::unsigned_short, NBITS_SHORT, NBITS_SHORT);
+		types["signed"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::signed_, NBITS_INT, NBITS_INT);
+		types["unsigned"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::unsigned_, NBITS_INT, NBITS_INT);
 		types["int"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::int_, NBITS_INT, NBITS_INT);
 		types["unsigned int"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::unsigned_int, NBITS_INT, NBITS_INT);
 		types["long"] = std::make_shared<BuiltinTypeAST>(BuiltinTypeName::long_, NBITS_LONG, NBITS_LONG);

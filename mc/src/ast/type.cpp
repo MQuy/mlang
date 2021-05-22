@@ -10,6 +10,8 @@ void init_types()
 	type_nbits[BuiltinTypeName::unsigned_char] = NBITS_CHAR;
 	type_nbits[BuiltinTypeName::short_] = NBITS_SHORT;
 	type_nbits[BuiltinTypeName::unsigned_short] = NBITS_SHORT;
+	type_nbits[BuiltinTypeName::signed_] = NBITS_INT;
+	type_nbits[BuiltinTypeName::unsigned_] = NBITS_INT;
 	type_nbits[BuiltinTypeName::int_] = NBITS_INT;
 	type_nbits[BuiltinTypeName::unsigned_int] = NBITS_INT;
 	type_nbits[BuiltinTypeName::long_] = NBITS_LONG;
