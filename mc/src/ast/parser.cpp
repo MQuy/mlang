@@ -486,7 +486,8 @@ std::shared_ptr<TypeAST> Parser::parse_typename()
 	auto [declarator_name, declarator_type] = parse_declarator(type, false);
 
 	for (; number_of_parens > 0; number_of_parens--)
-		match(TokenName::tk_right_paren, true);
+		if (!match(TokenName::tk_right_paren))
+			return nullptr;
 
 	return declarator_type;
 }

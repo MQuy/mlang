@@ -50,6 +50,7 @@ public:
 	bool is_real_float_type(std::shared_ptr<TypeAST> type);
 	bool is_float_type(std::shared_ptr<TypeAST> type);
 	bool is_double_type(std::shared_ptr<TypeAST> type);
+	bool is_long_type(std::shared_ptr<TypeAST> type);
 	bool is_long_double_type(std::shared_ptr<TypeAST> type);
 	bool is_void_type(std::shared_ptr<TypeAST> type);
 	bool is_real_type(std::shared_ptr<TypeAST> type);

@@ -1124,7 +1124,8 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 {
 	auto unaryop = expr->op;
-	auto expr_type = expr->type;
+	auto expr_type_ast = expr->type;
+	auto expr_type = get_type(expr_type_ast);
 	auto expr1 = (llvm::Value*)expr->expr->accept(this);
 	auto expr1_type_ast = expr->expr->type;
 	auto expr1_type = get_type(expr1_type_ast);
@@ -1141,7 +1142,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 		auto one = get_constant_value(expr1_type, 1.0 * sign, true);
 		auto value = execute_binop(BinaryOperator::addition, expr1_type_ast, rvalue_right, one);
 
-		store_inst(expr1, expr_type, value, expr_type);
+		store_inst(expr1, expr_type_ast, value, expr_type_ast);
 		result = value;
 		break;
 	}
@@ -1153,39 +1154,43 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 		auto one = get_constant_value(expr1_type, 1.0 * sign, true);
 		auto value = execute_binop(BinaryOperator::addition, expr1_type_ast, rvalue_right, one);
 
-		store_inst(expr1, expr_type, value, expr_type);
+		store_inst(expr1, expr_type_ast, value, expr_type_ast);
 		result = rvalue_right;
 		break;
 	}
 
 	case UnaryOperator::plus:
-		result = load_value(expr1, expr->expr);
+	{
+		auto value = load_value(expr1, expr->expr);
+		result = cast_value(expr1, expr1_type_ast, expr_type_ast);
 		break;
+	}
 
 	case UnaryOperator::minus:
 	{
-		auto rvalue_left = get_constant_value(expr1_type, 0, true);
-		auto rvalue_right = load_value(expr1, expr->expr);
-		auto casted_rvalue_right = cast_value(rvalue_right, expr1_type_ast, expr_type);
-		result = execute_binop(BinaryOperator::subtraction, expr_type, rvalue_left, casted_rvalue_right);
+		auto rvalue_left = get_constant_value(expr_type, 0, true);
+		auto value_right = load_value(expr1, expr->expr);
+		auto rvalue_right = cast_value(expr1, expr1_type_ast, expr_type_ast);
+		auto casted_rvalue_right = cast_value(rvalue_right, expr1_type_ast, expr_type_ast);
+		result = execute_binop(BinaryOperator::subtraction, expr_type_ast, rvalue_left, casted_rvalue_right);
 		break;
 	}
 
 	case UnaryOperator::complement:
 	{
 		auto rvalue_left = load_value(expr1, expr->expr);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr1_type_ast, expr_type);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr1_type_ast, expr_type_ast);
 		auto rvalue_right = get_constant_value(expr1_type, -1, true);
-		result = execute_binop(BinaryOperator::bitwise_xor, expr_type, casted_rvalue_left, rvalue_right);
+		result = execute_binop(BinaryOperator::bitwise_xor, expr_type_ast, casted_rvalue_left, rvalue_right);
 		break;
 	}
 
 	case UnaryOperator::not_:
 	{
 		auto rvalue_left = load_value(expr1, expr->expr);
-		auto casted_rvalue_left = cast_value(rvalue_left, expr1_type_ast, expr_type);
+		auto casted_rvalue_left = cast_value(rvalue_left, expr1_type_ast, expr_type_ast);
 		auto rvalue_right = get_constant_value(expr1_type, 0, true);
-		result = execute_binop(BinaryOperator::equal, expr_type, casted_rvalue_left, rvalue_right);
+		result = execute_binop(BinaryOperator::equal, expr_type_ast, casted_rvalue_left, rvalue_right);
 		break;
 	}
 

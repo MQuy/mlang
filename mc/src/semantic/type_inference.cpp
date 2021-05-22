@@ -191,15 +191,7 @@ void* SemanticTypeInference::visit_binary_expr(BinaryExprAST* expr, void* data)
 	case BinaryOperator::shift_right:
 	{
 		assert(translation_unit.is_integer_type(expr1_type) && translation_unit.is_integer_type(expr2_type));
-		auto t1 = std::static_pointer_cast<BuiltinTypeAST>(translation_unit.promote_integer(expr1_type));
-		auto t2 = std::static_pointer_cast<BuiltinTypeAST>(translation_unit.promote_integer(expr2_type));
-
-		if (translation_unit.is_unsigned_integer_type(t1))
-			expr_type = t1;
-		else if (translation_unit.is_unsigned_integer_type(t2))
-			expr_type = t2;
-		else
-			expr_type = type_nbits[t1->name] >= type_nbits[t2->name] ? t1 : t2;
+		expr_type = std::static_pointer_cast<BuiltinTypeAST>(translation_unit.promote_integer(expr1_type));
 		break;
 	}
 

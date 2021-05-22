@@ -329,7 +329,7 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 	assert(is_arithmetic_type(original_type));
 
 	auto btype = std::static_pointer_cast<BuiltinTypeAST>(original_type);
-	if (is_real_float_type(btype))
+	if (is_real_float_type(btype) || is_long_type(btype))
 		return type;
 	else if (type_nbits[btype->name] < NBITS_INT || btype->name == BuiltinTypeName::int_)
 		return get_type("int");
@@ -604,6 +604,19 @@ bool TranslationUnit::is_double_type(std::shared_ptr<TypeAST> type)
 	}
 	else
 		return false;
+}
+
+bool TranslationUnit::is_long_type(std::shared_ptr<TypeAST> type)
+{
+	auto original_type = get_type(type);
+	if (original_type->kind == TypeKind::builtin)
+	{
+		auto btype = std::static_pointer_cast<BuiltinTypeAST>(original_type);
+		return btype->name == BuiltinTypeName::long_ || btype->name == BuiltinTypeName::unsigned_long
+			   || btype->name == BuiltinTypeName::long_long || btype->name == BuiltinTypeName::unsigned_long_long;
+	}
+
+	return false;
 }
 
 bool TranslationUnit::is_long_double_type(std::shared_ptr<TypeAST> type)

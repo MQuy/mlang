@@ -117,6 +117,7 @@ TEST(IR, testcases)
 		"51_static",
 		"52_unnamed_enum",
 		"54_goto",
+		"55_lshift_type",
 	});
 	std::filesystem::path current_path = __FILE__;
 
