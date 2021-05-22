@@ -180,6 +180,7 @@
     <ClCompile Include="llvm\passes\unreachable_block_instruction_pass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="preprocesssor\const_expr.cpp" />
+    <ClCompile Include="preprocesssor\macro.cpp" />
     <ClCompile Include="preprocesssor\preprocessor.cpp" />
     <ClCompile Include="scan\lexer.cpp" />
     <ClCompile Include="scan\token.cpp" />

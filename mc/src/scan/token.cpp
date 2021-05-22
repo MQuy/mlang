@@ -1,5 +1,7 @@
 #include "token.h"
 
+#include <sstream>
+
 #include "ast/expr.h"
 
 std::unordered_map<std::string, TokenName> keywords;
@@ -98,6 +100,30 @@ void init_keywords()
 	token_name_str[TokenName::tk_tab] = "\t";
 }
 
+std::string escape_string(std::string str)
+{
+	std::stringstream stream;
+
+	for (char ch : str)
+	{
+		switch (ch)
+		{
+		case '\n':
+			stream << "\\n";
+			break;
+		case '\t':
+			stream << "\\t";
+			break;
+
+		default:
+			stream.put(ch);
+			break;
+		}
+	}
+
+	return stream.str();
+}
+
 void Token::set_position(SourcePosition start_, SourcePosition end_)
 {
 	start = start_;
@@ -153,8 +179,8 @@ bool Token::match(std::string name, bool strict)
 
 std::shared_ptr<ExprAST> TokenIdentifier::create_ast()
 {
-	auto identifier = std::make_shared<TokenIdentifier>(TokenIdentifier(name));
-	return std::make_shared<IdentifierExprAST>(IdentifierExprAST(identifier));
+	auto identifier = std::make_shared<TokenIdentifier>(name);
+	return std::make_shared<IdentifierExprAST>(identifier);
 }
 
 template <>
@@ -223,7 +249,7 @@ TokenLiteral<long double>::TokenLiteral(std::string text, unsigned base)
 template <class T>
 std::shared_ptr<ExprAST> TokenLiteral<T>::create_ast()
 {
-	auto token = std::make_shared<TokenLiteral<T>>(TokenLiteral(value, lexeme));
+	auto token = std::make_shared<TokenLiteral<T>>(value, lexeme);
 	auto ast = LiteralExprAST(token);
 	return std::make_shared<LiteralExprAST<T>>(ast);
 }
@@ -232,7 +258,7 @@ std::shared_ptr<ExprAST> TokenLiteral<T>::create_ast()
 template <>
 std::shared_ptr<ExprAST> TokenLiteral<unsigned char>::create_ast()
 {
-	auto token = std::make_shared<TokenLiteral<unsigned char>>(TokenLiteral(value, lexeme));
+	auto token = std::make_shared<TokenLiteral<unsigned char>>(value, lexeme);
 	auto ast = LiteralExprAST(token);
 	return std::make_shared<LiteralExprAST<unsigned char>>(ast);
 }
@@ -241,7 +267,102 @@ std::shared_ptr<ExprAST> TokenLiteral<unsigned char>::create_ast()
 template <>
 std::shared_ptr<ExprAST> TokenLiteral<std::string>::create_ast()
 {
-	auto token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral(value, lexeme));
+	auto token = std::make_shared<TokenLiteral<std::string>>(value, lexeme);
 	auto ast = LiteralExprAST(token);
 	return std::make_shared<LiteralExprAST<std::string>>(ast);
+}
+
+template <>
+std::string TokenLiteral<unsigned char>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<int>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<long>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<long long>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<unsigned int>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<unsigned long>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<unsigned long long>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<float>::to_string()
+{
+	return std::to_string(value);
+}
+template <>
+std::string TokenLiteral<long double>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<double>::to_string()
+{
+	return std::to_string(value);
+}
+
+template <>
+std::string TokenLiteral<std::string>::to_string()
+{
+	return escape_string("\"" + value + "\"");
+}
+
+std::shared_ptr<Token> TokenSymbol::clone()
+{
+	return std::make_shared<TokenSymbol>(name);
+}
+
+std::shared_ptr<Token> TokenIdentifier::clone()
+{
+	return std::make_shared<TokenIdentifier>(name);
+}
+
+template <class T>
+std::shared_ptr<Token> TokenLiteral<T>::clone()
+{
+	return std::make_shared<TokenLiteral<T>>(value, lexeme);
+}
+
+// FIXME: MQ 2021-03-19 why i need explicitly specialize for unsigned char
+template <>
+std::shared_ptr<Token> TokenLiteral<unsigned char>::clone()
+{
+	return std::make_shared<TokenLiteral<unsigned char>>(value, lexeme);
+}
+
+// FIXME: MQ 2021-03-19 why i need explicitly specialize for string
+template <>
+std::shared_ptr<Token> TokenLiteral<std::string>::clone()
+{
+	return std::make_shared<TokenLiteral<std::string>>(value, lexeme);
 }

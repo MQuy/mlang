@@ -17,6 +17,7 @@ struct Macro
 		, replacement(replacement)
 	{
 	}
+	virtual std::shared_ptr<Macro> clone() = 0;
 
 	MacroType type;
 	std::shared_ptr<Token> name;
@@ -29,6 +30,8 @@ struct ObjectMacro : Macro
 		: Macro(MacroType::object, name, replacement)
 	{
 	}
+
+	std::shared_ptr<Macro> clone();
 };
 
 struct FunctionMacro : Macro
@@ -38,6 +41,7 @@ struct FunctionMacro : Macro
 		, parameters(parameters)
 	{
 	}
+	std::shared_ptr<Macro> clone();
 
 	std::vector<std::shared_ptr<Token>> parameters;
 };

@@ -158,6 +158,8 @@ struct Token
 
 	void set_position(SourcePosition start, SourcePosition end);
 	virtual std::shared_ptr<ExprAST> create_ast() = 0;
+	virtual std::string to_string() = 0;
+	virtual std::shared_ptr<Token> clone() = 0;
 
 	bool match(TokenName name, bool strict = false);
 	bool match(std::function<bool(TokenName)> comparator, bool strict = false);
@@ -180,6 +182,8 @@ struct TokenSymbol : Token
 	}
 
 	std::shared_ptr<ExprAST> create_ast() { throw std::runtime_error("not allow to create ast from token symbol"); }
+	std::string to_string() { return token_name_str[name]; }
+	std::shared_ptr<Token> clone();
 
 	enum TokenName name;  // keyword, opeartor, special symbol and eof
 };
@@ -193,6 +197,8 @@ struct TokenIdentifier : Token
 	}
 
 	std::shared_ptr<ExprAST> create_ast();
+	std::string to_string() { return name; }
+	std::shared_ptr<Token> clone();
 
 	std::string name;  // identifier
 };
@@ -208,6 +214,8 @@ struct TokenLiteral : Token
 	TokenLiteral(std::string text, unsigned base);
 
 	std::shared_ptr<ExprAST> create_ast();
+	std::string to_string();
+	std::shared_ptr<Token> clone();
 
 	T value;
 };

@@ -251,8 +251,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::process()
 	int index = 0;
 	expand(tokens, index, expanded_tokens);
 
-	std::vector<std::shared_ptr<Token>> output = postpreprocess_tokens(expanded_tokens);
-	return output;
+	return postpreprocess_tokens(expanded_tokens);
 }
 
 /*
@@ -317,13 +316,14 @@ void Preprocessor::expand(std::vector<std::shared_ptr<Token>>& tokens,
 			token->hide_set[token->lexeme] = true;
 
 			std::vector<std::shared_ptr<Token>> expanded_macro;
+			auto copied_macro = macro->clone();
 			if (macro->type == MacroType::function)
 			{
 				auto arguments = parse_macro_arguments(tokens, ++index);
-				expanded_macro = substitute_function_macro(macro, arguments, token->hide_set);
+				expanded_macro = substitute_function_macro(copied_macro, arguments, token->hide_set);
 			}
 			else if (macro->type == MacroType::object)
-				expanded_macro = substitute_object_macro(macro, token->hide_set);
+				expanded_macro = substitute_object_macro(copied_macro, token->hide_set);
 
 			int expanded_index = 0;
 			expand(expanded_macro, expanded_index, output);
