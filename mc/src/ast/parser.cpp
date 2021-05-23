@@ -1133,7 +1133,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 		auto pos = runner;
 		if (match(TokenName::tk_left_paren))
 		{
-			auto type = parse_declaration_specifiers(false);
+			auto type = parse_typename();
 			auto is_type = type != nullptr;
 
 			if (is_type && type->kind == TypeKind::alias)

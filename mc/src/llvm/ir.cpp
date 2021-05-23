@@ -1353,6 +1353,9 @@ void* IR::visit_function_call_expr(FunctionCallExprAST* expr, void* data)
 void* IR::visit_typecast_expr(TypeCastExprAST* expr, void* data)
 {
 	auto value = (llvm::Value*)expr->expr->accept(this);
+	if (translation_unit.is_void_type(expr->type))
+		return nullptr;
+
 	auto rvalue = load_value(value, expr->expr);
 	auto casted_rvalue = cast_value(rvalue, expr->expr->type, expr->type);
 	return translation_unit.is_void_type(expr->type) ? nullptr : casted_rvalue;

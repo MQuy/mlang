@@ -1,3 +1,4 @@
+#define __LLP64__ 1
 #define BUFSIZ 512
 #define NULL ((void *)0)
 

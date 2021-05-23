@@ -14,13 +14,16 @@
   - [x] Abstract Syntax Tree
   - [x] Anonymous struct and union
   - [ ] Variable attributes
+  - [ ] ASM
 - [ ] Semantic Analyzer
   - [ ] Syntax and semantic validation
+  - [ ] Incomplete types
   - [x] Type inference
 - [ ] LLVM
   - [x] Unknown array size
   - [x] Nested array subscripts
   - [ ] Nested flat array initializer
+  - [ ] Flexible array member
   - [x] Forward declaration
   - [ ] Function without a prototype
   - [x] Union member access
