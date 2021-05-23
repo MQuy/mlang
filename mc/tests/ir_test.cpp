@@ -133,6 +133,19 @@ TEST(IR, testcases)
 		"84_hex-float",
 		// 85_asm-outside-function
 		"86_memory-model",
+		// 87_dead_code
+		// 89_nocode_wanted
+		// 90_struct-init
+		// 91_ptr_longlong_arith32
+		// 93_integer_promotion
+		"105_local_extern",
+		"107_stack_safe",
+		"109_float_struct_calling",
+		"110_average",
+		// 111_conversion
+		// 112_backtrace
+		// 118_switch
+		"121_struct_return",
 	});
 	std::filesystem::path current_path = __FILE__;
 
@@ -159,7 +172,7 @@ TEST(IR, testcases)
 TEST(IR, test)
 {
 	std::filesystem::path current_path = __FILE__;
-	std::string test_name = "87_dead_code";
+	std::string test_name = "121_struct_return";
 	std::filesystem::path testcase_folder = current_path.parent_path().string() + "\\testcases";
 	std::filesystem::path testcase_path = testcase_folder.string() + "\\" + test_name + ".c";
 	std::filesystem::path testcase_expected_path = testcase_folder.string() + "\\" + test_name + ".expect";

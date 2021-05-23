@@ -231,10 +231,12 @@ llvm::GlobalValue::LinkageTypes IR::get_linkage_type(StorageSpecifier storage)
 {
 	if (storage == StorageSpecifier::static_)
 		return llvm::GlobalValue::LinkageTypes::InternalLinkage;
-	else if (storage == StorageSpecifier::auto_)
+	else if (storage == StorageSpecifier::auto_ || storage == StorageSpecifier::typedef_)
 		return llvm::GlobalValue::LinkageTypes::CommonLinkage;
 	else if (storage == StorageSpecifier::extern_)
 		return llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+	else
+		assert_not_reached();
 }
 
 std::vector<int> IR::build_indices(std::shared_ptr<AggregateTypeAST> type_ast, std::string member_name)
@@ -472,7 +474,7 @@ llvm::Function* IR::create_function_prototype(std::string name, std::shared_ptr<
 	auto ftype_ast = std::static_pointer_cast<FunctionTypeAST>(translation_unit.get_type(type));
 	llvm::FunctionType* ftype = (llvm::FunctionType*)get_type(ftype_ast);
 
-	auto storage = translation_unit.get_storage_specifier(ftype_ast->returning);
+	auto storage = translation_unit.get_storage_specifier(translation_unit.get_type(ftype_ast->returning));
 	auto linkage = get_linkage_type(storage);
 	auto func = llvm::Function::Create(ftype, linkage, name, &*module);
 	environment->define(name, func);
@@ -636,9 +638,9 @@ llvm::Value* IR::load_value(llvm::Value* source, std::shared_ptr<ExprAST> expr)
 			 || (expr->node_type == ASTNodeType::expr_unary
 				 && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::address_of)
 			 || expr->node_type == ASTNodeType::expr_function_call
-			 || expr->type->kind == TypeKind::aggregate
-			 || expr->type->kind == TypeKind::function
-			 || expr->type->kind == TypeKind::array
+			 || translation_unit.is_aggregate_type(expr->type)
+			 || translation_unit.is_function_type(expr->type)
+			 || translation_unit.is_array_type(expr->type)
 			 || value_id == llvm::Value::ConstantPointerNullVal)
 		return source;
 	else
@@ -1408,15 +1410,15 @@ void* IR::visit_initializer_expr(InitializerExprAST* expr, void* data)
 			for (auto idx = 0; idx < expr->exprs.size(); ++idx)
 			{
 				auto iexpr = expr->exprs[idx];
-				auto value = (llvm::Value*)iexpr->accept(this);
 
-				if (declarator)
+				llvm::ArrayRef<llvm::Value*> indices = {
+					llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
+					llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
+				};
+				auto member = builder->CreateInBoundsGEP(declarator, indices);
+				auto value = (llvm::Value*)iexpr->accept(this, member);
+				if (iexpr->node_type != ASTNodeType::expr_initializer)
 				{
-					llvm::ArrayRef<llvm::Value*> indices = {
-						llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, 0)),
-						llvm::ConstantInt::get(builder->getInt32Ty(), llvm::APInt(NBITS_INT, idx)),
-					};
-					auto member = builder->CreateInBoundsGEP(declarator, indices);
 					auto [_, member_type] = stype_ast->members[idx];
 					store_inst(member, member_type, value, iexpr->type);
 				}
@@ -1833,6 +1835,9 @@ void* IR::visit_declaration(DeclarationAST* stmt, void* data)
 {
 	get_type(stmt->type);
 
+	if (translation_unit.get_storage_specifier(stmt->type) == StorageSpecifier::typedef_)
+		return nullptr;
+
 	for (auto [token, type_ast, expr] : stmt->declarators)
 	{
 		if (type_ast->kind == TypeKind::array && expr)
@@ -1841,7 +1846,12 @@ void* IR::visit_declaration(DeclarationAST* stmt, void* data)
 		auto storage = translation_unit.get_storage_specifier(type_ast);
 		auto type = get_type(type_ast);
 
-		if (in_func_scope && storage != StorageSpecifier::static_)
+		if (type->isFunctionTy())
+		{
+			if (environment->lookup(token->name) == nullptr)
+				create_function_prototype(token->name, type_ast);
+		}
+		else if (in_func_scope && storage != StorageSpecifier::static_)
 		{
 			llvm::Function* func = builder->GetInsertBlock()->getParent();
 			auto alloca = create_alloca(func, type, token->name);
@@ -1858,43 +1868,35 @@ void* IR::visit_declaration(DeclarationAST* stmt, void* data)
 		}
 		else
 		{
-			if (type->isFunctionTy())
+			auto qualifiers = translation_unit.get_type_qualifiers(type_ast);
+			bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier)
+										   {
+											   return qualifier == TypeQualifier::const_;
+										   });
+			auto linkage = get_linkage_type(storage);
+			llvm::GlobalVariable* declarator = nullptr;
+			if (declarator = (llvm::GlobalVariable*)environment->lookup(token->name))
 			{
-				if (environment->lookup(token->name) == nullptr)
-					create_function_prototype(token->name, type_ast);
+				if (!expr)
+					continue;
+
+				declarator->eraseFromParent();
 			}
-			else
+
+			auto override = declarator != nullptr;
+			declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, get_null_value(type), token->name);
+			environment->define(token, declarator, override);
+
+			if (expr)
 			{
-				auto qualifiers = translation_unit.get_type_qualifiers(type_ast);
-				bool is_constant = std::any_of(qualifiers.begin(), qualifiers.end(), [](TypeQualifier qualifier)
-											   {
-												   return qualifier == TypeQualifier::const_;
-											   });
-				auto linkage = get_linkage_type(storage);
-				llvm::GlobalVariable* declarator = nullptr;
-				if (declarator = (llvm::GlobalVariable*)environment->lookup(token->name))
-				{
-					if (!expr)
-						continue;
+				llvm::Constant* value = nullptr;
+				if (expr->node_type != ASTNodeType::expr_initializer)
+					value = (llvm::Constant*)expr->accept(this, declarator);
+				else
+					value = (llvm::Constant*)visit_initializer_constant((InitializerExprAST*)expr.get());
 
-					declarator->eraseFromParent();
-				}
-
-				auto override = declarator != nullptr;
-				declarator = new llvm::GlobalVariable(*module, type, is_constant, linkage, get_null_value(type), token->name);
-				environment->define(token, declarator, override);
-
-				if (expr)
-				{
-					llvm::Constant* value = nullptr;
-					if (expr->node_type != ASTNodeType::expr_initializer)
-						value = (llvm::Constant*)expr->accept(this, declarator);
-					else
-						value = (llvm::Constant*)visit_initializer_constant((InitializerExprAST*)expr.get());
-
-					auto rvalue = (llvm::Constant*)cast_value(value, expr->type, type_ast);
-					declarator->setInitializer(rvalue);
-				}
+				auto rvalue = (llvm::Constant*)cast_value(value, expr->type, type_ast);
+				declarator->setInitializer(rvalue);
 			}
 		}
 	}

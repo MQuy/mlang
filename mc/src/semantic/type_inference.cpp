@@ -625,7 +625,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 				auto utype = translation_unit.unbox_type(type);
 				type_defined = add_type_declaration(utype, false);
 			}
-			define_type(name->name, type);
+			define_type(name->name, type, false, true);
 		}
 		else
 		{
@@ -731,12 +731,12 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, 
 	return false;
 }
 
-void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type, bool override)
+void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type, bool override, bool is_typedef)
 {
 	auto new_name = environment->contain_type_name(name) && !override ? environment->generate_type_name(name) : name;
 	std::shared_ptr<TokenIdentifier> token_identifier;
 
-	if (translation_unit.get_storage_specifier(type) == StorageSpecifier::typedef_)
+	if (is_typedef)
 		translation_unit.add_type(new_name, type);
 	else if (type->kind == TypeKind::aggregate)
 	{
