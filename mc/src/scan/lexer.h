@@ -33,7 +33,7 @@ private:
 	std::shared_ptr<Token> scan_hexadecimal();
 	std::shared_ptr<Token> scan_octal();
 	std::shared_ptr<Token> scan_binary();
-	std::shared_ptr<Token> scan_decimal_or_hexa(std::function<bool(char)> comparator, char exponent, unsigned base);
+	std::shared_ptr<Token> scan_decimal_or_hexa(std::function<bool(char)> comparator, std::function<bool(char)> exponent, unsigned base);
 	std::shared_ptr<Token> scan_binary_or_octal(std::function<bool(char)> comparator, long start, unsigned base);
 	std::shared_ptr<Token> scan_whole_number_suffix(std::string number, unsigned base);
 	std::shared_ptr<Token> scan_fractional_number_suffix(std::string number, unsigned base);

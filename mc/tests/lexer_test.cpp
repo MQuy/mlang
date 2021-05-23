@@ -766,11 +766,21 @@ TEST(Literal, FloatNumber_Decimal_WithExponent)
 	ASSERT_EQ(token->value, 1.15e+15);
 }
 
+TEST(Literal, FloatNumber_Decimal_WithExponentAndFloatSuffix)
+{
+	init_keywords();
+
+	Lexer lexer = Lexer(".123E12F ? ");
+	auto tokens = lexer.scan();
+	auto token = std::static_pointer_cast<TokenLiteral<float>>(tokens.front());
+	ASSERT_EQ(token->value, .123E12F);
+}
+
 TEST(Literal, FloatNumber_Hexadecimal_WithFloatSuffixAndExponent)
 {
 	init_keywords();
 
-	Lexer lexer = Lexer("0x1.15p-2f + w");
+	Lexer lexer = Lexer("0x1.15P-2f + w");
 	auto tokens = lexer.scan();
 	auto token = std::static_pointer_cast<TokenLiteral<float>>(tokens.front());
 	ASSERT_EQ(token->value, 0x1.15p-2f);

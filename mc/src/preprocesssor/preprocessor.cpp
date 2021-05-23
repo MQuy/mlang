@@ -565,6 +565,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std:
 
 				for (int times = et_length - et_i; times > 0; --times)
 					expanded_tokens.pop_back();
+				expanded_tokens.push_back(token);
 			}
 			else
 			{

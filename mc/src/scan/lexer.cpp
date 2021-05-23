@@ -376,7 +376,10 @@ std::shared_ptr<Token> Lexer::scan_hexadecimal()
 		{
 			return ('0' <= nxt_ch && nxt_ch <= '9') || ('A' <= nxt_ch && nxt_ch <= 'F') || ('a' <= nxt_ch && nxt_ch <= 'f');
 		},
-		'p',
+		[](char nxt_ch)
+		{
+			return nxt_ch == 'p' || nxt_ch == 'P';
+		},
 		16);
 }
 
@@ -387,11 +390,14 @@ std::shared_ptr<Token> Lexer::scan_decimal()
 		{
 			return '0' <= nxt_ch && nxt_ch <= '9';
 		},
-		'e',
+		[](char nxt_ch)
+		{
+			return nxt_ch == 'e' || nxt_ch == 'E';
+		},
 		10);
 }
 
-std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> comparator, char exponent, unsigned base)
+std::shared_ptr<Token> Lexer::scan_decimal_or_hexa(std::function<bool(char)> comparator, std::function<bool(char)> exponent, unsigned base)
 {
 	unsigned dot_counter = 0;
 	unsigned e_counter = 0;
