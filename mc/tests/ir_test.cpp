@@ -127,11 +127,9 @@ TEST(IR, testcases)
 		"72_long_long_constant",
 		// 73_arm64
 		// 75_array_in_struct_init
-		// 76_dollars_in_identifiers
 		// 77_push_pop_macro
 		// 80_flexarray
 		// 81_types
-		// 82_attribs_position
 		"84_hex-float",
 		// 85_asm-outside-function
 		"86_memory-model",
