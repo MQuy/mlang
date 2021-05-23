@@ -313,20 +313,28 @@ void Preprocessor::expand(std::vector<std::shared_ptr<Token>>& tokens,
 			output.push_back(token);
 		else if (auto macro = macros[token->lexeme])
 		{
-			token->hide_set[token->lexeme] = true;
-
-			std::vector<std::shared_ptr<Token>> expanded_macro;
+			std::vector<std::shared_ptr<Token>> expanded_tokens;
 			auto copied_macro = macro->clone();
 			if (macro->type == MacroType::function)
 			{
 				auto arguments = parse_macro_arguments(tokens, ++index);
-				expanded_macro = substitute_function_macro(copied_macro, arguments, token->hide_set);
+				auto right_paren_token = tokens[index];
+				auto hide_set = intersect_two_hide_sets(token->hide_set, right_paren_token->hide_set);
+
+				hide_set[token->lexeme] = true;
+				expanded_tokens = substitute_function_macro(copied_macro, arguments, hide_set);
 			}
 			else if (macro->type == MacroType::object)
-				expanded_macro = substitute_object_macro(copied_macro, token->hide_set);
+			{
+				token->hide_set[token->lexeme] = true;
+				expanded_tokens = substitute_object_macro(copied_macro, token->hide_set);
+			}
+
+			for (++index; index < length; ++index)
+				expanded_tokens.push_back(tokens[index]);
 
 			int expanded_index = 0;
-			expand(expanded_macro, expanded_index, output);
+			expand(expanded_tokens, expanded_index, output);
 		}
 		else
 			assert_not_reached();
@@ -754,4 +762,14 @@ std::vector<std::shared_ptr<Token>> Preprocessor::parse_constant_expression(std:
 	}
 
 	return output;
+}
+
+std::unordered_map<std::string, bool> Preprocessor::intersect_two_hide_sets(std::unordered_map<std::string, bool> hide_set1, std::unordered_map<std::string, bool> hide_set2)
+{
+	std::unordered_map<std::string, bool> hide_set;
+	for (auto [hs1_name, hs1_exist] : hide_set1)
+		if (hs1_exist && hide_set2[hs1_name])
+			hide_set[hs1_name] = true;
+
+	return hide_set;
 }

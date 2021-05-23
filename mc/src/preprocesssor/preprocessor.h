@@ -44,6 +44,7 @@ private:
 																  const std::unordered_map<std::string, bool> &hide_set);
 	std::vector<std::shared_ptr<Token>> parse_include(std::vector<std::shared_ptr<Token>> &tokens, int &index);
 	std::vector<std::shared_ptr<Token>> parse_constant_expression(std::vector<std::shared_ptr<Token>> &tokens, int &index);
+	std::unordered_map<std::string, bool> intersect_two_hide_sets(std::unordered_map<std::string, bool> hide_set1, std::unordered_map<std::string, bool> hide_set2);
 
 	std::string source;
 	std::vector<std::shared_ptr<Token>> tokens;
