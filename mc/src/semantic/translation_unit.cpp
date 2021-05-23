@@ -189,10 +189,6 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(BuiltinTypeName name)
 		type_name = "short";
 	else if (name == BuiltinTypeName::unsigned_short)
 		type_name = "unsigned short";
-	else if (name == BuiltinTypeName::signed_)
-		type_name = "signed";
-	else if (name == BuiltinTypeName::unsigned_)
-		type_name = "unsigned";
 	else if (name == BuiltinTypeName::int_)
 		type_name = "int";
 	else if (name == BuiltinTypeName::unsigned_int)
@@ -335,8 +331,7 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 	auto btype = std::static_pointer_cast<BuiltinTypeAST>(original_type);
 	if (is_real_float_type(btype) || is_long_type(btype))
 		return type;
-	else if (type_nbits[btype->name] < NBITS_INT
-			 || btype->name == BuiltinTypeName::int_ || btype->name == BuiltinTypeName::signed_)
+	else if (type_nbits[btype->name] < NBITS_INT || btype->name == BuiltinTypeName::int_)
 		return get_type("int");
 	else
 		return get_type("unsigned int");
@@ -498,8 +493,6 @@ bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
 			   || builtin_type->name == BuiltinTypeName::signed_char
 			   || builtin_type->name == BuiltinTypeName::short_
 			   || builtin_type->name == BuiltinTypeName::unsigned_short
-			   || builtin_type->name == BuiltinTypeName::signed_
-			   || builtin_type->name == BuiltinTypeName::unsigned_
 			   || builtin_type->name == BuiltinTypeName::int_
 			   || builtin_type->name == BuiltinTypeName::unsigned_int
 			   || builtin_type->name == BuiltinTypeName::long_
@@ -524,7 +517,6 @@ bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
 		return builtin_type->name == BuiltinTypeName::char_
 			   || builtin_type->name == BuiltinTypeName::signed_char
 			   || builtin_type->name == BuiltinTypeName::short_
-			   || builtin_type->name == BuiltinTypeName::signed_
 			   || builtin_type->name == BuiltinTypeName::int_
 			   || builtin_type->name == BuiltinTypeName::long_
 			   || builtin_type->name == BuiltinTypeName::long_long;
@@ -547,7 +539,6 @@ bool TranslationUnit::is_unsigned_integer_type(std::shared_ptr<TypeAST> type)
 		return builtin_type->name == BuiltinTypeName::_Bool
 			   || builtin_type->name == BuiltinTypeName::unsigned_char
 			   || builtin_type->name == BuiltinTypeName::unsigned_short
-			   || builtin_type->name == BuiltinTypeName::unsigned_
 			   || builtin_type->name == BuiltinTypeName::unsigned_int
 			   || builtin_type->name == BuiltinTypeName::unsigned_long
 			   || builtin_type->name == BuiltinTypeName::unsigned_long_long;

@@ -42,7 +42,6 @@ llvm::Type* IR::get_type(std::shared_ptr<TypeAST> type_ast)
 		else if (btype_ast->name == BuiltinTypeName::short_ || btype_ast->name == BuiltinTypeName::unsigned_short)
 			type = builder->getInt16Ty();
 		else if (btype_ast->name == BuiltinTypeName::int_ || btype_ast->name == BuiltinTypeName::unsigned_int
-				 || btype_ast->name == BuiltinTypeName::signed_ || btype_ast->name == BuiltinTypeName::unsigned_
 				 || btype_ast->name == BuiltinTypeName::long_ || btype_ast->name == BuiltinTypeName::unsigned_long)
 			type = builder->getInt32Ty();
 		else if (btype_ast->name == BuiltinTypeName::long_long || btype_ast->name == BuiltinTypeName::unsigned_long_long)

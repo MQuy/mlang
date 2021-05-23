@@ -218,9 +218,15 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			if (match(TokenName::tk_double))
 				return make_builtin_ast(BuiltinTypeName::long_double, 16);
 			else if (match(TokenName::tk_long))
+			{
+				match(TokenName::tk_int, false);
 				return make_builtin_ast(BuiltinTypeName::long_long, 8);
+			}
 			else
+			{
+				match(TokenName::tk_int, false);
 				return make_builtin_ast(BuiltinTypeName::long_, 8);
+			}
 		}
 		case TokenName::tk_signed:
 		{
@@ -237,7 +243,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 				return make_builtin_ast(BuiltinTypeName::long_, 8);
 			}
 			else
-				return make_builtin_ast(BuiltinTypeName::signed_, 4);
+				return make_builtin_ast(BuiltinTypeName::int_, 4);
 		}
 		case TokenName::tk_unsigned:
 		{
@@ -254,7 +260,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 				return make_builtin_ast(BuiltinTypeName::unsigned_long, 8);
 			}
 			else
-				return make_builtin_ast(BuiltinTypeName::unsigned_, 4);
+				return make_builtin_ast(BuiltinTypeName::unsigned_int, 4);
 		}
 
 		case TokenName::tk_struct:
