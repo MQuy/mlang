@@ -90,7 +90,6 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\quym\Projects\mlang\mc\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -122,7 +121,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\quym\Projects\mlang\mc\src;C:\Users\quym\Projects\llvm\build\include;C:\Users\quym\Projects\llvm\llvm\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)llvm\build\include;$(SolutionDir)llvm\llvm\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -190,118 +189,118 @@
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\llvm\build\lib\IR\LLVMCore.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\IR\LLVMCore.vcxproj">
       <Project>{84f11254-7a51-3742-a7bc-e203bcc95102}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Passes\LLVMPasses.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Passes\LLVMPasses.vcxproj">
       <Project>{622b0297-3535-3b87-84a3-8ae6ef9d0b74}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Support\LLVMSupport.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Support\LLVMSupport.vcxproj">
       <Project>{dbcdf955-0460-35d8-89a8-5572aa6f051a}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\AArch64\AsmParser\LLVMAArch64AsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\AArch64\AsmParser\LLVMAArch64AsmParser.vcxproj">
       <Project>{dad73a33-c85a-3666-aea8-a7815bf4a023}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\AArch64\LLVMAArch64CodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\AArch64\LLVMAArch64CodeGen.vcxproj">
       <Project>{8c90947a-8f26-3df0-80f1-83d3c47347c1}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\AMDGPU\AsmParser\LLVMAMDGPUAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\AMDGPU\AsmParser\LLVMAMDGPUAsmParser.vcxproj">
       <Project>{94619e3e-c477-3d64-a684-6905f0b5e383}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\AMDGPU\LLVMAMDGPUCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\AMDGPU\LLVMAMDGPUCodeGen.vcxproj">
       <Project>{a0c188ea-a38f-3034-a0ae-348ee34ae133}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\ARM\AsmParser\LLVMARMAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\ARM\AsmParser\LLVMARMAsmParser.vcxproj">
       <Project>{294e8323-c57c-3ee1-b804-f83f343567bd}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\ARM\LLVMARMCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\ARM\LLVMARMCodeGen.vcxproj">
       <Project>{9c29dc3d-d6e0-312e-b6ee-8ad3e48c612c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\AVR\AsmParser\LLVMAVRAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\AVR\AsmParser\LLVMAVRAsmParser.vcxproj">
       <Project>{fed3049b-8a84-33d9-8654-af3fac925336}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\AVR\LLVMAVRCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\AVR\LLVMAVRCodeGen.vcxproj">
       <Project>{9a492909-2ef8-3e71-9269-87cc746598bf}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\BPF\AsmParser\LLVMBPFAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\BPF\AsmParser\LLVMBPFAsmParser.vcxproj">
       <Project>{81225135-c2d0-3732-8a08-93eb3ee73e13}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\BPF\LLVMBPFCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\BPF\LLVMBPFCodeGen.vcxproj">
       <Project>{44a91478-fcdd-3d55-955b-ef35f9563f1d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Hexagon\AsmParser\LLVMHexagonAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Hexagon\AsmParser\LLVMHexagonAsmParser.vcxproj">
       <Project>{98550359-8924-3f46-a36a-3e1591d3918b}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Hexagon\LLVMHexagonCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Hexagon\LLVMHexagonCodeGen.vcxproj">
       <Project>{7b5f7497-fd7e-393c-93c0-4a800cd6a51f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Lanai\AsmParser\LLVMLanaiAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Lanai\AsmParser\LLVMLanaiAsmParser.vcxproj">
       <Project>{35ba44d1-0529-3798-9243-c027c9c2efe3}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Lanai\LLVMLanaiCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Lanai\LLVMLanaiCodeGen.vcxproj">
       <Project>{a547a87b-1359-367e-8577-97fc41cfe07b}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\LLVMTarget.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\LLVMTarget.vcxproj">
       <Project>{9181cb4b-7ed6-3d23-9439-4fa4f37c1f06}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Mips\AsmParser\LLVMMipsAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Mips\AsmParser\LLVMMipsAsmParser.vcxproj">
       <Project>{921ae4c5-6700-3248-a0b9-485fba9a6d86}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Mips\LLVMMipsCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Mips\LLVMMipsCodeGen.vcxproj">
       <Project>{d174de9c-4630-353b-a3a5-bdf2c30b039d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\MSP430\AsmParser\LLVMMSP430AsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\MSP430\AsmParser\LLVMMSP430AsmParser.vcxproj">
       <Project>{17280695-5a9d-304f-99ac-9ad70b2ca6b6}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\MSP430\LLVMMSP430CodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\MSP430\LLVMMSP430CodeGen.vcxproj">
       <Project>{ae22b4cd-912b-3138-990c-a4cff3ff4990}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\NVPTX\LLVMNVPTXCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\NVPTX\LLVMNVPTXCodeGen.vcxproj">
       <Project>{686f2edf-da50-30b0-ad86-7d6b0ef4227f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\PowerPC\AsmParser\LLVMPowerPCAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\PowerPC\AsmParser\LLVMPowerPCAsmParser.vcxproj">
       <Project>{e27e6af6-bf90-38cb-aa37-b4b1d684b9f1}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\PowerPC\LLVMPowerPCCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\PowerPC\LLVMPowerPCCodeGen.vcxproj">
       <Project>{e86d2e16-b8e7-3f8e-9b7b-cbe2d852b3d4}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\RISCV\AsmParser\LLVMRISCVAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\RISCV\AsmParser\LLVMRISCVAsmParser.vcxproj">
       <Project>{0e1c2b1e-d860-375d-aa96-51254194d160}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\RISCV\LLVMRISCVCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\RISCV\LLVMRISCVCodeGen.vcxproj">
       <Project>{b23bfc06-8466-313f-86a6-fd91c6afd76f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Sparc\AsmParser\LLVMSparcAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Sparc\AsmParser\LLVMSparcAsmParser.vcxproj">
       <Project>{11bf7c79-1875-3314-8c3a-8adeb662dcde}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\Sparc\LLVMSparcCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\Sparc\LLVMSparcCodeGen.vcxproj">
       <Project>{976acb49-df5b-31a3-8d18-361db2b0cc96}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\SystemZ\AsmParser\LLVMSystemZAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\SystemZ\AsmParser\LLVMSystemZAsmParser.vcxproj">
       <Project>{55996655-f2d7-3f9a-a3fa-39e6e737389a}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\SystemZ\LLVMSystemZCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\SystemZ\LLVMSystemZCodeGen.vcxproj">
       <Project>{9b87e2bd-37b2-3f9f-94bd-b01b3392f846}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\WebAssembly\AsmParser\LLVMWebAssemblyAsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\WebAssembly\AsmParser\LLVMWebAssemblyAsmParser.vcxproj">
       <Project>{5b2f5736-9fc9-3fdd-b97d-d5757174b263}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\WebAssembly\LLVMWebAssemblyCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\WebAssembly\LLVMWebAssemblyCodeGen.vcxproj">
       <Project>{63230733-b026-388d-9902-bbab17b57223}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\X86\AsmParser\LLVMX86AsmParser.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\X86\AsmParser\LLVMX86AsmParser.vcxproj">
       <Project>{73a0447a-a2df-383a-b242-d1d41a56d125}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\X86\LLVMX86CodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\X86\LLVMX86CodeGen.vcxproj">
       <Project>{41439bfc-1e84-30b7-bdd8-9523f82c8cd4}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Target\XCore\LLVMXCoreCodeGen.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Target\XCore\LLVMXCoreCodeGen.vcxproj">
       <Project>{67578e95-1512-3963-bc00-ec152d82e2da}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Transforms\InstCombine\LLVMInstCombine.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Transforms\InstCombine\LLVMInstCombine.vcxproj">
       <Project>{a66d554b-59ae-3e77-baf5-0149d52fb6b9}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\llvm\build\lib\Transforms\IPO\LLVMipo.vcxproj">
+    <ProjectReference Include="..\llvm\build\lib\Transforms\IPO\LLVMipo.vcxproj">
       <Project>{853cf0a2-76df-3ac6-a465-b98964c30f09}</Project>
     </ProjectReference>
   </ItemGroup>

@@ -9,3 +9,4 @@ mhaskell/dist/
 .vs
 mc/packages
 Debug
+mc/llvm

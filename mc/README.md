@@ -46,3 +46,10 @@ mC has 5 phases (try staying as close as possible to [C translation phases](http
     - [x] volatile
   - [x] Static declaration
   - [x] Codegen
+
+### Setup
+
+mC heavily depends on [Visual Studio](https://visualstudio.microsoft.com/)
+
+- Follow [LLVM get started guide](https://llvm.org/docs/GettingStartedVS.html#getting-started) to install and build llvm project.
+- open `mc.sln` to build the project.
