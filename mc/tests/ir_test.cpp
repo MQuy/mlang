@@ -118,33 +118,24 @@ TEST(IR, testcases)
 		"52_unnamed_enum",
 		"54_goto",
 		"55_lshift_type",
-		// 60_errors_and_warnings
 		"61_integers",
 		"64_macro_nesting",
 		"67_macro_concat",
 		"70_floating_point_literals",
 		"71_macro_empty_arg",
 		"72_long_long_constant",
-		// 73_arm64
 		// 75_array_in_struct_init
-		// 77_push_pop_macro
 		// 80_flexarray
 		// 81_types
 		"84_hex-float",
-		// 85_asm-outside-function
 		"86_memory-model",
-		// 87_dead_code
-		// 89_nocode_wanted
 		// 90_struct-init
 		// 91_ptr_longlong_arith32
-		// 93_integer_promotion
 		"105_local_extern",
 		"107_stack_safe",
 		"109_float_struct_calling",
 		"110_average",
 		// 111_conversion
-		// 112_backtrace
-		// 118_switch
 		"121_struct_return",
 	});
 	std::filesystem::path current_path = __FILE__;
