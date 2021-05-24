@@ -1,11 +1,25 @@
-### Steps
+## mC (miniC)
+
+mC is a toy C compiler that aims to C99-compliant, is written in C++ and use LLVM as backend.
+
+### Internals
+
+mC has 5 phases (try staying as close as possible to [C translation phases](https://en.cppreference.com/w/c/language/translation_phases)):
+
+- Tokenize: decompose an input string into tokens.
+- Preprocess: include header files, expand macros, and conditional compile.
+- Parse: construct abstract syntax tree from the output of the preprocessed tokens.
+- Semantic Analyze: add type for each AST node.
+- Codegen: use LLVM to emit an object file.
+
+### Features
 
 - [x] Tokenization
   - [x] Replace trigraph sequences
   - [x] Combine two physical lines when blashslash appears at the end of line
   - [x] Tokenize
   - [x] Comments are replace by whitespace
-- [-] Preprocessor
+- [ ] Preprocessor
   - [x] Preprocess ([Dave Prosser Algorithm](https://www.spinellis.gr/blog/20060626/))
   - [x] Concatenate adjacent string literals
   - [ ] Support #include_next
@@ -15,6 +29,7 @@
   - [x] Anonymous struct and union
   - [ ] Variable attributes
   - [ ] ASM
+  - [ ] Old-style function definition
 - [ ] Semantic Analyzer
   - [ ] Syntax and semantic validation
   - [ ] Incomplete types
@@ -27,22 +42,7 @@
   - [x] Forward declaration
   - [ ] Function without a prototype
   - [x] Union member access
-  - [-] CVR qualified
+  - [ ] CVR qualified
     - [x] volatile
   - [x] Static declaration
   - [x] Codegen
-
-✍🏼 mc is C99-compliant
-
-### AST
-
-![diagram](https://i.imgur.com/tqpvDdb.png)
-
-- Not support old-style function definition
-
-### Semantic Analyzer
-
-- throw exceptions if there is any invalid expression
-- validate syntax, semantic and flatten anonymous struct
-
-### LLVM
