@@ -338,12 +338,24 @@ void IR::calculate_array_type_size(std::shared_ptr<TypeAST> type_ast, std::share
 	if (expr->node_type == ASTNodeType::expr_sizeof)
 		expr = std::static_pointer_cast<SizeOfExprAST>(expr)->expr;
 
-	if (!atype_ast->expr && expr->node_type == ASTNodeType::expr_initializer)
+	if (atype_ast->expr)
+		return;
+	else if (expr->node_type == ASTNodeType::expr_initializer)
 	{
 		auto initializer = std::static_pointer_cast<InitializerExprAST>(expr);
 		auto size = initializer->exprs.size();
 		auto literal = std::make_shared<TokenLiteral<int>>(size, std::to_string(size));
 		atype_ast->expr = std::make_shared<LiteralExprAST<int>>(literal);
+	}
+	else if (expr->node_type == ASTNodeType::expr_literal)
+	{
+		auto lexpr = std::dynamic_pointer_cast<LiteralExprAST<std::string>>(expr);
+		if (lexpr)
+		{
+			auto size = lexpr->value->value.size() + 1;
+			auto literal = std::make_shared<TokenLiteral<int>>(size, std::to_string(size));
+			atype_ast->expr = std::make_shared<LiteralExprAST<int>>(literal);
+		}
 	}
 }
 
@@ -729,6 +741,9 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 			inst = llvm::Instruction::BitCast;
 		else if (translation_unit.is_integer_type(dest_type_ast))
 			inst = llvm::Instruction::PtrToInt;
+		// we don't need to cast since, it only happens for this case <- char x[] = "hello";
+		else if (translation_unit.is_array_type(dest_type_ast))
+			return source;
 		else
 			assert_not_reached();
 	}
@@ -896,7 +911,10 @@ void* IR::visit_literal_expr(LiteralExprAST<unsigned char>* expr, void* data)
 
 void* IR::visit_literal_expr(LiteralExprAST<std::string>* expr, void* data)
 {
-	return get_or_insert_global_string(expr->value->value);
+	if (in_func_scope)
+		return get_or_insert_global_string(expr->value->value);
+	else
+		return llvm::ConstantDataArray::getString(*context, expr->value->value);
 }
 
 void* IR::visit_identifier_expr(IdentifierExprAST* expr, void* data)
@@ -1199,16 +1217,10 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 	case UnaryOperator::dereference:
 	{
 		// we already load value in postfix/prefix expression
-		if (expr->expr->node_type == ASTNodeType::expr_unary)
+		if (!translation_unit.is_lvalue(expr->expr))
 		{
-			auto expr1_type_ast = std::static_pointer_cast<UnaryExprAST>(expr->expr);
-			auto expr1_op = expr1_type_ast->op;
-			if (expr1_op == UnaryOperator::postfix_decrement || expr1_op == UnaryOperator::postfix_increment
-				|| expr1_op == UnaryOperator::prefix_decrement || expr1_op == UnaryOperator::prefix_increment)
-			{
-				result = expr1;
-				break;
-			}
+			result = expr1;
+			break;
 		}
 
 		auto is_volatile = translation_unit.is_volatile_type(expr1_type_ast);
@@ -1358,7 +1370,7 @@ void* IR::visit_typecast_expr(TypeCastExprAST* expr, void* data)
 	if (translation_unit.is_void_type(expr->type))
 		return nullptr;
 
-	auto rvalue = load_value(value, expr->expr);
+	auto rvalue = translation_unit.is_lvalue(expr->expr) ? load_value(value, expr->expr) : value;
 	auto casted_rvalue = cast_value(rvalue, expr->expr->type, expr->type);
 	return translation_unit.is_void_type(expr->type) ? nullptr : casted_rvalue;
 }

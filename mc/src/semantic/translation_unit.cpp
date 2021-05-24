@@ -482,6 +482,15 @@ std::shared_ptr<TypeAST> TranslationUnit::duplicate_type_with_qualifier(std::sha
 		assert_not_reached();
 }
 
+bool TranslationUnit::is_lvalue(std::shared_ptr<ExprAST> expr)
+{
+	return expr->node_type == ASTNodeType::expr_identifier
+		|| (expr->node_type == ASTNodeType::expr_literal && std::dynamic_pointer_cast<LiteralExprAST<std::string>>(expr))
+		|| expr->node_type == ASTNodeType::expr_member_access
+		|| (expr->node_type == ASTNodeType::expr_unary && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::dereference)
+		|| (expr->node_type == ASTNodeType::expr_binary && std::static_pointer_cast<BinaryExprAST>(expr)->op == BinaryOperator::array_subscript);
+}
+
 bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
 {
 	if (type->kind == TypeKind::builtin)

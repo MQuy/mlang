@@ -82,6 +82,7 @@ public:
 	std::shared_ptr<TypeAST> convert_array_to_pointer(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> convert_function_to_pointer(std::shared_ptr<TypeAST> type);
 	std::shared_ptr<TypeAST> duplicate_type_with_qualifier(std::shared_ptr<TypeAST> type, TypeQualifier qualifier, DuplicateTypeAction action);
+	bool is_lvalue(std::shared_ptr<ExprAST> expr);
 
 	// struct or union -> aggregate::xxx
 	// alias -> same

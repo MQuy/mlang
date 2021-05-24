@@ -130,7 +130,7 @@ TEST(IR, testcases)
 		"84_hex-float",
 		"86_memory-model",
 		// 90_struct-init
-		// 91_ptr_longlong_arith32
+		"91_ptr_longlong_arith32"
 		"105_local_extern",
 		"107_stack_safe",
 		"109_float_struct_calling",
