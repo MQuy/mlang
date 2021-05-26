@@ -1,10 +1,14 @@
-## MLang
+## mLang
 
-MLang is the collection of my own toy programming languages.
+mLang is the collection of my toy programming languages which are developed from scratch.
 
-### MHaskell
+### mC
 
-As the name said, mhaskell is the mini version of haskell, therefore, it is an functional programming language with features below:
+mC is a toy C compiler that aims to C99-compliant, is written in C++, and use LLVM as backend.
+
+### mHaskell
+
+mHaskell is the mini version of Haskell, it is a functional programming language with the following features:
 
 - Currying
 - Lazy evaluation
@@ -13,6 +17,6 @@ As the name said, mhaskell is the mini version of haskell, therefore, it is an f
 - Pattern matching
 - Type inference
 
-### MTS
+### mTS
 
-Similar to mhaskell, mts is the mini version of typescript(actually, its syntax is mixed between typescript and scala). It is, of course, an typed interpreted language which supports basic oop features like class, inheritance, function & lambda, for & while loop ...
+Similar to mHaskell, mts is the mini version of Typescript(actually, its syntax is mixed between Typescript and Scala). It is, of course, a typed interpreted language that supports basic oop features like class, inheritance, function & lambda, for & while loop ...

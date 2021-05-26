@@ -595,7 +595,7 @@ llvm::Value* IR::build_aggregate_accesses(llvm::Value* object, std::shared_ptr<A
 	if (type_ast->aggregate_kind == AggregateKind::struct_)
 	{
 		member_type = translation_unit.get_type(std::get<1>(type_ast->members[idx]));
-		object_member = builder->CreateGEP(object, llvm::ConstantInt::get(builder->getInt32Ty(), idx));
+		object_member = builder->CreateInBoundsGEP(object, llvm::ConstantInt::get(builder->getInt32Ty(), idx));
 	}
 	else
 	{
@@ -751,7 +751,7 @@ llvm::Value* IR::cast_value(llvm::Value* source, std::shared_ptr<TypeAST> src_ty
 	{
 		llvm::Constant* zeroth = llvm::ConstantInt::get(builder->getInt32Ty(), 0);
 		llvm::ArrayRef<llvm::Value*> indices = {zeroth, zeroth};
-		auto value = builder->CreateGEP(source, indices);
+		auto value = builder->CreateInBoundsGEP(source, indices);
 		auto dest_type = get_type(dest_type_ast);
 
 		if (translation_unit.is_integer_type(dest_type_ast))
@@ -1131,7 +1131,7 @@ void* IR::visit_binary_expr(BinaryExprAST* expr, void* data)
 				assert(translation_unit.is_pointer_type(expr->left->type));
 				indices = {rvalue_right};
 			}
-			result = builder->CreateGEP(left, indices);
+			result = builder->CreateInBoundsGEP(left, indices);
 			break;
 		}
 		}
@@ -1230,7 +1230,7 @@ void* IR::visit_unary_expr(UnaryExprAST* expr, void* data)
 		{
 			assert(translation_unit.is_array_type(expr1_type_ast));
 			std::vector<llvm::Value*> indices = {get_null_value(builder->getInt32Ty()), get_null_value(builder->getInt32Ty())};
-			result = builder->CreateGEP(expr1, indices);
+			result = builder->CreateInBoundsGEP(expr1, indices);
 		}
 		break;
 	}
@@ -1290,7 +1290,7 @@ void* IR::visit_member_access_expr(MemberAccessExprAST* expr, void* data)
 	if (object_type_ast->aggregate_kind == AggregateKind::struct_)
 	{
 		auto indices = get_indices(object_type_ast, expr->member->name);
-		return builder->CreateGEP(object, indices);
+		return builder->CreateInBoundsGEP(object, indices);
 	}
 	else
 	{

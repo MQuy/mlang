@@ -45,8 +45,8 @@ std::vector<std::shared_ptr<Token>> postpreprocess_tokens(std::vector<std::share
 			if (std::regex_match(token->lexeme, std::regex("^\".*\"$"))
 				&& std::regex_match(nxt_token->lexeme, std::regex("^\".*\"$")))
 			{
-				auto token_literal = std::dynamic_pointer_cast<TokenLiteral<std::string>>(token);
-				auto nxt_token_literal = std::dynamic_pointer_cast<TokenLiteral<std::string>>(nxt_token);
+				auto token_literal = std::static_pointer_cast<TokenLiteral<std::string>>(token);
+				auto nxt_token_literal = std::static_pointer_cast<TokenLiteral<std::string>>(nxt_token);
 				auto content = token_literal->value + nxt_token_literal->value;
 
 				token = std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(content, "\"" + content + "\""));
@@ -352,7 +352,7 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens
 	auto token = tokens.at(index);
 	if (token->match(TokenType::tk_identifier))
 	{
-		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		auto token_identifier = std::static_pointer_cast<TokenIdentifier>(token);
 		if (token_identifier->name == "ifdef" || token_identifier->name == "ifndef")
 		{
 			index = skip_whitespaces_tokens(tokens, index + 1, length);
@@ -362,8 +362,9 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens
 			assert(std::regex_match(identifier->lexeme, std::regex("^[a-zA-Z_]\\w*$")));
 
 			index = skip_whitespaces_tokens(tokens, index + 1, length);
-			auto nxt_token = std::dynamic_pointer_cast<TokenSymbol>(tokens.at(index));
-			assert(nxt_token && nxt_token->name == TokenName::tk_newline);
+
+			auto nxt_token = tokens.at(index);
+			assert(nxt_token->type == TokenType::tk_symbol && std::static_pointer_cast<TokenSymbol>(nxt_token)->name == TokenName::tk_newline);
 
 			auto exist = macros[identifier->lexeme];
 			auto forward = token_identifier->name == "ifdef" ? exist != nullptr : exist == nullptr;

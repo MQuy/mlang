@@ -102,7 +102,7 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 	auto token = tokens.at(runner);
 	assert(token && token->type == TokenType::tk_symbol);
 
-	auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+	auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 	if (token_symbol->name == TokenName::tk_equal
 		|| token_symbol->name == TokenName::tk_comma
 		|| token_symbol->name == TokenName::tk_semicolon)
@@ -111,7 +111,7 @@ std::shared_ptr<ExternAST> Parser::parse_function_definition()
 
 	environment->define(declarator_name, SymbolType::declarator);
 
-	auto func_type = std::dynamic_pointer_cast<FunctionTypeAST>(declarator_type);
+	auto func_type = std::static_pointer_cast<FunctionTypeAST>(declarator_type);
 	for (auto [pname, ptype] : func_type->parameters)
 		environment->define(pname, SymbolType::declarator);
 
@@ -194,8 +194,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 
 	if (token->type == TokenType::tk_symbol)
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		assert(token_symbol);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 
 		switch (token_symbol->name)
 		{
@@ -271,7 +270,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			auto kind = token_symbol->name == TokenName::tk_struct ? AggregateKind::struct_ : AggregateKind::union_;
 
 			if (match(TokenType::tk_identifier, false, false))
-				token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+				token_identifier = std::static_pointer_cast<TokenIdentifier>(advance());
 
 			if (match(TokenName::tk_left_brace) && !match(TokenName::tk_right_brace))
 			{
@@ -293,7 +292,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 			std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>>> members;
 
 			if (match(TokenType::tk_identifier, false, false))
-				token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+				token_identifier = std::static_pointer_cast<TokenIdentifier>(advance());
 
 			if (match(TokenName::tk_left_brace) && !match(TokenName::tk_right_brace))
 			{
@@ -318,7 +317,7 @@ std::shared_ptr<TypeAST> Parser::parse_declaration_specifiers(bool global_scope,
 	}
 	else if (token->type == TokenType::tk_identifier)
 	{
-		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		auto token_identifier = std::static_pointer_cast<TokenIdentifier>(token);
 
 		parse_storage_or_qualifier();
 		return std::make_shared<AliasTypeAST>(AliasTypeAST(token_identifier, type_qualifiers, storage_specifier));
@@ -335,8 +334,7 @@ void Parser::parse_storage_specifier(StorageSpecifier& storage_specifier)
 		if (!token->match(TokenType::tk_symbol))
 			break;
 
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		assert(token_symbol);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 
 		switch (token_symbol->name)
 		{
@@ -370,8 +368,7 @@ void Parser::parse_type_qualifier(std::set<TypeQualifier>& type_qualifiers)
 		if (!token->match(TokenType::tk_symbol))
 			break;
 
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-		assert(token_symbol);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 
 		switch (token_symbol->name)
 		{
@@ -422,13 +419,17 @@ std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>
 
 std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> Parser::parse_enumerator()
 {
-	auto identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
-	std::shared_ptr<ExprAST> expr;
+	auto token = advance();
+	std::shared_ptr<TokenIdentifier> token_identifier = nullptr;
+	std::shared_ptr<ExprAST> expr = nullptr;
+
+	if (token->type == TokenType::tk_identifier)
+		token_identifier = std::static_pointer_cast<TokenIdentifier>(token);
 
 	if (match(TokenName::tk_equal))
 		expr = parse_tenary_expr();
 
-	return std::make_pair(identifier, expr);
+	return std::make_pair(token_identifier, expr);
 }
 
 void Parser::revert_type_relation(std::shared_ptr<TypeAST> source_type, std::shared_ptr<TypeAST> dest_type, std::shared_ptr<TypeAST> anchor_type)
@@ -520,7 +521,8 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	if (match(TokenType::tk_identifier, false, false) && !abstract)
 	{
 		auto token = advance();
-		identifier = std::dynamic_pointer_cast<TokenIdentifier>(token);
+		if (token->type == TokenType::tk_identifier)
+			identifier = std::static_pointer_cast<TokenIdentifier>(token);
 	}
 	else if (match(TokenName::tk_left_paren))
 	{
@@ -660,7 +662,7 @@ std::shared_ptr<StmtAST> Parser::parse_stmt()
 	else if (match(TokenType::tk_identifier, false, false))
 	{
 		auto pos = runner;
-		auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+		auto token_identifier = std::static_pointer_cast<TokenIdentifier>(advance());
 		if (match(TokenName::tk_colon))
 			return parse_label_stmt(token_identifier);
 		else
@@ -812,9 +814,13 @@ std::shared_ptr<ForStmtAST> Parser::parse_for_stmt()
 
 std::shared_ptr<JumpStmtAST> Parser::parse_goto_stmt()
 {
-	auto identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
-	assert(identifier);
+	auto token = advance();
+	std::shared_ptr<TokenIdentifier> identifier = nullptr;
 
+	if (token->type == TokenType::tk_identifier)
+		identifier = std::static_pointer_cast<TokenIdentifier>(token);
+
+	assert(identifier);
 	match(TokenName::tk_semicolon, true);
 
 	return std::make_shared<JumpStmtAST>(JumpStmtAST(identifier));
@@ -895,7 +901,7 @@ std::shared_ptr<ExprAST> Parser::parse_assignment_expr()
 						 || nxt_name == TokenName::tk_caret_equal;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto right_expr = parse_assignment_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, right_expr, binop_token[token_symbol->name]));
 	}
@@ -994,7 +1000,7 @@ std::shared_ptr<ExprAST> Parser::parse_equality_expr()
 				  return nxt_tk == TokenName::tk_equal_equal || nxt_tk == TokenName::tk_bang_equal;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_equality_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
@@ -1015,7 +1021,7 @@ std::shared_ptr<ExprAST> Parser::parse_relational_expr()
 						 || nxt_tk == TokenName::tk_greater_equal;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_relational_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
@@ -1034,7 +1040,7 @@ std::shared_ptr<ExprAST> Parser::parse_shift_expr()
 						 || nxt_tk == TokenName::tk_much_greater;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_shift_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
@@ -1053,7 +1059,7 @@ std::shared_ptr<ExprAST> Parser::parse_additive_expr()
 						 || nxt_tk == TokenName::tk_minus;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_additive_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
@@ -1073,7 +1079,7 @@ std::shared_ptr<ExprAST> Parser::parse_multiplice_expr()
 						 || nxt_tk == TokenName::tk_percent;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_multiplice_expr();
 		expr = std::make_shared<BinaryExprAST>(BinaryExprAST(expr, expr1, binop_token[token_symbol->name]));
 	}
@@ -1109,7 +1115,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 				  return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
 			  }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_unary_expr();
 		auto op = token_symbol->name == TokenName::tk_plus_plus ? UnaryOperator::prefix_increment : UnaryOperator::prefix_decrement;
 		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, op));
@@ -1124,7 +1130,7 @@ std::shared_ptr<ExprAST> Parser::parse_unary_expr()
 							  || nxt_tk == TokenName::tk_bang;
 				   }))
 	{
-		auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+		auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 		auto expr1 = parse_cast_expr();
 		expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr1, unaryop_token[token_symbol->name]));
 	}
@@ -1204,13 +1210,23 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 		}
 		else if (match(TokenName::tk_dot))
 		{
-			auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+			auto token = advance();
+			std::shared_ptr<TokenIdentifier> token_identifier = nullptr;
+
+			if (token->type == TokenType::tk_identifier)
+				token_identifier = std::static_pointer_cast<TokenIdentifier>(token);
+
 			assert(token_identifier);
 			expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier, MemberAccessType::dot));
 		}
 		else if (match(TokenName::tk_arrow))
 		{
-			auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(advance());
+			auto token = advance();
+			std::shared_ptr<TokenIdentifier> token_identifier = nullptr;
+
+			if (token->type == TokenType::tk_identifier)
+				token_identifier = std::static_pointer_cast<TokenIdentifier>(token);
+
 			assert(token_identifier);
 			expr = std::make_shared<MemberAccessExprAST>(MemberAccessExprAST(expr, token_identifier, MemberAccessType::arrow));
 		}
@@ -1219,8 +1235,7 @@ std::shared_ptr<ExprAST> Parser::parse_postfix_expr()
 						   return nxt_tk == TokenName::tk_plus_plus || nxt_tk == TokenName::tk_minus_minus;
 					   }))
 		{
-			auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
-			assert(token_symbol);
+			auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 			auto op = token_symbol->name == TokenName::tk_plus_plus ? UnaryOperator::postfix_increment : UnaryOperator::postfix_decrement;
 			expr = std::make_shared<UnaryExprAST>(UnaryExprAST(expr, op));
 		}
@@ -1271,7 +1286,7 @@ bool Parser::match(std::function<bool(TokenName)> comparator, bool strict, bool 
 		else
 			return false;
 
-	auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+	auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 	if (comparator(token_symbol->name))
 	{
 		if (advance)
@@ -1293,8 +1308,7 @@ bool Parser::match(std::string name, bool strict, bool advance)
 		else
 			return false;
 
-	auto token_identifier = std::dynamic_pointer_cast<TokenIdentifier>(tokens.at(runner));
-	assert(token);
+	auto token_identifier = std::static_pointer_cast<TokenIdentifier>(tokens.at(runner));
 
 	if (token_identifier->name == name)
 	{

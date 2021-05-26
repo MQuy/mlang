@@ -291,7 +291,7 @@ bool PreprocessorConstExpr::match(std::function<bool(TokenName)> comparator, boo
 		else
 			return false;
 
-	auto token_symbol = std::dynamic_pointer_cast<TokenSymbol>(token);
+	auto token_symbol = std::static_pointer_cast<TokenSymbol>(token);
 	if (comparator(token_symbol->name))
 	{
 		if (advance)

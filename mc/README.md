@@ -12,6 +12,8 @@ mC has 5 phases (try staying as close as possible to [C translation phases](http
 - Semantic Analyze: add type for each AST node.
 - Codegen: use LLVM to emit an object file.
 
+mC uses [tinyc's testcases](https://github.com/TinyCC/tinycc/tree/mob/tests/tests2) to cover common and edge cases.
+
 ### Features
 
 - [x] Tokenization
@@ -22,6 +24,7 @@ mC has 5 phases (try staying as close as possible to [C translation phases](http
 - [ ] Preprocessor
   - [x] Preprocess ([Dave Prosser Algorithm](https://www.spinellis.gr/blog/20060626/))
   - [x] Concatenate adjacent string literals
+  - [ ] Predefined macros
   - [ ] Support #include_next
   - [ ] Support #pragma
 - [x] Parser
@@ -31,7 +34,7 @@ mC has 5 phases (try staying as close as possible to [C translation phases](http
   - [ ] ASM
   - [ ] Old-style function definition
 - [ ] Semantic Analyzer
-  - [ ] Syntax and semantic validation
+  - [ ] Semantic validation
   - [ ] Incomplete types
   - [x] Type inference
 - [ ] LLVM
