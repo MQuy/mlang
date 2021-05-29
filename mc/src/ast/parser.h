@@ -27,7 +27,7 @@ public:
 
 private:
 	std::shared_ptr<StmtAST> parse_stmt();
-	std::shared_ptr<LabelStmtAST> parse_label_stmt(std::shared_ptr<TokenIdentifier> identifier);
+	std::shared_ptr<LabelStmtAST> parse_label_stmt(const std::shared_ptr<TokenIdentifier> &identifier);
 	std::shared_ptr<CaseStmtAST> parse_case_stmt();
 	std::shared_ptr<DefaultStmtAST> parse_default_stmt();
 	std::shared_ptr<ExprStmtAST> parse_expr_stmt();
@@ -67,13 +67,13 @@ private:
 	void parse_storage_specifier(StorageSpecifier &storage_specifier);
 	void parse_type_qualifier(std::set<TypeQualifier> &type_qualifiers);
 	void parse_qualifier(std::set<TypeQualifier> &type_qualifiers);
-	std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> parse_init_declarator(std::shared_ptr<TypeAST> type);
+	std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> parse_init_declarator(const std::shared_ptr<TypeAST> &type);
 	std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>> parse_struct_declaration();
 	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> parse_enumerator();
-	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(std::shared_ptr<TypeAST> type, bool abstract = false);
-	std::shared_ptr<ArrayTypeAST> parse_declarator_array(std::shared_ptr<TypeAST> type);
+	std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> parse_declarator(const std::shared_ptr<TypeAST> &type, bool abstract = false);
+	std::shared_ptr<ArrayTypeAST> parse_declarator_array(const std::shared_ptr<TypeAST> &type);
 	std::shared_ptr<std::pair<std::vector<std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>>>, bool>> parse_declarator_parameters();
-	void revert_type_relation(std::shared_ptr<TypeAST> source_type, std::shared_ptr<TypeAST> dest_type, std::shared_ptr<TypeAST> anchor_type);
+	void revert_type_relation(const std::shared_ptr<TypeAST> &source_type, const std::shared_ptr<TypeAST> dest_type, const std::shared_ptr<TypeAST> &anchor_type);
 	std::shared_ptr<TypeAST> parse_typename();
 
 	void enter_scope();

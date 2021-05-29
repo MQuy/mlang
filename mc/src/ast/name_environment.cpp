@@ -12,7 +12,7 @@ SymbolType NameEnvironment::lookup(std::string name)
 	throw std::runtime_error(name + " doesnt exist");
 }
 
-SymbolType NameEnvironment::lookup(std::shared_ptr<TokenIdentifier> identifier)
+SymbolType NameEnvironment::lookup(const std::shared_ptr<TokenIdentifier> &identifier)
 {
 	return lookup(identifier->name);
 }
@@ -22,12 +22,12 @@ void NameEnvironment::define(std::string name, SymbolType value)
 	symbols[name] = value;
 }
 
-void NameEnvironment::define(std::shared_ptr<TokenIdentifier> identifier, SymbolType value)
+void NameEnvironment::define(const std::shared_ptr<TokenIdentifier> &identifier, SymbolType value)
 {
 	return define(identifier->name, value);
 }
 
-bool NameEnvironment::is_typedef(std::shared_ptr<TypeAST> type)
+bool NameEnvironment::is_typedef(const std::shared_ptr<TypeAST> &type)
 {
 	StorageSpecifier storage = StorageSpecifier::auto_;
 	if (type->kind == TypeKind::builtin)
@@ -70,7 +70,7 @@ bool NameEnvironment::is_typedef(std::shared_ptr<TypeAST> type)
 	return storage == StorageSpecifier::typedef_;
 }
 
-NameEnvironment* NameEnvironment::get_enclosing()
+NameEnvironment *NameEnvironment::get_enclosing()
 {
 	return enclosing;
 }

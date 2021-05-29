@@ -10,7 +10,7 @@ void SemanticTypeInference::leave_scope()
 	environment = environment->get_enclosing();
 }
 
-std::shared_ptr<TypeAST> SemanticTypeInference::get_member_type(std::shared_ptr<AggregateTypeAST> type, std::string member_name)
+std::shared_ptr<TypeAST> SemanticTypeInference::get_member_type(const std::shared_ptr<AggregateTypeAST>& type, std::string member_name)
 {
 	for (auto [mname, mtype] : type->members)
 	{
@@ -667,7 +667,7 @@ void* SemanticTypeInference::visit_declaration(DeclarationAST* stmt, void* data)
 }
 
 // only for struct, union and enum
-bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, bool is_forward)
+bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST>& type, bool is_forward)
 {
 	if (type->kind == TypeKind::aggregate)
 	{
@@ -731,7 +731,7 @@ bool SemanticTypeInference::add_type_declaration(std::shared_ptr<TypeAST> type, 
 	return false;
 }
 
-void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST> type, bool override, bool is_typedef)
+void SemanticTypeInference::define_type(std::string name, std::shared_ptr<TypeAST>& type, bool override, bool is_typedef)
 {
 	auto new_name = environment->contain_type_name(name) && !override ? environment->generate_type_name(name) : name;
 	std::shared_ptr<TokenIdentifier> token_identifier;
@@ -802,7 +802,7 @@ void SemanticTypeInference::resolve_type(std::shared_ptr<TypeAST> type)
 	}
 }
 
-void SemanticTypeInference::fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, std::shared_ptr<TypeAST> type)
+void SemanticTypeInference::fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, const std::shared_ptr<TypeAST>& type)
 {
 	assert(expr->node_type == ASTNodeType::expr_initializer);
 	expr->type = type;

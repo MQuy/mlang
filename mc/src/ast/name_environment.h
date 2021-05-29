@@ -21,10 +21,10 @@ public:
 	}
 
 	SymbolType lookup(std::string name);
-	SymbolType lookup(std::shared_ptr<TokenIdentifier> identifier);
+	SymbolType lookup(const std::shared_ptr<TokenIdentifier> &identifier);
 	void define(std::string name, SymbolType value);
-	void define(std::shared_ptr<TokenIdentifier> identifier, SymbolType value);
-	bool is_typedef(std::shared_ptr<TypeAST> type);
+	void define(const std::shared_ptr<TokenIdentifier> &identifier, SymbolType value);
+	bool is_typedef(const std::shared_ptr<TypeAST> &type);
 	NameEnvironment *get_enclosing();
 
 private:

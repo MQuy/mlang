@@ -37,9 +37,9 @@ private:
 						   int &index,
 						   std::vector<std::shared_ptr<Token>> &output,
 						   const std::vector<std::shared_ptr<Token>> &terminated_tokens = std::vector<std::shared_ptr<Token>>());
-	std::vector<std::shared_ptr<Token>> substitute_object_macro(std::shared_ptr<Macro> macro,
+	std::vector<std::shared_ptr<Token>> substitute_object_macro(const std::shared_ptr<Macro> &macro,
 																const std::unordered_map<std::string, bool> &hide_set);
-	std::vector<std::shared_ptr<Token>> substitute_function_macro(std::shared_ptr<Macro> macro,
+	std::vector<std::shared_ptr<Token>> substitute_function_macro(const std::shared_ptr<Macro> &macro,
 																  const std::vector<std::vector<std::shared_ptr<Token>>> &arguments,
 																  const std::unordered_map<std::string, bool> &hide_set);
 	std::vector<std::shared_ptr<Token>> parse_include(std::vector<std::shared_ptr<Token>> &tokens, int &index);

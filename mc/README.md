@@ -33,6 +33,7 @@ mC uses [tinyc's testcases](https://github.com/TinyCC/tinycc/tree/mob/tests/test
   - [ ] Variable attributes
   - [ ] ASM
   - [ ] Old-style function definition
+  - [ ] Complex number
 - [ ] Semantic Analyzer
   - [ ] Semantic validation
   - [ ] Incomplete types

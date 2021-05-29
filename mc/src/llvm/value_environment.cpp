@@ -12,7 +12,7 @@ llvm::Value* ValueEnvironment::lookup(std::string name)
 	return nullptr;
 }
 
-llvm::Value* ValueEnvironment::lookup(std::shared_ptr<TokenIdentifier> identifier)
+llvm::Value* ValueEnvironment::lookup(const std::shared_ptr<TokenIdentifier>& identifier)
 {
 	return lookup(identifier->name);
 }
@@ -25,7 +25,7 @@ void ValueEnvironment::define(std::string name, llvm::Value* value, bool overrid
 	symbols[name] = value;
 }
 
-void ValueEnvironment::define(std::shared_ptr<TokenIdentifier> identifier, llvm::Value* value, bool override)
+void ValueEnvironment::define(const std::shared_ptr<TokenIdentifier>& identifier, llvm::Value* value, bool override)
 {
 	return define(identifier->name, value, override);
 }

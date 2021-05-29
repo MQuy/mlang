@@ -2,7 +2,7 @@
 
 #include <regex>
 
-std::set<TypeQualifier> TranslationUnit::get_type_qualifiers(std::shared_ptr<TypeAST> type)
+std::set<TypeQualifier> TranslationUnit::get_type_qualifiers(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -52,7 +52,7 @@ std::set<TypeQualifier> TranslationUnit::get_type_qualifiers(std::shared_ptr<Typ
 		assert_not_reached();
 }
 
-StorageSpecifier TranslationUnit::get_storage_specifier(std::shared_ptr<TypeAST> type)
+StorageSpecifier TranslationUnit::get_storage_specifier(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -93,7 +93,7 @@ StorageSpecifier TranslationUnit::get_storage_specifier(std::shared_ptr<TypeAST>
 		assert_not_reached();
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::unbox_type(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::unbox_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin
 		|| type->kind == TypeKind::aggregate
@@ -124,7 +124,7 @@ std::shared_ptr<TypeAST> TranslationUnit::unbox_type(std::shared_ptr<TypeAST> ty
 		assert_not_reached();
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::unalias_type(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::unalias_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::alias)
 	{
@@ -134,7 +134,7 @@ std::shared_ptr<TypeAST> TranslationUnit::unalias_type(std::shared_ptr<TypeAST> 
 	return type;
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::get_type(const std::shared_ptr<TypeAST> &type)
 {
 	std::string name;
 	if (type->kind == TypeKind::builtin)
@@ -247,7 +247,7 @@ std::shared_ptr<TypeAST> TranslationUnit::get_type(std::shared_ptr<TokenIdentifi
 	return get_type(identifier->name);
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::get_function_return_type(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::get_function_return_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::function)
 	{
@@ -262,7 +262,7 @@ std::shared_ptr<TypeAST> TranslationUnit::get_function_return_type(std::shared_p
 	return nullptr;
 }
 
-void TranslationUnit::add_type(std::shared_ptr<TypeAST> type)
+void TranslationUnit::add_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::aggregate)
 	{
@@ -278,12 +278,12 @@ void TranslationUnit::add_type(std::shared_ptr<TypeAST> type)
 		assert_not_reached();
 }
 
-void TranslationUnit::add_type(std::string name, std::shared_ptr<TypeAST> type)
+void TranslationUnit::add_type(std::string name, const std::shared_ptr<TypeAST> &type)
 {
 	types[name] = type;
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(const std::shared_ptr<TypeAST> &type1, const std::shared_ptr<TypeAST> &type2)
 {
 	auto original_type1 = get_type(type1);
 	auto original_type2 = get_type(type2);
@@ -323,7 +323,7 @@ std::shared_ptr<TypeAST> TranslationUnit::convert_arithmetic_type(std::shared_pt
 	}
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::promote_integer(const std::shared_ptr<TypeAST> &type)
 {
 	auto original_type = get_type(type);
 	assert(is_arithmetic_type(original_type));
@@ -337,7 +337,7 @@ std::shared_ptr<TypeAST> TranslationUnit::promote_integer(std::shared_ptr<TypeAS
 		return get_type("unsigned int");
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+std::shared_ptr<TypeAST> TranslationUnit::composite_type(const std::shared_ptr<TypeAST> &type1, const std::shared_ptr<TypeAST> &type2)
 {
 	auto original_type1 = get_type(type1);
 	auto original_type2 = get_type(type2);
@@ -393,7 +393,7 @@ std::shared_ptr<TypeAST> TranslationUnit::composite_type(std::shared_ptr<TypeAST
 		assert_not_implemented();
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::convert_array_to_pointer(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::convert_array_to_pointer(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::array)
 	{
@@ -404,14 +404,14 @@ std::shared_ptr<TypeAST> TranslationUnit::convert_array_to_pointer(std::shared_p
 	return type;
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::convert_function_to_pointer(std::shared_ptr<TypeAST> type)
+std::shared_ptr<TypeAST> TranslationUnit::convert_function_to_pointer(const std::shared_ptr<TypeAST> &type)
 {
 	assert(type->kind == TypeKind::function);
 	auto ftype = std::static_pointer_cast<FunctionTypeAST>(type);
 	return std::make_shared<PointerTypeAST>(ftype);
 }
 
-std::shared_ptr<TypeAST> TranslationUnit::duplicate_type_with_qualifier(std::shared_ptr<TypeAST> type, TypeQualifier qualifier, DuplicateTypeAction action)
+std::shared_ptr<TypeAST> TranslationUnit::duplicate_type_with_qualifier(const std::shared_ptr<TypeAST> &type, TypeQualifier qualifier, DuplicateTypeAction action)
 {
 	auto handle_qualifier = [&action, &qualifier](std::set<TypeQualifier> &qualifiers)
 	{
@@ -485,13 +485,13 @@ std::shared_ptr<TypeAST> TranslationUnit::duplicate_type_with_qualifier(std::sha
 bool TranslationUnit::is_lvalue(std::shared_ptr<ExprAST> expr)
 {
 	return expr->node_type == ASTNodeType::expr_identifier
-		|| (expr->node_type == ASTNodeType::expr_literal && std::dynamic_pointer_cast<LiteralExprAST<std::string>>(expr))
-		|| expr->node_type == ASTNodeType::expr_member_access
-		|| (expr->node_type == ASTNodeType::expr_unary && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::dereference)
-		|| (expr->node_type == ASTNodeType::expr_binary && std::static_pointer_cast<BinaryExprAST>(expr)->op == BinaryOperator::array_subscript);
+		   || (expr->node_type == ASTNodeType::expr_literal && std::dynamic_pointer_cast<LiteralExprAST<std::string>>(expr))
+		   || expr->node_type == ASTNodeType::expr_member_access
+		   || (expr->node_type == ASTNodeType::expr_unary && std::static_pointer_cast<UnaryExprAST>(expr)->op == UnaryOperator::dereference)
+		   || (expr->node_type == ASTNodeType::expr_binary && std::static_pointer_cast<BinaryExprAST>(expr)->op == BinaryOperator::array_subscript);
 }
 
-bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_integer_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -518,7 +518,7 @@ bool TranslationUnit::is_integer_type(std::shared_ptr<TypeAST> type)
 	return is_enum_type(type);
 }
 
-bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_signed_integer_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -540,7 +540,7 @@ bool TranslationUnit::is_signed_integer_type(std::shared_ptr<TypeAST> type)
 		return is_enum_type(type);
 }
 
-bool TranslationUnit::is_unsigned_integer_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_unsigned_integer_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -562,7 +562,7 @@ bool TranslationUnit::is_unsigned_integer_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_real_float_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_real_float_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -581,7 +581,7 @@ bool TranslationUnit::is_real_float_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_float_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_float_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -598,7 +598,7 @@ bool TranslationUnit::is_float_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_double_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_double_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -615,7 +615,7 @@ bool TranslationUnit::is_double_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_long_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_long_type(const std::shared_ptr<TypeAST> &type)
 {
 	auto original_type = get_type(type);
 	if (original_type->kind == TypeKind::builtin)
@@ -628,7 +628,7 @@ bool TranslationUnit::is_long_type(std::shared_ptr<TypeAST> type)
 	return false;
 }
 
-bool TranslationUnit::is_long_double_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_long_double_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -645,7 +645,7 @@ bool TranslationUnit::is_long_double_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_void_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_void_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::builtin)
 	{
@@ -662,18 +662,18 @@ bool TranslationUnit::is_void_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_real_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_real_type(const std::shared_ptr<TypeAST> &type)
 {
 	return is_integer_type(type) || is_real_float_type(type);
 }
 
-bool TranslationUnit::is_arithmetic_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_arithmetic_type(const std::shared_ptr<TypeAST> &type)
 {
 	// TODO: MQ 2021-05-05 Include complex and imaginary types
 	return is_integer_type(type) || is_real_float_type(type);
 }
 
-bool TranslationUnit::is_pointer_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_pointer_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::pointer)
 		return true;
@@ -687,12 +687,12 @@ bool TranslationUnit::is_pointer_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_scalar_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_scalar_type(const std::shared_ptr<TypeAST> &type)
 {
 	return is_arithmetic_type(type) || is_pointer_type(type);
 }
 
-bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_aggregate_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::aggregate)
 		return true;
@@ -706,7 +706,7 @@ bool TranslationUnit::is_aggregate_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_struct_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_struct_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::aggregate
 		&& std::static_pointer_cast<AggregateTypeAST>(type)->aggregate_kind == AggregateKind::struct_)
@@ -721,7 +721,7 @@ bool TranslationUnit::is_struct_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_function_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_function_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::alias)
 	{
@@ -731,7 +731,7 @@ bool TranslationUnit::is_function_type(std::shared_ptr<TypeAST> type)
 	return type->kind == TypeKind::function;
 }
 
-bool TranslationUnit::is_enum_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_enum_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::enum_)
 		return true;
@@ -745,7 +745,7 @@ bool TranslationUnit::is_enum_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_array_type(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::array)
 		return true;
@@ -759,7 +759,7 @@ bool TranslationUnit::is_array_type(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+bool TranslationUnit::is_compatible_types(const std::shared_ptr<TypeAST> &type1, const std::shared_ptr<TypeAST> &type2)
 {
 	auto original_type1 = get_type(type1);
 	auto original_type2 = get_type(type2);
@@ -830,7 +830,7 @@ bool TranslationUnit::is_compatible_types(std::shared_ptr<TypeAST> type1, std::s
 	return false;
 }
 
-bool TranslationUnit::is_same_types(std::shared_ptr<TypeAST> type1, std::shared_ptr<TypeAST> type2)
+bool TranslationUnit::is_same_types(const std::shared_ptr<TypeAST> &type1, const std::shared_ptr<TypeAST> &type2)
 {
 	if (type1->kind == type2->kind)
 	{
@@ -892,7 +892,7 @@ bool TranslationUnit::is_same_types(std::shared_ptr<TypeAST> type1, std::shared_
 	return false;
 }
 
-bool TranslationUnit::is_null_pointer(std::shared_ptr<TypeAST> type, std::shared_ptr<ExprAST> expr)
+bool TranslationUnit::is_null_pointer(const std::shared_ptr<TypeAST> &type, std::shared_ptr<ExprAST> expr)
 {
 	if (is_integer_type(type) || is_void_pointer(type))
 	{
@@ -902,7 +902,7 @@ bool TranslationUnit::is_null_pointer(std::shared_ptr<TypeAST> type, std::shared
 	return false;
 }
 
-bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_void_pointer(const std::shared_ptr<TypeAST> &type)
 {
 	if (type->kind == TypeKind::pointer)
 	{
@@ -920,13 +920,13 @@ bool TranslationUnit::is_void_pointer(std::shared_ptr<TypeAST> type)
 		return false;
 }
 
-bool TranslationUnit::is_volatile_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_volatile_type(const std::shared_ptr<TypeAST> &type)
 {
 	auto qualifiers = get_type_qualifiers(type);
 	return std::find(qualifiers.begin(), qualifiers.end(), TypeQualifier::volatile_) != qualifiers.end();
 }
 
-bool TranslationUnit::is_array_or_pointer_type(std::shared_ptr<TypeAST> type)
+bool TranslationUnit::is_array_or_pointer_type(const std::shared_ptr<TypeAST> &type)
 {
 	return is_array_type(type) || is_pointer_type(type);
 }

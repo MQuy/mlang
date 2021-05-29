@@ -472,7 +472,7 @@ void Preprocessor::expand_directives(std::vector<std::shared_ptr<Token>>& tokens
 		throw std::runtime_error("# " + token->lexeme + " is not supported");
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(std::shared_ptr<Macro> macro,
+std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(const std::shared_ptr<Macro>& macro,
 																		  const std::unordered_map<std::string, bool>& hide_set)
 {
 	std::vector<std::shared_ptr<Token>> expanded_tokens;
@@ -508,7 +508,7 @@ std::vector<std::shared_ptr<Token>> Preprocessor::substitute_object_macro(std::s
 	return expanded_tokens;
 }
 
-std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(std::shared_ptr<Macro> macro,
+std::vector<std::shared_ptr<Token>> Preprocessor::substitute_function_macro(const std::shared_ptr<Macro>& macro,
 																			const std::vector<std::vector<std::shared_ptr<Token>>>& arguments,
 																			const std::unordered_map<std::string, bool>& hide_set)
 {

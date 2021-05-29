@@ -252,7 +252,7 @@ std::shared_ptr<Token> Lexer::scan_character()
 	if (!look_ahead_and_match('\''))
 		throw UnexpectedToken("' is expected");
 
-	return std::make_shared<TokenLiteral<unsigned char>>(TokenLiteral<unsigned char>(ch, source.substr(current, runner - current + 1)));
+	return std::make_shared<TokenLiteral<unsigned char>>(ch, source.substr(current, runner - current + 1));
 }
 
 std::shared_ptr<Token> Lexer::scan_string()
@@ -261,7 +261,7 @@ std::shared_ptr<Token> Lexer::scan_string()
 	while (runner < source_length)
 	{
 		if (look_ahead_and_match('"'))
-			return std::make_shared<TokenLiteral<std::string>>(TokenLiteral<std::string>(ss.str(), source.substr(current, runner - current + 1)));
+			return std::make_shared<TokenLiteral<std::string>>(ss.str(), source.substr(current, runner - current + 1));
 		else
 			ss << scan_escape_sequences();
 	}

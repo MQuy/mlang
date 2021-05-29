@@ -60,11 +60,11 @@ public:
 
 	void enter_scope();
 	void leave_scope();
-	std::shared_ptr<TypeAST> get_member_type(std::shared_ptr<AggregateTypeAST> type, std::string member_name);
-	bool add_type_declaration(std::shared_ptr<TypeAST> type, bool is_forward);
-	void define_type(std::string name, std::shared_ptr<TypeAST> type, bool override = false, bool is_typedef = false);
+	std::shared_ptr<TypeAST> get_member_type(const std::shared_ptr<AggregateTypeAST> &type, std::string member_name);
+	bool add_type_declaration(std::shared_ptr<TypeAST> &type, bool is_forward);
+	void define_type(std::string name, std::shared_ptr<TypeAST> &type, bool override = false, bool is_typedef = false);
 	void resolve_type(std::shared_ptr<TypeAST> type);
-	void fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, std::shared_ptr<TypeAST> type);
+	void fill_initializer_type(std::shared_ptr<InitializerExprAST> expr, const std::shared_ptr<TypeAST> &type);
 
 private:
 	FunctionDefinitionAST *in_func_scope;

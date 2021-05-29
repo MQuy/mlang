@@ -388,7 +388,7 @@ void Parser::parse_type_qualifier(std::set<TypeQualifier>& type_qualifiers)
 	}
 }
 
-std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> Parser::parse_init_declarator(std::shared_ptr<TypeAST> type)
+std::tuple<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>, std::shared_ptr<ExprAST>> Parser::parse_init_declarator(const std::shared_ptr<TypeAST>& type)
 {
 	auto [identifier, inner_type] = parse_declarator(type);
 
@@ -432,7 +432,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<ExprAST>> Parser::pa
 	return std::make_pair(token_identifier, expr);
 }
 
-void Parser::revert_type_relation(std::shared_ptr<TypeAST> source_type, std::shared_ptr<TypeAST> dest_type, std::shared_ptr<TypeAST> anchor_type)
+void Parser::revert_type_relation(const std::shared_ptr<TypeAST>& source_type, const std::shared_ptr<TypeAST> dest_type, const std::shared_ptr<TypeAST>& anchor_type)
 {
 	if (source_type != anchor_type)
 	{
@@ -503,7 +503,7 @@ std::shared_ptr<TypeAST> Parser::parse_typename()
 	return declarator_type;
 }
 
-std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::parse_declarator(std::shared_ptr<TypeAST> type, bool abstract)
+std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::parse_declarator(const std::shared_ptr<TypeAST>& type, bool abstract)
 {
 	if (match(TokenName::tk_asterisk))
 	{
@@ -562,7 +562,7 @@ std::pair<std::shared_ptr<TokenIdentifier>, std::shared_ptr<TypeAST>> Parser::pa
 	return std::make_pair(identifier, inner_type ? inner_type : outer_type);
 }
 
-std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(std::shared_ptr<TypeAST> type)
+std::shared_ptr<ArrayTypeAST> Parser::parse_declarator_array(const std::shared_ptr<TypeAST>& type)
 {
 	if (!match(TokenName::tk_left_bracket))
 		return nullptr;
@@ -671,7 +671,7 @@ std::shared_ptr<StmtAST> Parser::parse_stmt()
 	return parse_expr_stmt();
 }
 
-std::shared_ptr<LabelStmtAST> Parser::parse_label_stmt(std::shared_ptr<TokenIdentifier> identifier)
+std::shared_ptr<LabelStmtAST> Parser::parse_label_stmt(const std::shared_ptr<TokenIdentifier>& identifier)
 {
 	auto stmt = parse_stmt();
 	return std::make_shared<LabelStmtAST>(LabelStmtAST(identifier, stmt));
